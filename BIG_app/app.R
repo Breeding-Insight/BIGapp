@@ -4,7 +4,7 @@ required_packages <- c("updog", "ggplot2", "VariantAnnotation", "SNPRelate",
                        "factoextra", "readxl", "ggrepel", "dplyr", "shiny",
                        "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
                        "dichromat", "bs4Dash", "shinyWidgets", "GWASpoly","data.table",
-                       "matrixcalc","Matrix")
+                       "matrixcalc","Matrix", "shinyalert")
 
 for(package in required_packages) {
   if(!require(package, character.only = TRUE)) {
@@ -62,14 +62,19 @@ ui <- dashboardPage(
               box(width = 12,
                 title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
                 fileInput("updog_rdata","Choose Updog Rdata File", accept = ".rda"),
+                textInput("output_name", "Output File Name"),
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(500), step = 1),
                 sliderInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
+                #numericInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
                 sliderInput("Bias","Bias (Updog filter)", min = 0, max = 10, value = c(0.5,2), step = 0.1),
+                #numericInput("Bias_min","Bias minimum (Updog filter)", min = 0, max = 10, value = 0.5, step = 0.1),
+                #numericInput("Bias_max","Bias maximum (Updog filter)", min = 0, max = 10, value = 2, step = 0.1),
                 numericInput("OD_filter","OD (Updog filter)", min = 0, value = 0.5),
-                numericInput("Prop_mis","Proportion of indiv. misclassified in SNP (Updog filter)", min = 0, max=1, value = 0.05),
-                numericInput("maxpostprop_filter","Maximum posterior probability (Updog filter)", min = 0, value = 0.9),
-                numericInput("missing_filter","Remove SNPs with >= missing data", min = 0, max = 1, value = 0.5),
-                downloadButton("download_dosages", "Download Filtered Dosage File"),
+                numericInput("Prop_mis","Prop_mis (Updog filter)", min = 0, max=1, value = 0.05, step = 0.05),
+                numericInput("maxpostprob_filter","maxpostprob (Updog filter)", min = 0, value = 0.9, step = 0.1),
+                #numericInput("missing_filter","Remove SNPs with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
+                #numericInput("missing_filter","Remove Samples with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
+                actionButton("start_updog_filter", "Download Filtered Dosage File", icon = icon("download")),
                   div(style="display:inline-block; float:right",dropdownButton(
                     tags$h3("Updog Filter Parameters"),
                     #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
@@ -89,11 +94,11 @@ ui <- dashboardPage(
               tabPanel("Bias Histogram", icon = icon("image"), plotOutput("bias_hist", height = '550px')),
               tabPanel("OD Histogram", icon = icon("image"), plotOutput("od_hist", height = '550px')),
               tabPanel("MaxPostProb Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px')),
-              tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px')),
-              tabPanel("SNP Distribution Plot", icon = icon("image"), plotOutput("snp_dist", height = '550px')),
+              tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px'))
+              #tabPanel("SNP Distribution Plot", icon = icon("image"), plotOutput("snp_dist", height = '550px')),
               #tabPanel("SNP % Missing Histogram", icon = icon("image"), plotOutput("missing_snp_hist", height = '550px')),
               #tabPanel("Sample % Missing Histogram", icon = icon("image"), plotOutput("missing_sample_hist", height = '550px')),
-              tabPanel("Summary Statistics", icon = icon("sliders"), tableOutput("dosages"))
+              #tabPanel("Summary Statistics", icon = icon("sliders"), tableOutput("dosages"))
               #plotOutput("coverage"), # Placeholder for plot outputs
               )
             ),
@@ -130,7 +135,7 @@ ui <- dashboardPage(
               title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
               fileInput("madc_file", "Choose MADC File", accept = c(".csv")),
               #checkboxInput("off-targets","Include off-target loci?"),
-              fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
+              #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("output_name", "Output File Name"),
               numericInput("ploidy", "Species Ploidy", min = 1, value = 2),
               selectInput("updog_model", "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
@@ -170,8 +175,17 @@ ui <- dashboardPage(
               ),
               valueBoxOutput("MADCsnps")
               #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
-          )
+          ),
+         
+         fluidRow(
+              box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+                progressBar(id = "pb_madc", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+              )
+         
+         ) 
+        
         )  
+      
       ),
       tabItem(
         tabName = "pca",
@@ -506,6 +520,10 @@ server <- function(input, output, session) {
     cores <- input$cores
     model_select <- input$updog_model
     
+
+    #Status
+    updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
+
     # Perform analysis
     # Modify the get_counts function to accept the MADC file path as an argument
     get_counts <- function(madc_file, output_name) {
@@ -578,6 +596,10 @@ server <- function(input, output, session) {
       return(matrices_list)
     }
     
+
+    #Status
+    updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
+
     #Call the get_matrices function
     matrices <- get_matrices(result_df)
     
@@ -597,26 +619,25 @@ server <- function(input, output, session) {
     updog_file <- paste0(output_name,'_MADC_alt_ref_counts_unfiltered_dose_from_updog_norm_genotype_matrix.csv')
     write.csv(genomat,file=updog_file)
 
-
     #Filter dosage calls (I think this is the updog recommended)
-    mout_cleaned <- filter_snp(mout, prop_mis < 0.2 & bias > 0.5 & bias < 2 & od > 0.05) #Recommended filtering by updog
+    #mout_cleaned <- filter_snp(mout, prop_mis < 0.2 & bias > 0.5 & bias < 2 & od > 0.05) #Recommended filtering by updog
     
     #Save the filtered dosage matrix
-    genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
-    head(genomat_cleaned)
+    #genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
+    #head(genomat_cleaned)
     
-    cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_prop_miss_0.2_bias_0.5-2_updog_norm_model_dosage_genotype_matrix.csv')
+    #cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_prop_miss_0.2_bias_0.5-2_updog_norm_model_dosage_genotype_matrix.csv')
     #Save the matrix as a csv file
-    write.csv(genomat_cleaned,file= cleaned_name)
+    #write.csv(genomat_cleaned,file= cleaned_name)
 
     #Save rda file for filtering
     save(mout, result_df, file = paste0(output_name,"_MADC_unfiltered_dose_from_updog.rda"))
     
     #Reactive item
-    output$table2 <- renderTable({
+    #output$table2 <- renderTable({
     # Generate table
-      genomat_cleaned
-    }) 
+    #  genomat_cleaned
+    #}) 
     
     # Display analysis result
     #output$analysis_result <- renderText({
@@ -627,10 +648,88 @@ server <- function(input, output, session) {
   #figures$plot1 <- heatmap(G.mat.updog, labCol = NA)# Your plot object
   #tables$table1 <- result_df# Your table object
   #tables$table2 <- genomat_cleaned
-
+  
+  #Status
+  updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
+  
   })
   
   #Updog filtering
+  observeEvent(input$start_updog_filter, {
+    req(input$Prop_mis, input$Bias, input$OD_filter, input$size_depth)
+
+    #Variables
+    Prop_mis <- input$Prop_mis
+    Bias_min <- input$Bias[1]
+    Bias_max <- input$Bias[2]
+    OD_filter <- input$OD_filter
+    size_depth <- input$size_depth
+    output_name <- input$output_name
+
+
+    #Input file
+    madc_path <- input$updog_rdata$datapath
+    load(madc_path)
+
+    #Number of SNPs
+    length(mout$snpdf$bias)
+
+    #Filter dosage calls (I think this is the updog recommended)
+    #mout_cleaned <- filter_snp(mout, prop_mis < input$Prop_mis & bias > input$Bias_min & bias < input$Bias_max & od > input$OD_filter) #Recommended filtering by updog
+    print("Filtering")
+    #Needing to paste the updog filter_snp() method directly to work with shiny
+    filter_snp_custom <- function(x, expr) {
+      assertthat::assert_that(is.multidog(x))
+      cond <- eval(expr = substitute(expr), envir = x$snpdf)
+      x$snpdf <- x$snpdf[cond, , drop = FALSE]
+      goodsnps <- x$snpdf$snp
+      x$inddf <- x$inddf[x$inddf$snp %in% goodsnps, , drop = FALSE]
+      return(x)
+    }
+
+    mout_cleaned <- filter_snp_custom(mout, prop_mis < Prop_mis & bias > Bias_min & bias < Bias_max & od < OD_filter) #Recommended filtering by updog
+    print("Filtering complete")
+    # Filter using the dynamically constructed expression
+    #mout_cleaned <- filter_snp(mout, filter_expr)
+    
+    #Notify user if all SNPs were removed and stop filtering
+    if (length(mout_cleaned$snpdf$snp) == 0) {
+      # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "No SNPs were found after cleaning the data.\n Adjust filtering parameters.",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = TRUE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE
+          )
+                         
+      
+      # Stop the observeEvent gracefully
+      return()
+    }
+    
+
+    # Replace values in "geno" column with NA where "size" is less than input value
+    mout_cleaned$inddf$geno[mout_cleaned$inddf$size < size_depth] <- NA
+
+    #Save the filtered dosage matrix
+    genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
+    print("Generated genotype matrix")
+    cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_updog_dosage_genotype_matrix.csv')
+    #Save the matrix as a csv file
+    write.csv(genomat_cleaned,file= cleaned_name)
+    print("Write csv complete")
+  
+  })
+
   observeEvent(input$updog_rdata, {
     #req(filter_hist$hist_bin_value)
 
@@ -643,10 +742,6 @@ server <- function(input, output, session) {
 
     #Number of SNPs
     length(mout$snpdf$bias)
-
-    #Read depth filter
-    # Replace values in "geno" column with NA where "size" is less than input value
-    mout$inddf$geno[mout$inddf$size < as.numeric(input$size_depth)] <- NA
 
     ###Bias
 
@@ -737,6 +832,16 @@ server <- function(input, output, session) {
       #abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
     })
+
+    #Filter dosage calls (I think this is the updog recommended)
+
+    #mout_cleaned <- filter_snp(mout, prop_mis < as.numeric(input$Prop_mis) & bias > input$Bias_min & bias < input$Bias_max & od > input$OD_filter) #Recommended filtering by updog
+
+    # Replace values in "geno" column with NA where "size" is less than input value
+    #mout_cleaned$inddf$geno[mout_cleaned$inddf$size < as.numeric(input$size_depth)] <- NA
+
+    #Save the filtered dosage matrix
+    #genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
 
   })
   
