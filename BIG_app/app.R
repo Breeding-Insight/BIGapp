@@ -1209,15 +1209,16 @@ server <- function(input, output, session) {
       #get qqplot
       data_qq <- cbind.data.frame(SNP=data.loco.scan@map$Marker,Chr=data.loco.scan@map$Chrom, Pos=data.loco.scan@map$Position,10^(-data.loco.scan@scores[[colnames(data@pheno[i])]]))
       
+      source("FUN/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
+
       output$qq_plot <- renderPlot({
-        CMplot::CMplot(data_qq,plot.type="q",col=c(1:8),
+        CMplot_shiny(data_qq,plot.type="q",col=c(1:8),
                  ylab.pos=2,
                  #threshold= 10^(-4.54042),
                  #signal.cex=1.2,signal.col="red",signal.pch=c(1:8),
                  file.name=colnames(data@pheno[i]),
                  conf.int=FALSE,
-                 box=F,multraits=TRUE,file.output=FALSE,
-                 verbose=TRUE)
+                 box=F,multraits=TRUE,file.output=FALSE)
 
       })
       #plot for each model per trait
