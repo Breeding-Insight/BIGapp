@@ -215,6 +215,16 @@ ui <- dashboardPage(
                 title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
                 "Change the PCA plot parameters", br(),
                 selectInput('group_info', label = 'Color Variable (eg, Taxon)', choices = NULL),
+                materialSwitch('use_cat', label = "Color Specific Category Within Variable?", status = "success"),
+                conditionalPanel(condition = "input.use_cat",
+                  virtualSelectInput(
+                  inputId = "cat_color",
+                  label = "Select Category To Color:",
+                  choices = NULL,
+                  showValueAsTags = TRUE,
+                  search = TRUE,
+                  multiple = TRUE
+                )),
                 selectInput("color_choice", "Color Palette", choices = c("YlOrRd","YlOrBr","YlGnBu","YlGn",
                                                                                   "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
                                                                                   "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
@@ -847,14 +857,35 @@ server <- function(input, output, session) {
   
   #PCA dropdown
 
+  data <- reactiveValues(info_df = NULL)
+
   # Update dropdown menu choices based on uploaded passport file
   observeEvent(input$passport_file, {
     info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
+    data$info_df <- info_df  # Store info_df in reactiveValues
+
     updateSelectInput(session, "group_info", choices = colnames(info_df))
 
     output$passport_table <- renderDT({info_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 4)
     )
   })
+
+  #PCA specific category selection
+  observeEvent(input$group_info, {
+    req(data$info_df)
+
+    #updateMaterialSwitch(session, inputId = "use_cat", status = "success")
+
+    # Get selected column name
+    selected_col <- input$group_info
+  
+    # Extract unique values from the selected column
+    unique_values <- unique(data$info_df[[selected_col]])
+
+    #Add category selection
+    updateVirtualSelect("cat_color", choices = unique_values, session = session)
+
+    })
 
   #PCA events
   observeEvent(input$pca_start, {
@@ -936,32 +967,86 @@ server <- function(input, output, session) {
 
   #2D PCA plotting
   # Render PCA plot reactive to changes in control options
+ # output$pca_plot_ggplot <- renderPlot({
+ #   req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette)
+ #   
+ #   #Generate colors
+ #   unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
+ #   #my_palette <- randomcoloR::distinctColorPalette(length(unique_countries))
+ #   palette <- brewer.pal(length(unique_countries),input$color_choice)
+ #   my_palette <- colorRampPalette(palette)(length(unique_countries))
+
+  #  if input$use_cat == TRUE {}
+  #
+  #  ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], y = pca_data$pc_df_pop[[input$pc_Y]], color = pca_data$pc_df_pop[[input$group_info]])) +
+  #    geom_point(size = 2, alpha=0.8) +
+  #    scale_color_manual(values = my_palette) +
+  #    guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
+  #    theme_minimal() +
+  #    theme(
+  #      panel.border = element_rect(color = "black", fill = NA),
+  #      legend.text = element_text(size = 14),
+  #      axis.title = element_text(size = 14),
+  #      axis.text = element_text(size = 12),
+  #      legend.title = element_text(size = 16)
+  #    ) +
+  #    labs(
+  #      x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
+  #      y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
+  #      color = input$group_info)
+  #})
+
   output$pca_plot_ggplot <- renderPlot({
     req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette)
     
-    #Generate colors
+    # Generate colors
     unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-    #my_palette <- randomcoloR::distinctColorPalette(length(unique_countries))
-    palette <- brewer.pal(length(unique_countries),input$color_choice)
+    palette <- brewer.pal(length(unique_countries), input$color_choice)
     my_palette <- colorRampPalette(palette)(length(unique_countries))
-
-    ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], y = pca_data$pc_df_pop[[input$pc_Y]], color = pca_data$pc_df_pop[[input$group_info]])) +
-      geom_point(size = 2, alpha=0.8) +
-      scale_color_manual(values = my_palette) +
-      guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
-      theme_minimal() +
-      theme(
-        panel.border = element_rect(color = "black", fill = NA),
-        legend.text = element_text(size = 14),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
-        legend.title = element_text(size = 16)
-      ) +
-      labs(
-        x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
-        y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-        color = input$group_info)
-  })
+    
+    if (input$use_cat) {
+      cat_colors <- c(input$cat_color, "grey")
+      ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+                                      y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                      color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
+        geom_point(size = 2, alpha = 0.8) +
+        scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors)) +
+        guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
+        theme_minimal() +
+        theme(
+          panel.border = element_rect(color = "black", fill = NA),
+          legend.text = element_text(size = 14),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.title = element_text(size = 16)
+        ) +
+        labs(
+          x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
+          y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
+          color = input$group_info
+        )
+    } else {
+      ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+                                      y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                      color = pca_data$pc_df_pop[[input$group_info]])) +
+        geom_point(size = 2, alpha = 0.8) +
+        scale_color_manual(values = my_palette) +
+        guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
+        theme_minimal() +
+        theme(
+          panel.border = element_rect(color = "black", fill = NA),
+          legend.text = element_text(size = 14),
+          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 12),
+          legend.title = element_text(size = 16)
+        ) +
+        labs(
+          x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
+          y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
+          color = input$group_info
+        )
+    }
+})
 
   #3D PCA plotting
   output$pca_plot <- renderPlotly({
