@@ -1008,7 +1008,7 @@ server <- function(input, output, session) {
 
     # Define a named vector to map input labels to grey values
     label_to_value <- c("Light Grey" = "grey80",
-                        "Grey" = "grey",
+                        "Grey" = "grey60",
                         "Dark Grey" = "grey40",
                         "Black" = "black")
 
