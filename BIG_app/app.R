@@ -224,7 +224,9 @@ ui <- dashboardPage(
                   showValueAsTags = TRUE,
                   search = TRUE,
                   multiple = TRUE
-                )),
+                ),
+                  selectInput("grey_choice", "Select Grey", choices = c("Light Grey", "Grey", "Dark Grey", "Black"), selected = "Grey")
+                ),
                 selectInput("color_choice", "Color Palette", choices = c("YlOrRd","YlOrBr","YlGnBu","YlGn",
                                                                                   "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
                                                                                   "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
@@ -997,20 +999,29 @@ server <- function(input, output, session) {
   #})
 
   output$pca_plot_ggplot <- renderPlot({
-    req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette)
+    req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette, input$grey_choice)
     
     # Generate colors
     unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
     palette <- brewer.pal(length(unique_countries), input$color_choice)
     my_palette <- colorRampPalette(palette)(length(unique_countries))
-    
+
+    # Define a named vector to map input labels to grey values
+    label_to_value <- c("Light Grey" = "grey80",
+                        "Grey" = "grey",
+                        "Dark Grey" = "grey40",
+                        "Black" = "black")
+
+    # Get the corresponding value based on the selected grey
+    selected_grey <- label_to_value[[input$grey_choice]]
+
     if (input$use_cat) {
       cat_colors <- c(input$cat_color, "grey")
       ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
                                       y = pca_data$pc_df_pop[[input$pc_Y]], 
                                       color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
         geom_point(size = 2, alpha = 0.8) +
-        scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors)) +
+        scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
         theme_minimal() +
         theme(
@@ -1025,6 +1036,7 @@ server <- function(input, output, session) {
           y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
           color = input$group_info
         )
+
     } else {
       ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
                                       y = pca_data$pc_df_pop[[input$pc_Y]], 
