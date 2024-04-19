@@ -194,11 +194,11 @@ ui <- dashboardPage(
           column(width = 3,
             box(
               title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
-              fileInput("dosage_file", "Choose Genotypes File (Samples as columns)", accept = c(".csv")),
+              fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
               fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
               #textInput("output_name", "Output File Name (disabled)"),
               #Dropdown will update after pasport upload
-              numericInput("ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("pca_ploidy", "Species Ploidy", min = 1, value = 2),
               actionButton("pca_start", "Run Analysis"),
               #div(style="display:inline-block; float:right",dropdownButton(
               #     tags$h3("PCA info"),
@@ -891,18 +891,78 @@ server <- function(input, output, session) {
 
   #PCA events
   observeEvent(input$pca_start, {
+    req(input$pca_ploidy)
     # Get inputs
     geno <- input$dosage_file$datapath
     pedigree_df <- input$passport_file$datapath
     g_info <- as.character(input$group_info)
     output_name <- input$output_name
-    ploidy <- input$ploidy
+    ploidy <- input$pca_ploidy
     
     PCX <- input$pc_X
     PCY <- input$pc_Y
-    ### Perform analysis
 
-    genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #Import genotype information if in VCF format
+    VCF2GT <- function(vcf, ploidy = NULL) {
+      if (ploidy == 2) {
+    
+      #Get genotypes from VCF
+      geno.mat <- geno(vcf)$GT
+    
+      #Convert to dosages (0,1,2, etc)
+      geno.mat[geno.mat == "0/0"] <- 0
+      geno.mat[geno.mat == "0/1"] <- 1
+      geno.mat[geno.mat == "1/0"] <- 1
+      geno.mat[geno.mat == "1/1"] <- 2
+      geno.mat[geno.mat == "./."] <- NA
+    
+      }
+  
+      type(geno.mat) <- "numeric"
+  
+      return(geno.mat)
+    }
+
+    #If the input file is a VCF, extract genotypes (throw an error if ploidy is also > 2)
+    if (grepl("\\.vcf(\\.gz)?$", geno)) {
+
+      #Throw error if VCF file and ploidy is not diploid (only support diploid VCF for now)
+      if (as.numeric(ploidy) != 2) {
+      # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "Only diploid VCF files supported",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE
+          )
+                         
+      
+        # Stop the observeEvent gracefully
+        return()
+      }
+
+      #Import genotypes and convert to dosage format
+      vcf <- readVcf(geno)
+      genomat <- VCF2GT(vcf, ploidy=2)
+      
+      #drop vcf
+      rm(vcf)
+    } else {
+      #Import genotype matrix
+      genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    } 
+
+
+    #Start analysis
 
     #Passport info
     # Sample dataframe with a column of taxon names
@@ -912,7 +972,6 @@ server <- function(input, output, session) {
     row.names(info_df) <- info_df[,1]
 
     #Plotting
-    #First build a relationship matrix using the genotype values
     #First build a relationship matrix using the genotype values
     G.mat.updog <- AGHmatrix::Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
     
