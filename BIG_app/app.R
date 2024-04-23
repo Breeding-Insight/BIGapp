@@ -238,10 +238,11 @@ ui <- dashboardPage(
                 selectInput("pc_Y", "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
                 div(style="display:inline-block; float:right",dropdownButton(
                       tags$h3("Save Image"),
-                      selectInput(inputId = 'image_type', label = 'File', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
-                      sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      selectInput(inputId = 'pca_figure', label = 'Figure', choices = c("2D Plot", "Scree Plot"), selected = "2D Plot"),
+                      selectInput(inputId = 'pca_image_type', label = 'File', choices = c("jpeg","tiff","png"), selected = "jpeg"),
+                      sliderInput(inputId = 'pca_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
+                      sliderInput(inputId = 'pca_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
+                      sliderInput(inputId = 'pca_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
                       downloadButton("download_pca", "Save"),
                       circle = FALSE,
                       status = "danger", 
@@ -500,6 +501,13 @@ server <- function(input, output, session) {
 
   #shiny.maxRequestSize = 10000 * 1024^2; # 10 GB <- This is for a future limit when using BI's server remotely
   
+  #Plots for downloading
+  all_plots <- reactiveValues(
+    pca_2d = NULL,
+    pca_3d = NULL,
+    pca_scree = NULL
+
+    )
   
   #PCA reactive values
   pca_data <- reactiveValues(
@@ -508,6 +516,7 @@ server <- function(input, output, session) {
     my_palette = NULL
 
   )
+
   #SNP reactive values
   snp_counts <- reactiveValues(
     snp_count = 0,
@@ -1026,38 +1035,8 @@ server <- function(input, output, session) {
     }
   )
 
-  #2D PCA plotting
-  # Render PCA plot reactive to changes in control options
- # output$pca_plot_ggplot <- renderPlot({
- #   req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette)
- #   
- #   #Generate colors
- #   unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
- #   #my_palette <- randomcoloR::distinctColorPalette(length(unique_countries))
- #   palette <- brewer.pal(length(unique_countries),input$color_choice)
- #   my_palette <- colorRampPalette(palette)(length(unique_countries))
-
-  #  if input$use_cat == TRUE {}
-  #
-  #  ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], y = pca_data$pc_df_pop[[input$pc_Y]], color = pca_data$pc_df_pop[[input$group_info]])) +
-  #    geom_point(size = 2, alpha=0.8) +
-  #    scale_color_manual(values = my_palette) +
-  #    guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
-  #    theme_minimal() +
-  #    theme(
-  #      panel.border = element_rect(color = "black", fill = NA),
-  #      legend.text = element_text(size = 14),
-  #      axis.title = element_text(size = 14),
-  #      axis.text = element_text(size = 12),
-  #      legend.title = element_text(size = 16)
-  #    ) +
-  #    labs(
-  #      x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
-  #      y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-  #      color = input$group_info)
-  #})
-
-  output$pca_plot_ggplot <- renderPlot({
+  ##2D PCA plotting
+  observe({
     req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette, input$grey_choice)
     
     # Generate colors
@@ -1074,11 +1053,13 @@ server <- function(input, output, session) {
     # Get the corresponding value based on the selected grey
     selected_grey <- label_to_value[[input$grey_choice]]
 
+    # Similar plotting logic here
     if (input$use_cat) {
+        # cat plotting logic
       cat_colors <- c(input$cat_color, "grey")
-      ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                      y = pca_data$pc_df_pop[[input$pc_Y]], 
-                                      color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
+      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+                                        y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                        color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
         geom_point(size = 2, alpha = 0.8) +
         scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
@@ -1095,11 +1076,11 @@ server <- function(input, output, session) {
           y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
           color = input$group_info
         )
-
     } else {
-      ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                      y = pca_data$pc_df_pop[[input$pc_Y]], 
-                                      color = pca_data$pc_df_pop[[input$group_info]])) +
+        # non-cat plotting logic
+        plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+                                        y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                        color = pca_data$pc_df_pop[[input$group_info]])) +
         geom_point(size = 2, alpha = 0.8) +
         scale_color_manual(values = my_palette) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
@@ -1117,7 +1098,15 @@ server <- function(input, output, session) {
           color = input$group_info
         )
     }
-})
+
+    all_plots$pca_2d <- plot  # Assign the plot to your reactiveValues
+  })
+
+  #Plot the 2d plot
+  output$pca_plot_ggplot <- renderPlot({
+    req(all_plots$pca_2d)  # Ensure the plot is ready
+    all_plots$pca_2d
+  })
 
   #3D PCA plotting
   output$pca_plot <- renderPlotly({
@@ -1146,7 +1135,7 @@ server <- function(input, output, session) {
 
   })
 
-  output$scree_plot <- renderPlot({
+  observe({
     #PCA scree plot
     req(pca_data$variance_explained)
 
@@ -1156,7 +1145,7 @@ server <- function(input, output, session) {
     plot_data <- data.frame(PC = 1:10, Variance_Explained = var_explained[1:10])
 
     # Use ggplot for plotting
-    ggplot(plot_data, aes(x = PC, y = Variance_Explained)) + 
+    plot <- ggplot(plot_data, aes(x = PC, y = Variance_Explained)) + 
       geom_bar(stat = "identity", fill = "lightblue", alpha = 0.9, color = "black") +  # Bars with some transparency
       geom_line(color = "black") +  # Connect points with a line
       geom_point(color = "black") +  # Add points on top of the line for emphasis
@@ -1171,9 +1160,17 @@ server <- function(input, output, session) {
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 12),
         legend.title = element_text(size = 16)
-      ) 
+      )
+
+      all_plots$pca_scree <- plot
 
     })
+
+  #Scree plot
+  output$scree_plot <- renderPlot({
+    req(all_plots$pca_scree)  # Ensure the plot is ready
+    all_plots$pca_scree
+  })
 
 
   gwas_vars <- reactiveValues(
@@ -1496,6 +1493,46 @@ server <- function(input, output, session) {
    
 
   })
+
+  #Download figures for PCA
+  output$download_pca <- downloadHandler(
+
+    filename = function() {
+      if (input$pca_image_type == "jpeg") {
+        paste("pca-", Sys.Date(), ".jpg", sep="")
+      } else if (input$pca_image_type == "png") {
+        paste("pca-", Sys.Date(), ".png", sep="")
+      } else {
+        paste("pca-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$pca_figure)
+      
+      if (input$pca_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
+      } else if (input$pca_image_type == "png") {
+        png(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      if (input$pca_figure == "2D Plot") {
+        print(all_plots$pca_2d)
+      } else if (input$pca_figure == "Scree Plot") {
+        print(all_plots$pca_scree)
+      #} else if (input$pca_figure == "3D Plot") {
+        #print(all_plots$pca3d)  # Assuming you might want a 3D plot as well
+      } else {
+        plot(x = 1:10, y = 1:10, main = "Fallback Simple Test Plot")  # Fallback simple test plot
+      }
+
+      dev.off()
+    }
+
+  )
 
   output$downloadData <- downloadHandler(
     filename = function() {
