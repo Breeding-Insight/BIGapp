@@ -4,7 +4,7 @@ required_packages <- c("updog", "ggplot2", "VariantAnnotation", "SNPRelate",
                        "factoextra", "readxl", "ggrepel", "dplyr", "shiny",
                        "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
                        "dichromat", "bs4Dash", "shinyWidgets", "GWASpoly","data.table",
-                       "matrixcalc","Matrix", "shinyalert")
+                       "matrixcalc","Matrix", "shinyalert","rrBLUP", "tidyverse")
 
 for(package in required_packages) {
   if(!require(package, character.only = TRUE)) {
@@ -18,8 +18,24 @@ ui <- dashboardPage(
   skin = "black",
   dashboardHeader(title = tagList(
     tags$img(src = 'BIG_logo_edit.png', height = '40', width = '40'),
-    tags$span("BreedingInsights w/ Genomics", style = "font-size: 12px; margin-left: 1px;")
-  )
+    tags$span("Breeding Insight Genomics", style = "font-size: 12px; margin-left: 1px;")
+  )#,
+    #dropdownMenu(type = "notifications",
+    #  notificationItem(
+    #    text = "5 new users today",
+    #    icon("users")
+    #  ),
+    #  notificationItem(
+    #    text = "12 items delivered",
+    #    icon("truck"),
+    #    status = "success"
+    #  ),
+    #  notificationItem(
+    #    text = "Server load at 86%",
+    #    icon = icon("exclamation-triangle"),
+    #    status = "warning"
+    #  )
+   # )
 ),
   dashboardSidebar(
     skin="light", status = "info",
@@ -30,9 +46,9 @@ ui <- dashboardPage(
               menuSubItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
               menuSubItem("SNP Filtering", tabName = "filtering", icon = icon("filter"))),
       menuItem("PCA", tabName = "pca", icon = icon("chart-simple")),
-      menuItem("GWAS", tabName = "gwas", icon = icon("think-peaks")),
       menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
-      menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
+      menuItem("GWAS", tabName = "gwas", icon = icon("think-peaks")),
+      #menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
       menuItem("Genomic Prediction", tabName = "prediction", icon = icon("right-left")),
       menuItem("Source Code", tabName = "code", icon = icon("circle-info")),
       menuItem("Help", tabName = "help", icon = icon("circle-question"))
@@ -200,14 +216,15 @@ ui <- dashboardPage(
               #Dropdown will update after pasport upload
               numericInput("pca_ploidy", "Species Ploidy", min = 1, value = 2),
               actionButton("pca_start", "Run Analysis"),
-              #div(style="display:inline-block; float:right",dropdownButton(
-              #     tags$h3("PCA info"),
-              #      "Model",
-              #      circle = FALSE,
-              #      status = "warning", 
-              #      icon = icon("info"), width = "300px",
-              #      tooltip = tooltipOptions(title = "Click to see info!")
-              #  )),
+              div(style="display:inline-block; float:right",dropdownButton(
+
+                    tags$h3("PCA Inputs"),
+                    "PCA Input file and analysis info",
+                    circle = FALSE,
+                    status = "warning", 
+                    icon = icon("info"), width = "300px",
+                    tooltip = tooltipOptions(title = "Click to see info!")
+                )),
               style = "overflow-y: auto; height: 420px"
             ),
 
@@ -438,32 +455,104 @@ ui <- dashboardPage(
       
       ),
       tabItem(
-        tabName = "qtl",
-        fluidPage(
-          # Add QTL content here
-          fileInput("madc_file", "Choose MADC File"),
-          textInput("output_name", "Output File Name"),
-          numericInput("ploidy", "Ploidy", min = 1, value = 2),
-          numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
-          actionButton("run_analysis", "Run Analysis"),
-          downloadButton("download_qtl", "Download All Files"),
-          checkboxGroupInput("files_to_download", "Select files to download:",
-                             choices = c("table1", "table2"), selected = c("table1", "table2"))
-        )
-      ),
-      tabItem(
         tabName = "prediction",
-        fluidPage(
-          # Add genomic prediction content here
-          fileInput("madc_file", "Choose MADC File"),
-          textInput("output_name", "Output File Name"),
-          numericInput("ploidy", "Ploidy", min = 1, value = 2),
-          numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
-          actionButton("run_analysis", "Run Analysis"),
-          downloadButton("download_prediction", "Download All Files"),
-          checkboxGroupInput("files_to_download", "Select files to download:",
-                             choices = c("table1", "table2"), selected = c("table1", "table2"))
+        # Add GWAS content here
+        fluidRow(
+          column(width = 3,
+            box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
+              fileInput("pred_file", "Choose Genotypes File", accept = ".csv"),
+              fileInput("trait_file", "Choose Passport File", accept = ".csv"),
+              #textInput("output_name", "Output File Name"),
+              numericInput("pred_ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("pred_cv", "Cross-Validations", min = 1, value = 10),
+              numericInput("pred_train", "Training Subset Size (%)", min = 1, max = 99, value = 60),
+              #selectInput('pred_trait_info', label = 'Select Trait (eg, Color):', choices = NULL),
+              virtualSelectInput(
+                inputId = "pred_trait_info",
+                label = "Select Trait (eg, Color):",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = TRUE
+              ),
+              virtualSelectInput(
+                inputId = "pred_fixed_info",
+                label = "Select Fixed Effects (eg, Group):",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = TRUE
+              ),
+              sliderInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
+              actionButton("prediction_start", "Run Analysis"),
+              #downloadButton("download_pca", "Download All Files"),
+              #plotOutput("pca_plot"), # Placeholder for plot outputs
+              #checkboxGroupInput("files_to_download", "Select files to download:",
+                             #choices = c("PC1vPC2 plot", "PC2vPC3 plot"), selected = c("table1", "table2"))
+              div(style="display:inline-block; float:right",dropdownButton(
+                    tags$h3("GP Parameters"),
+                    #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
+                    #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
+                    #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
+                    "Add description of each filter",
+                    circle = FALSE,
+                    status = "warning", 
+                    icon = icon("info"), width = "300px",
+                    tooltip = tooltipOptions(title = "Click to see info!")
+                ))#,
+              #style = "overflow-y: auto; height: 550px"
+ 
+              ),
+            box(title = "Status", width = 12, collapsible = TRUE, status = "info",
+ 
+                progressBar(id = "pb_prediction", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+              )
+            ),
+
+          column(width = 6,
+            box(
+              title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
+              tabsetPanel(
+                tabPanel("Scatter Plot", plotOutput("pred_scatter_plot", height = "500px")),
+                tabPanel("Box Plot", plotOutput("pred_box_plot", height = "500px")),
+                tabPanel("Heatmap Plot", plotOutput("pred_heat_plot", height = "500px")),
+                tabPanel("Results Table", DTOutput("pred_table"),style = "overflow-y: auto; height: 500px")
+
+                )
+              
+              )
+
+            ),
+          
+          column(width = 3,
+            valueBox(87,"Samples in Genotype File", icon = icon("dna"), width = NULL, color = "info"),
+            valueBox(30,"Samples with Phenotype Information", icon = icon("dna"), width = NULL, color = "info"),
+            #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
+                #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
+                selectInput("pred_trait_select", label = "Trait Selection", choices = c("all","1-dom","2-dom","additive","general","diplo-general","diplo-additive")),
+                div(style="display:inline-block; float:left",dropdownButton(
+                      tags$h3("Save Image"),
+                      selectInput(inputId = 'pred_figures', label = 'Figure', choices = c("Scatter Plot", 
+                                                                                         "Box Plot", 
+                                                                                         "Heatmap Plot",
+                                                                                         "Blank")),
+                      selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                      sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
+                      sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
+                      sliderInput(inputId = 'image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      downloadButton("download_pred_table", "Save"),
+                      circle = FALSE,
+                      status = "danger", 
+                      icon = icon("floppy-disk"), width = "300px",
+                      tooltip = tooltipOptions(title = "Click to see inputs!")
+                      ))
+            )          
+          
+          )
+          
         )
+      
       ),
       tabItem(
         tabName = "code",
@@ -1493,6 +1582,342 @@ server <- function(input, output, session) {
    
 
   })
+
+  ####Genomic Prediction
+  #This tab involved 3 observeEvents
+    #1) to get the traits listed in the phenotype file
+    #2) to input and validate the input files
+    #3) to perform the genomic prediction
+
+   #1) Get traits  
+  observeEvent(input$trait_file, {
+    info_df <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
+    trait_var <- colnames(info_df)
+    trait_var <- trait_var[2:length(trait_var)]
+    #updateSelectInput(session, "pred_trait_info", choices = c("All", trait_var))
+    updateVirtualSelect("pred_fixed_info", choices = trait_var, session = session)
+    updateVirtualSelect("pred_trait_info", choices = trait_var, session = session)
+
+    #output$passport_table <- renderDT({info_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 4)
+    #)
+  })
+
+  #2) Error check for prediction and save input files
+  continue_prediction <- reactiveVal(NULL)
+  pred_inputs <- reactiveValues(
+    pheno_input = NULL,
+    geno_input = NULL
+    )
+  pred_outputs <- reactiveValues(
+    corr_output = NULL,
+    box_plot = NULL
+    )
+
+  observeEvent(input$prediction_start, {
+    #req(input$pred_file, input$trait_file, input$pred_ploidy, input$trait_info, input$pred_cv, input$pred_train)
+
+    #Variables
+    ploidy <- as.numeric(input$pred_ploidy)
+    geno_path <- input$pred_file$datapath
+    pheno <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE)
+    row.names(pheno) <- pheno[,1]
+    traits <- input$pred_trait_info
+    CVs <- as.numeric(input$pred_cv)
+    train_perc <- as.numeric(input$pred_train)
+
+
+  #Make sure at least one trait was input
+  if (length(traits) == 0) {
+
+        # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "No traits were selected",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE,
+          )
+                         
+      
+        # Stop the observeEvent gracefully
+        return()
+
+  }
+
+
+  #Getting genotype matrix
+  geno <- read.csv(geno_path, header = TRUE, row.names = 1, check.names = FALSE)
+
+  #Check that the ploidy entered is correct
+  if (ploidy != max(geno, na.rm = TRUE)) {
+      # If condition is met, show notification toast
+        shinyalert(
+            title = "Ploidy Mismatch",
+            text = paste0("The maximum value in the genotype file (",max(geno, na.rm = TRUE),") does not equal the ploidy entered"),
+            size = "xs",
+            closeOnEsc = FALSE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "warning",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            #closeOnConfirm = TRUE,
+            #closeOnCancel = TRUE,
+            imageUrl = "",
+            animation = TRUE
+          )
+                         
+      
+        # Stop the observeEvent gracefully
+        #return()
+      }
+
+
+  # Function to convert genotype matrix according to ploidy
+  convert_genotype <- function(genotype_matrix, ploidy) {
+  normalized_matrix <- 2 * (genotype_matrix / ploidy) - 1
+  return(normalized_matrix)
+  }
+
+  #tranforming genotypes
+  geno_adj_init <- convert_genotype(geno, as.numeric(ploidy))
+
+  #Make sure the trait file and genotype file are in the same order
+  # Column names for geno (assuming these are the individual IDs)
+  colnames_geno <- colnames(geno)
+  # Assuming the first column in Pheno contains the matching IDs
+  ids_pheno <- pheno[, 1]
+  # Find common identifiers
+  common_ids <- intersect(colnames_geno, ids_pheno)
+  
+  #Throw an error if there are less matching samples in the phenotype file than the genotype file     
+      if (length(common_ids) == 0) {
+
+        # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "All samples were missing from the phenotype file",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE,
+          )
+                         
+      
+        # Stop the observeEvent gracefully
+        return()
+
+      } else if (length(common_ids) < length(colnames_geno)) {
+      # If condition is met, show notification toast
+        shinyalert(
+            title = "Data Mismatch",
+            text = paste0((length(colnames_geno)-length(common_ids))," samples were removed for not having trait information"),
+            size = "xs",
+            closeOnEsc = FALSE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "warning",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            #closeOnConfirm = TRUE,
+            #closeOnCancel = TRUE,
+            imageUrl = "",
+            animation = TRUE
+          )
+                         
+      
+        # Stop the observeEvent gracefully
+        #return()
+      } 
+      
+
+
+
+  #Final check before performing analyses
+      shinyalert(
+            title = "Ready?",
+            text = "Inputs have been checked",
+            size = "xs",
+            closeOnEsc = FALSE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "Proceed",
+            confirmButtonCol = "#004192",
+            showCancelButton = TRUE,
+            #closeOnConfirm = TRUE,
+            #closeOnCancel = TRUE,
+            imageUrl = "",
+            animation = TRUE,
+            callbackR = function(value) {
+              if (isTRUE(value)) {
+                # Proceed with adjusted data
+                continue_prediction(TRUE)
+              } else {
+                # Stop or change the process
+                continue_prediction(FALSE)
+              }
+            }
+          )
+                         
+
+  # Subset and reorder geno and pheno to ensure they only contain and are ordered by common IDs
+  geno_adj <- geno_adj_init[, common_ids]  # Assuming that the columns can be directly indexed by IDs
+  pheno <- pheno[match(common_ids, ids_pheno), ]
+
+  #Save to reactive values
+  pred_inputs$pheno_input <- pheno
+  #pred_inputs$geno_adj_input <- geno_adj
+  pred_inputs$geno_input <- geno_adj
+
+  })
+
+  #3) Analysis only proceeds once continue_prediction is converted to TRUE
+  observe({
+
+  req(continue_prediction(),pred_inputs$pheno_input, pred_inputs$geno_input)
+
+  # Stop analysis if cancel was selected
+  if (isFALSE(continue_prediction())) {
+      return()
+  }
+
+  #Variables
+  ploidy <- as.numeric(input$pred_ploidy)
+  geno_adj <- pred_inputs$geno_input
+  pheno <- pred_inputs$pheno_input
+  traits <- input$pred_trait_info
+  CVs <- as.numeric(input$pred_cv)
+  train_perc <- as.numeric(input$pred_train)
+
+
+  # Function to perform genomic prediction
+  ##Make sure this is correct (I think I need to be generating a relationship matrix A.mat() to account for missing data, but I am not sure how that works with this)
+  genomic_prediction <- function(geno, Pheno, traits, fixed_effects = NULL, k = 5, percentage = 60) {
+  
+  # Define variables
+  traits <- traits
+  cycles <- as.numeric(k)
+  total_population <- ncol(geno)
+  train_size <- floor(percentage / 100 * total_population)
+  
+  # Establish results matrix
+  results <- matrix(nrow = cycles, ncol = length(traits))
+  colnames(results) <- traits  # Set the column names to be the traits
+
+  #Cross validation number
+  pb_value = 10
+
+  # For loop
+  for (r in 1:cycles) {
+
+    #Status bar length
+    pb_value = pb_value + floor(70 / as.numeric(cycles))
+
+    #Status
+    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), status = "info", title = paste0("Performing Cross-Validation:", r, "of", cycles))
+    
+    train <- as.matrix(sample(1:ncol(geno), train_size))
+    test <- setdiff(1:ncol(geno), train)
+
+    Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
+    m_train <- t(geno[, train])
+    Pheno_test <- Pheno[test, ]
+    m_valid <- t(geno[, test])
+
+    #Evaluate each trait using the same train and testing samples for each
+    for (trait_idx in 1:length(traits)) {
+      trait <- Pheno_train[, traits[trait_idx]] # Get the trait of interest
+      trait_answer <- mixed.solve(trait, Z = m_train, K = NULL, SE = FALSE, return.Hinv = FALSE)
+      TRT <- trait_answer$u
+      e <- as.matrix(TRT)
+      pred_trait_test <- m_valid %*% e
+      pred_trait <- pred_trait_test[, 1] + c(trait_answer$beta) # Make sure this still works when using multiple traits
+      trait_test <- Pheno_test[, traits[trait_idx]]
+      results[r, trait_idx] <- cor(pred_trait, trait_test, use = "complete")
+      }
+    }
+  
+      results <- as.data.frame(results)
+      return(results)
+    } 
+
+  # Example call to the function
+  #This is slow when using 3k markers and 1.2k samples...will need to parallelize if using this script...
+  results <- genomic_prediction(geno_adj, pheno, traits = traits, k= CVs, percentage= train_perc)
+
+
+  #With fixed effects (need to inforporate the ability for fixed effects into the prediction?)
+  #results <- genomic_prediction(geno_matrix, phenotype_df, c("height", "weight"), "~ age + sex")
+
+  #Save to reactive value
+  pred_outputs$corr_output <- results
+
+  #Status
+  updateProgressBar(session = session, id = "pb_prediction", value = 90, status = "info", title = "Generating Results")
+
+  ##Figures and Tables
+
+  #Status
+  updateProgressBar(session = session, id = "pb_prediction", value = 100, status = "success", title = "Finished")
+
+  #End the event
+  continue_prediction(NULL)
+  })
+
+  observe({
+    req(pred_outputs$corr_output)
+
+    df <- pred_outputs$corr_output
+
+    #Probably want to add the ability for the user to select which trait(s) to display here
+
+    #Convert to long format for ggplot
+    df_long <- pivot_longer(
+    df,
+    cols = colnames(df),  # Exclude the Cycle column from transformation
+    names_to = "Trait",  # New column for trait names
+    values_to = "Correlation"  # New column for correlation values
+    )
+
+    plot <- ggplot(df_long, aes(x = Trait, y = Correlation, fill = Trait)) +
+    geom_boxplot() +
+    facet_wrap(~ Trait, scales = "free") +  # Facet by trait, allowing different y-scales
+    labs(title = "Boxplot of Correlations by Trait",
+       x = "Trait",
+       y = "Correlation") +
+    #theme_minimal() +                      # Using a minimal theme
+    theme(strip.background = element_blank(), strip.text.x = element_text(face = "bold"))
+
+  pred_outputs$box_plot <- plot
+
+  })
+
+  #Output the genomic prediction correlation box plots
+  output$pred_box_plot <- renderPlot({
+    req(pred_outputs$box_plot)
+    pred_outputs$box_plot
+    })
 
   #Download figures for PCA
   output$download_pca <- downloadHandler(
