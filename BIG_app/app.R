@@ -1809,7 +1809,11 @@ server <- function(input, output, session) {
   traits <- input$pred_trait_info
   CVs <- as.numeric(input$pred_cv)
   train_perc <- as.numeric(input$pred_train)
+  fixed_traits <- input$pred_fixed_info
 
+
+  ##Need to add ability for the use of parallelism for the for cross-validation
+  ##Example at this tutorial also: https://www.youtube.com/watch?v=ARWjdQU6ays
 
   # Function to perform genomic prediction
   ##Make sure this is correct (I think I need to be generating a relationship matrix A.mat() to account for missing data, but I am not sure how that works with this)
@@ -1820,6 +1824,7 @@ server <- function(input, output, session) {
   cycles <- as.numeric(k)
   total_population <- ncol(geno)
   train_size <- floor(percentage / 100 * total_population)
+  fixed_traits <- fixed_effects
   
   # Establish results matrix
   results <- matrix(nrow = cycles, ncol = length(traits))
@@ -1828,27 +1833,51 @@ server <- function(input, output, session) {
   #Cross validation number
   pb_value = 10
 
+  #Remove the fixed traits from the Pheno file
+  if (length(fixed_traits) == 0) {
+    Pheno <- Pheno
+  } else {
+    #Pheno <- subset(Pheno, select = -fixed_traits)
+    Fixed <- subset(Pheno, select = fixed_traits)
+  }
+
+  #Make kinship matrix of all individuals?
+  #Kin_mat <- A.mat(t(geno), n.core = 1) ##Need to explore whether or not to use a Kinship matrix and if it makes a significant improvement to accuracy
+  #If wanting to use Kkinship matrix, will then need to see how to implement it here
+
+  #For now, I am just imputing the missing sites using mean, but EM is more accurate, but slower (can use multiple cores).
+  impute = (A.mat(t(geno), max.missing=0.5,impute.method="mean",return.imputed=TRUE))
+  geno <- impute$imputed
+
   # For loop
   for (r in 1:cycles) {
 
     #Status bar length
-    pb_value = pb_value + floor(70 / as.numeric(cycles))
+    #pb_value = pb_value + floor(70 / as.numeric(cycles))
+    pb_value = pb_value + (70 / as.numeric(cycles))
 
     #Status
     updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), status = "info", title = paste0("Performing Cross-Validation:", r, "of", cycles))
     
-    train <- as.matrix(sample(1:ncol(geno), train_size))
-    test <- setdiff(1:ncol(geno), train)
+    train <- as.matrix(sample(1:nrow(geno), train_size))
+    test <- setdiff(1:nrow(geno), train)
 
+    #Subset datasets
+    if (length(fixed_traits) == 0) {
+      Fixed_train = NULL
+    } else{
+      Fixed_train <- Fixed[train, ]
+    }
     Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
-    m_train <- t(geno[, train])
+    m_train <- geno[train, ]
     Pheno_test <- Pheno[test, ]
-    m_valid <- t(geno[, test])
+    #Fixed_test <- Fixed[test, ] #Where would the Fixed_test be used?
+    m_valid <- geno[test, ]
 
     #Evaluate each trait using the same train and testing samples for each
     for (trait_idx in 1:length(traits)) {
       trait <- Pheno_train[, traits[trait_idx]] # Get the trait of interest
-      trait_answer <- mixed.solve(trait, Z = m_train, K = NULL, SE = FALSE, return.Hinv = FALSE)
+      trait_answer <- mixed.solve(y= trait, Z = m_train, K = NULL, X = Fixed_train, SE = FALSE, return.Hinv = FALSE)
       TRT <- trait_answer$u
       e <- as.matrix(TRT)
       pred_trait_test <- m_valid %*% e
@@ -1864,7 +1893,7 @@ server <- function(input, output, session) {
 
   # Example call to the function
   #This is slow when using 3k markers and 1.2k samples...will need to parallelize if using this script...
-  results <- genomic_prediction(geno_adj, pheno, traits = traits, k= CVs, percentage= train_perc)
+  results <- genomic_prediction(geno_adj, pheno, traits = traits, fixed_effects = fixed_traits, k= CVs, percentage= train_perc)
 
 
   #With fixed effects (need to inforporate the ability for fixed effects into the prediction?)
