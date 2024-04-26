@@ -513,7 +513,7 @@ ui <- dashboardPage(
             box(
               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
               tabsetPanel(
-                tabPanel("Scatter Plot", plotOutput("pred_scatter_plot", height = "500px")),
+                tabPanel("Violin Plot", plotOutput("pred_violin_plot", height = "500px")),
                 tabPanel("Box Plot", plotOutput("pred_box_plot", height = "500px")),
                 tabPanel("Heatmap Plot", plotOutput("pred_heat_plot", height = "500px")),
                 tabPanel("Results Table", DTOutput("pred_table"),style = "overflow-y: auto; height: 500px")
@@ -1611,7 +1611,8 @@ server <- function(input, output, session) {
     )
   pred_outputs <- reactiveValues(
     corr_output = NULL,
-    box_plot = NULL
+    box_plot = NULL,
+    violin_plot = NULL
     )
 
   observeEvent(input$prediction_start, {
@@ -1930,16 +1931,40 @@ server <- function(input, output, session) {
     values_to = "Correlation"  # New column for correlation values
     )
 
-    plot <- ggplot(df_long, aes(x = Trait, y = Correlation, fill = Trait)) +
+    #This can be adapted if we start comparing more than one GP model
+    #Also consider a violin plot to show each cor value
+    #plot <- ggplot(df_long, aes(x = factor(Trait), y = Correlation, fill = "red"), fill = "red") +
+    plot <- ggplot(df_long, aes(x = "rrBLUP", y = Correlation, fill = "red"), fill = "red") +
+    #geom_boxplot(position = position_dodge(width = 0.8), color = "black", width = 0.7, outlier.size = 0.2) +
     geom_boxplot() +
-    facet_wrap(~ Trait, scales = "free") +  # Facet by trait, allowing different y-scales
-    labs(title = "Boxplot of Correlations by Trait",
-       x = "Trait",
-       y = "Correlation") +
+    facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
+    labs(title = "Predicton Accuracy by Trait",
+       x = " ",
+       y = "Pearson Correlation") +
     #theme_minimal() +                      # Using a minimal theme
-    theme(strip.background = element_blank(), strip.text.x = element_text(face = "bold"))
+    theme(legend.position = "none",
+        strip.text = element_text(size = 12),
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2), 
+        strip.text.x = element_text(face = "bold"))
+
+    plot_violin <- ggplot(df_long, aes(x = "rrBLUP", y = Correlation, fill = "red")) +
+    geom_violin(trim = TRUE) +  # Add violin plot
+    geom_point(position = position_jitter(width = 0.1), color = "black", size = 1.5) +  # Add jittered points
+    facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
+    labs(title = "Prediction Accuracy by Trait",
+         x = " ",  # x-label is blank because it's not relevant per facet
+         y = "Pearson Correlation") +
+    theme(legend.position = "none",
+          strip.text = element_text(size = 12),
+          axis.text = element_text(size = 12),
+          axis.title = element_text(size = 14),
+          axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2), 
+          strip.text.x = element_text(face = "bold"))
 
   pred_outputs$box_plot <- plot
+  pred_outputs$violin_plot <- plot_violin
 
   })
 
@@ -1947,6 +1972,12 @@ server <- function(input, output, session) {
   output$pred_box_plot <- renderPlot({
     req(pred_outputs$box_plot)
     pred_outputs$box_plot
+    })
+
+  #Output the genomic prediction correlation box plots
+  output$pred_violin_plot <- renderPlot({
+    req(pred_outputs$violin_plot)
+    pred_outputs$violin_plot
     })
 
   #Download figures for PCA
