@@ -1600,7 +1600,6 @@ server <- function(input, output, session) {
 
     #output$passport_table <- renderDT({info_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 4)
     #)
-    print("Traits uploaded")
   })
 
   #2) Error check for prediction and save input files
@@ -1832,6 +1831,9 @@ server <- function(input, output, session) {
   results <- matrix(nrow = cycles, ncol = length(traits))
   colnames(results) <- traits  # Set the column names to be the traits
 
+  # Initialize a list to store GEBVs for all traits and cycles
+  GEBVs <- list()
+
   #Cross validation number
   pb_value = 10
 
@@ -1876,6 +1878,11 @@ server <- function(input, output, session) {
     #Fixed_test <- Fixed[test, ] #Where would the Fixed_test be used?
     m_valid <- geno[test, ]
 
+    # Initialize a matrix to store GEBVs for this cycle
+    GEBVs_cycle <- matrix(nrow = train_size, ncol = length(traits))
+    colnames(GEBVs_cycle) <- traits
+    rownames(GEBVs_cycle) <- paste("Cycle", r, "Ind", train, sep="_")
+
     #Evaluate each trait using the same train and testing samples for each
     for (trait_idx in 1:length(traits)) {
       trait <- Pheno_train[, traits[trait_idx]] # Get the trait of interest
@@ -1886,12 +1893,34 @@ server <- function(input, output, session) {
       pred_trait <- pred_trait_test[, 1] + c(trait_answer$beta) # Make sure this still works when using multiple traits
       trait_test <- Pheno_test[, traits[trait_idx]]
       results[r, trait_idx] <- cor(pred_trait, trait_test, use = "complete")
+
+      # Extract GEBVs
+      print(dim(m_train))
+      print(trait_answer$u)
+      print(type(trait_answer$u))
+      print(dim(trait_answer$u))
+      # Check if Fixed_train is not NULL and include beta if it is
+      if (!is.null(Fixed_train) && !is.null(trait_answer$beta)) {
+        # Calculate GEBVs including fixed effects
+        GEBVs_cycle[, trait_idx] <- m_train %*% trait_answer$u + Fixed_train %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
+      } else {
+        # Calculate GEBVs without fixed effects
+        GEBVs_cycle[, trait_idx] <- m_train %*% trait_answer$u
       }
+
+      }
+
+      # Store GEBVs for this cycle
+      GEBVs[[r]] <- GEBVs_cycle
+
     }
+
+    # Combine all GEBVs into a single DataFrame
+    GEBVs_df <- do.call(rbind, GEBVs)
   
-      results <- as.data.frame(results)
-      return(results)
-    } 
+    results <- as.data.frame(results)
+    return(list(GEBVs = GEBVs_df, PredictionAccuracy = results))
+  } 
 
   # Example call to the function
   #This is slow when using 3k markers and 1.2k samples...will need to parallelize if using this script...
@@ -1902,7 +1931,10 @@ server <- function(input, output, session) {
   #results <- genomic_prediction(geno_matrix, phenotype_df, c("height", "weight"), "~ age + sex")
 
   #Save to reactive value
-  pred_outputs$corr_output <- results
+  pred_outputs$corr_output <- results$PredictionAccuracy
+
+  #TESTING!!!
+  write.csv(results$GEBVs, "GEBVs_test.csv")
 
   #Status
   updateProgressBar(session = session, id = "pb_prediction", value = 90, status = "info", title = "Generating Results")
