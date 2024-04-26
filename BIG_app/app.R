@@ -483,7 +483,7 @@ ui <- dashboardPage(
                 search = TRUE,
                 multiple = TRUE
               ),
-              sliderInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
+              sliderInput("pred_cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
               actionButton("prediction_start", "Run Analysis"),
               #downloadButton("download_pca", "Download All Files"),
               #plotOutput("pca_plot"), # Placeholder for plot outputs
@@ -537,10 +537,10 @@ ui <- dashboardPage(
                                                                                          "Box Plot", 
                                                                                          "Heatmap Plot",
                                                                                          "Blank")),
-                      selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
-                      sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      selectInput(inputId = 'pred_image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                      sliderInput(inputId = 'pred_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
+                      sliderInput(inputId = 'pred_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
+                      sliderInput(inputId = 'pred_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
                       downloadButton("download_pred_table", "Save"),
                       circle = FALSE,
                       status = "danger", 
@@ -1600,6 +1600,7 @@ server <- function(input, output, session) {
 
     #output$passport_table <- renderDT({info_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 4)
     #)
+    print("Traits uploaded")
   })
 
   #2) Error check for prediction and save input files
@@ -1614,7 +1615,7 @@ server <- function(input, output, session) {
     )
 
   observeEvent(input$prediction_start, {
-    req(pred_inputs$pheno_input, pred_inputs$geno_input)
+    #req(pred_inputs$pheno_input, pred_inputs$geno_input)
 
     #Variables
     ploidy <- as.numeric(input$pred_ploidy)
