@@ -494,7 +494,7 @@ ui <- dashboardPage(
                     #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
                     #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
                     #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
-                    "Add description of each filter",
+                    "GP uses the rrBLUP package: It can impute missing data, maybe adapt to different ploidy, perform cross validations, define training size, run multiple traits, and accept multiple fixed effects.",
                     circle = FALSE,
                     status = "warning", 
                     icon = icon("info"), width = "300px",
@@ -1614,7 +1614,7 @@ server <- function(input, output, session) {
     )
 
   observeEvent(input$prediction_start, {
-    #req(input$pred_file, input$trait_file, input$pred_ploidy, input$trait_info, input$pred_cv, input$pred_train)
+    req(pred_inputs$pheno_input, pred_inputs$geno_input)
 
     #Variables
     ploidy <- as.numeric(input$pred_ploidy)
