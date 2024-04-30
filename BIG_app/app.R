@@ -1909,7 +1909,7 @@ server <- function(input, output, session) {
     # Initialize a matrix to store GEBVs for this cycle
     GEBVs_cycle <- matrix(nrow = train_size, ncol = length(traits))
     colnames(GEBVs_cycle) <- traits
-    #rownames(GEBVs_cycle) <- paste("Cycle", r, "Ind", train, sep="_")
+    rownames(GEBVs_cycle) <- paste("Cycle", r, "Ind", train, sep="_")
 
     #Evaluate each trait using the same train and testing samples for each
     for (trait_idx in 1:length(traits)) {
