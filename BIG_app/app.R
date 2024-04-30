@@ -1,14 +1,39 @@
 # Install and load required packages
-required_packages <- c("updog", "ggplot2", "VariantAnnotation", "SNPRelate",
+required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate",
                        "adegenet", "future", "scales", "AGHmatrix", "stats", 
                        "factoextra", "readxl", "ggrepel", "dplyr", "shiny",
                        "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
-                       "dichromat", "bs4Dash", "shinyWidgets", "GWASpoly","data.table",
-                       "matrixcalc","Matrix", "shinyalert","rrBLUP", "tidyverse")
+                       "dichromat", "bs4Dash", "shinyWidgets","data.table",
+                       "matrixcalc","Matrix", "shinyalert","rrBLUP", "tidyverse",
+                       "foreach", "doParallel","VariantAnnotation")
 
-for(package in required_packages) {
+required_bio_packages <- c("SNPRelate","VariantAnnotation")
+
+Dev_tools_packages <- c("GWASpoly")
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+#Bioconductor
+for(package in required_bio_packages){
+  if(!require(package, character.only = TRUE)) {
+    BiocManager::install(package)
+    library(package, character.only = TRUE)
+  }
+}
+
+#CRAN
+for(package in required_cran_packages) {
   if(!require(package, character.only = TRUE)) {
     install.packages(package)
+    library(package, character.only = TRUE)
+  }
+}
+
+#GitHub
+for(package in Dev_tools_packages) {
+  if(!require(package, character.only = TRUE)) {
+    devtools::install_github("jendelman/GWASpoly", build_vignettes=FALSE)
     library(package, character.only = TRUE)
   }
 }
@@ -1811,6 +1836,7 @@ server <- function(input, output, session) {
   CVs <- as.numeric(input$pred_cv)
   train_perc <- as.numeric(input$pred_train)
   fixed_traits <- input$pred_fixed_info
+  cores <- input$pred_cores
 
 
   ##Need to add ability for the use of parallelism for the for cross-validation
@@ -1818,7 +1844,7 @@ server <- function(input, output, session) {
 
   # Function to perform genomic prediction
   ##Make sure this is correct (I think I need to be generating a relationship matrix A.mat() to account for missing data, but I am not sure how that works with this)
-  genomic_prediction <- function(geno, Pheno, traits, fixed_effects = NULL, k = 5, percentage = 60) {
+  genomic_prediction <- function(geno, Pheno, traits, fixed_effects = NULL, k = 5, percentage = 60, cores = 1) {
   
   # Define variables
   traits <- traits
@@ -1826,6 +1852,8 @@ server <- function(input, output, session) {
   total_population <- ncol(geno)
   train_size <- floor(percentage / 100 * total_population)
   fixed_traits <- fixed_effects
+  cores <- as.numeric(cores)
+  print(cores)
   
   # Establish results matrix
   results <- matrix(nrow = cycles, ncol = length(traits))
@@ -1881,7 +1909,7 @@ server <- function(input, output, session) {
     # Initialize a matrix to store GEBVs for this cycle
     GEBVs_cycle <- matrix(nrow = train_size, ncol = length(traits))
     colnames(GEBVs_cycle) <- traits
-    rownames(GEBVs_cycle) <- paste("Cycle", r, "Ind", train, sep="_")
+    #rownames(GEBVs_cycle) <- paste("Cycle", r, "Ind", train, sep="_")
 
     #Evaluate each trait using the same train and testing samples for each
     for (trait_idx in 1:length(traits)) {
@@ -1895,10 +1923,6 @@ server <- function(input, output, session) {
       results[r, trait_idx] <- cor(pred_trait, trait_test, use = "complete")
 
       # Extract GEBVs
-      print(dim(m_train))
-      print(trait_answer$u)
-      print(type(trait_answer$u))
-      print(dim(trait_answer$u))
       # Check if Fixed_train is not NULL and include beta if it is
       if (!is.null(Fixed_train) && !is.null(trait_answer$beta)) {
         # Calculate GEBVs including fixed effects
@@ -1924,9 +1948,9 @@ server <- function(input, output, session) {
 
   # Example call to the function
   #This is slow when using 3k markers and 1.2k samples...will need to parallelize if using this script...
-  results <- genomic_prediction(geno_adj, pheno, traits = traits, fixed_effects = fixed_traits, k= CVs, percentage= train_perc)
+  results <- genomic_prediction(geno_adj, pheno, traits = traits, fixed_effects = fixed_traits, k= CVs, percentage= train_perc, cores = cores)
 
-
+  print(results$PredictionAccuracy)
   #With fixed effects (need to inforporate the ability for fixed effects into the prediction?)
   #results <- genomic_prediction(geno_matrix, phenotype_df, c("height", "weight"), "~ age + sex")
 
