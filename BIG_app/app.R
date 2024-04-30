@@ -8,7 +8,7 @@ required_packages <- c("updog", "ggplot2", "VariantAnnotation", "SNPRelate",
 
 for(package in required_packages) {
   if(!require(package, character.only = TRUE)) {
-    install.packages(package)
+    # install.packages(package)  # Do not install packages at runtime!
     library(package, character.only = TRUE)
   }
 }
