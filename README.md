@@ -12,7 +12,7 @@ To use:
 
 # Docker
 ## Build docker image
-> This will take 20 minutes or so to build the first time, as many dependencies need to be downloaded and built.
+> This may take 20 minutes or so to build the first time, as many dependencies need to be downloaded and built.
 
 > Do not neglect the trailing `.`, this tells docker to look for a Dockerfile in the current working directory.
 
@@ -24,7 +24,7 @@ On ARM (e.g. apple silicon macs), use:
 
 
 ## Run docker image
-docker run -p 3838:3838 shinyimage
+`docker run -p 3838:3838 shinyimage`
 
 ## Access in your browser
 http://localhost:3838/
