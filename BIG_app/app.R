@@ -1958,7 +1958,7 @@ server <- function(input, output, session) {
   pred_outputs$corr_output <- results$PredictionAccuracy
 
   #TESTING!!!
-  write.csv(results$GEBVs, "GEBVs_test.csv")
+  #write.csv(results$GEBVs, "GEBVs_test.csv")
 
   #Status
   updateProgressBar(session = session, id = "pb_prediction", value = 90, status = "info", title = "Generating Results")
