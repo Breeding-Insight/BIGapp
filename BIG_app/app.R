@@ -42,7 +42,7 @@ for(package in Dev_tools_packages) {
 ui <- dashboardPage(
   skin = "black",
   dashboardHeader(title = tagList(
-    tags$img(src = 'BIG_logo_edit.png', height = '40', width = '40'),
+    tags$img(src = 'BIG_R_logo.png', height = '40', width = '50'),
     tags$span("Breeding Insight Genomics", style = "font-size: 12px; margin-left: 1px;")
   )#,
     #dropdownMenu(type = "notifications",
@@ -70,7 +70,9 @@ ui <- dashboardPage(
       menuItem("Dosage Calling", tabName = "dosage_calling", icon = icon("diagram-next"),
               menuSubItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
               menuSubItem("SNP Filtering", tabName = "filtering", icon = icon("filter"))),
-      menuItem("PCA", tabName = "pca", icon = icon("chart-simple")),
+      menuItem("Population Structure", tabName = "pop_struct", icon = icon("layer-group"),
+              menuSubItem("PCA", tabName = "pca", icon = icon("chart-simple")),
+              menuSubItem("DAPC", tabName = "dapc", icon = icon("circle-nodes"))),
       menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
       menuItem("GWAS", tabName = "gwas", icon = icon("think-peaks")),
       #menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
@@ -309,7 +311,118 @@ ui <- dashboardPage(
 
 
           ),
-          column(width = 1, downloadButton("downloasdas","Info", color = "warning"))
+          column(width = 1)
+
+
+        )
+      ),
+      tabItem(
+        tabName = "dapc",
+        # Add PCA content here
+        fluidRow(
+          column(width = 3,
+            box(
+              title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
+              tabsetPanel(
+                tabPanel("Step 1:(K)", width = 12,
+                  fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+                  #fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
+                  #textInput("output_name", "Output File Name (disabled)"),
+                  #Dropdown will update after pasport upload
+                  numericInput("dapc_kmax", "Maximum K", min = 1, value = 5),
+                  numericInput("dapc_ploidy", "Species Ploidy", min = 1, value = 2),
+                  actionButton("K_start", "Run Analysis"),
+                  div(style="display:inline-block; float:right",dropdownButton(
+
+                    tags$h3("DAPC Inputs"),
+                    "DAPC Input file and analysis info",
+                    circle = FALSE,
+                    status = "warning", 
+                    icon = icon("info"), width = "300px",
+                    tooltip = tooltipOptions(title = "Click to see info!")
+                    )),
+                  #style = "overflow-y: auto; height: 420px"
+                ),
+
+                tabPanel("Step 2:(DAPC)", width = 12,
+                  fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+                  #fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
+                  #textInput("output_name", "Output File Name (disabled)"),
+                  #Dropdown will update after pasport upload
+                  numericInput("dapc_k", "Number of Clusters (K)", min = 1, value = NULL),
+                  numericInput("dapc_ploidy", "Species Ploidy", min = 1, value = 2),
+                  actionButton("dapc_start", "Run Analysis"),
+                  div(style="display:inline-block; float:right",dropdownButton(
+
+                    tags$h3("DAPC Inputs"),
+                    "DAPC Input file and analysis info",
+                    circle = FALSE,
+                    status = "warning", 
+                    icon = icon("info"), width = "300px",
+                    tooltip = tooltipOptions(title = "Click to see info!")
+                    )),
+                  #style = "overflow-y: auto; height: 420px"
+                )
+
+
+              ),
+
+              style = "overflow-y: auto; height: 420px"
+            ),
+
+            box(
+                title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
+                "Change the plot parameters", br(),
+                #selectInput('group_info', label = 'Color Variable (eg, Taxon)', choices = NULL),
+                selectInput("color_choice", "Color Palette", choices = c("YlOrRd","YlOrBr","YlGnBu","YlGn",
+                                                                                  "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
+                                                                                  "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
+                                                                                  "BuGn","Blues","Set3","Set2","Set1","Pastel2",
+                                                                                  "Pastel1","Paired","Dark2","Accent","Spectral",
+                                                                                  "RdYlGn","RdYlBu","RdGy","RdBu","PuOr","PRGn",
+                                                                                  "PiYG","BrBG"), selected = "Paired"),
+                materialSwitch('plot_BICX', label = "Mark Suggested K?", status = "success", value = TRUE),
+                #selectInput("pc_X", "X-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC1"),
+                #selectInput("pc_Y", "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
+                div(style="display:inline-block; float:right",dropdownButton(
+                      tags$h3("Save Image"),
+                      selectInput(inputId = 'dapc_figure', label = 'Figure', choices = c("BIC Plot", "DAPC Plot"), selected = "BIC Plot"),
+                      selectInput(inputId = 'dapc_image_type', label = 'File', choices = c("jpeg","tiff","png"), selected = "jpeg"),
+                      sliderInput(inputId = 'dapc_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
+                      sliderInput(inputId = 'dapc_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
+                      sliderInput(inputId = 'dapc_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      downloadButton("download_dapc", "Save"),
+                      circle = FALSE,
+                      status = "danger", 
+                      icon = icon("floppy-disk"), width = "300px",
+                      tooltip = tooltipOptions(title = "Click to see inputs!")
+                      ))
+              ),
+
+              box(title = "Status", width = 12, collapsible = TRUE, status = "info",
+
+                progressBar(id = "pb_dapc", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+              )
+          ),
+          column(width = 8,
+            box(title = "DAPC Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
+                tabsetPanel(
+                  tabPanel("BIC Values",DTOutput('BIC_table')),
+                  tabPanel("DAPC Values", DTOutput('DAPC_table'))), # Placeholder for plot outputs
+                  style = "overflow-y: auto; height: 420px"
+            ),
+
+            box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+                tabsetPanel(
+                  tabPanel("BIC Plot",plotOutput("BIC_plot", height = '460px')),
+                  tabPanel("DAPC Plot", plotOutput("DAPC_plot", height = '460px')),
+                  tabPanel("STRUCTURE Plot", "Not yet supported"))
+                  #tabPanel("STRUCTURE Plot", plotOutput("STRUCTURE_plot", height = '460px')))
+              )
+
+
+          ),
+          column(width = 1)
 
 
         )
@@ -411,9 +524,9 @@ ui <- dashboardPage(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
               fileInput("diversity_file", "Choose Genotypes File"),
-              #fileInput("phenotype_file", "Choose Phenotype File"),
-              textInput("output_name", "Output File Name"),
-              numericInput("ploidy", "Species Ploidy", min = 1, value = 2),
+              fileInput("pop_file", "Choose Passport File"),
+              #textInput("output_name", "Output File Name"),
+              numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = 2),
               #numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
               actionButton("diversity_start", "Run Analysis"),
               #downloadButton("download_pca", "Download All Files"),
@@ -1286,12 +1399,193 @@ server <- function(input, output, session) {
     all_plots$pca_scree
   })
 
+  ##DAPC analysis
+  #Make it a two step process 1) estimate K, and 2) perform DAPC
 
+  dapc_items <- reactiveValues(
+    grp = NULL,
+    bestK = NULL,
+    bicDF = NULL,
+    assignments = NULL,
+    dapc = NULL
+
+  )
+
+  observeEvent(input$K_start, {
+
+    ploidy <- as.numeric(input$dapc_ploidy)
+    maxK <- as.numeric(input$dapc_kmax)
+    geno <- input$dosage_file$datapath
+
+    ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
+    
+    #Import genotype data
+    genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+
+    findK <- function(genotypeMatrix, maxK, ploidy) {
+      # Convert the genotype matrix to a genlight object
+      genlight_new <- new("genlight", t(genotypeMatrix), 
+                      ind.names = row.names(t(genotypeMatrix)),
+                      loc.names = colnames(t(genotypeMatrix)),
+                      ploidy = ploidy,
+                      NA.char = NA)
+  
+      #Assign the populations as the sample names since there is no assumed populations
+      pop(genlight_new) <- genlight_new@ind.names
+  
+      #Estimate number of clusters
+      #Retain all pca for the find.clusters step. Retain as few as possible while maximizing variance captured for DAPC step.
+      #Choose is the option to allow adegenet to select the best cluster number based on the BIC minimum
+      #The default criterion is "diffNgroup, which is not necessarily the minimum BIC, but based on the sharp decrease of the BIC value.
+      #Either way, this is a suggestion, and the number of clusters to use should be made with biology considerations.
+      graphics.off() #Prevent plot from automatically displaying
+      grp <- find.clusters(genlight_new, max.n.clust = maxK,
+                       n.pca = nInd(genlight_new),
+                       stat = "BIC",
+                       criterion = "diffNgroup",
+                       parallel = FALSE,
+                       choose = FALSE)
+
+      # Identify the best K based on lowest BIC
+      bestK <- length(grp$size)
+
+      # Create a BIC dataframe
+      bicDF <- data.frame(K = 1:maxK, BIC = as.data.frame(grp$Kstat)$`grp$Kstat`)
+
+      return(list(bestK = as.numeric(bestK), grp = grp, BIC = bicDF))
+
+    }
+
+    #Perform analysis
+    get_k <- findK(genotypeMatrix, maxK, ploidy)
+
+
+    #Assign results to reactive values
+    dapc_items$grp <- get_k$grp
+    dapc_items$bestK <- get_k$bestK
+    dapc_items$bicDF <- get_k$BIC
+
+  })
+
+  observeEvent(input$dapc_start, {
+
+    #req()
+    geno <- input$dosage_file$datapath
+    ploidy <- as.numeric(input$dapc_ploidy)
+    selected_K <- as.numeric(input$dapc_k)
+
+    #Import genotype data
+    genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+
+    performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
+
+      #Convert matrix to genlight
+      genlight_new <- new("genlight", t(genotypeMatrix), 
+                      ind.names = row.names(t(genotypeMatrix)),
+                      loc.names = colnames(t(genotypeMatrix)),
+                      ploidy = ploidy,
+                      NA.char = NA)
+
+      #Get groups based on specified cluster number (K)
+      graphics.off() #Prevent plot from automatically displaying
+      grp <- find.clusters(genlight_new, n.clust = selected_K,
+                       n.pca = nInd(genlight_new),
+                       stat = "BIC",
+                       criterion = "diffNgroup",
+                       parallel = FALSE,
+                       choose = FALSE)
+
+      # Find the optimal number of principal components
+      #NOTE: The default n.da is K-1, but I have read previously to use #Samples - 1?
+      dapc1 <- dapc(genlight_new, grp$grp,
+                n.pca = nInd(genlight_new),
+                n.da = nInd(genlight_new)-1,
+                parallel = FALSE)
+  
+      #xval <- xvalDapc(genind_obj, n.pca.max = 10, n.da = NULL) #xval does not accept NAs
+      a.score <- optim.a.score(dapc1, plot = FALSE)
+      n.pca <- a.score$best
+
+      # Perform DAPC with the best K
+      finalDapc <- dapc(genlight_new, grp$grp, n.pca = n.pca, n.da = selected_K-1, parallel= FALSE)
+  
+      # Extract the membership probabilities
+      Q <- as.data.frame(finalDapc$posterior)
+  
+      # Add cluster assignments to Q dataframe
+      Q$Cluster_Assignment <- finalDapc$assign
+  
+      #a data.frame giving the contributions of original variables (alleles in the case of genetic data) to the principal components of DAPC.
+      #dapc$var.contr
+  
+      # Return list containing BIC dataframe, Q dataframe w/ dapc assignments
+      return(list(Q = Q, dapc = finalDapc))
+    }
+
+    #Perform analysis
+    clusters <- performDAPC(genotypeMatrix, selected_K, ploidy)
+
+    #Assign results to reactive value
+    dapc_items$assignments <- clusters$Q
+    dapc_items$dapc <- clusters$dapc
+
+
+  })
+
+  ###Outputs from DAPC
+  #Output the genomic prediction correlation box plots
+  output$BIC_plot <- renderPlot({
+    req(dapc_items$bicDF, dapc_items$bestK)
+
+    BIC <- dapc_items$bicDF
+    selected_K <- as.numeric(dapc_items$bestK)
+    plot(BIC, type = "o", xaxt = 'n')
+    axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+
+    if (input$plot_BICX) {
+      plot(BIC, type = "o", xaxt = 'n')
+      axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+      points(selected_K, BIC[selected_K,2], pch = "x", col = "red", cex = 2)
+    } else {
+      plot(BIC, type = "o", xaxt = 'n')
+      axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+    }
+
+    })
+
+  #Output the DAPC scatter plot
+  output$DAPC_plot <- renderPlot({
+    req(dapc_items$dapc, input$dapc_k)
+    
+    #Get colors
+    palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
+    my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
+
+    sc1 <- scatter(dapc_items$dapc,
+               bg = "white", solid = 1, cex = 1, # cex circle size
+               col = my_palette,
+               pch = 20, # shapes
+               cstar = 1, # 0 or 1, arrows from center of cluster
+               cell = 2, # size of elipse
+               scree.da = T, # plot da
+               scree.pca = T, # plot pca
+               posi.da = "topright", 
+               posi.pca="bottomright",
+               mstree = F, # lines connecting clusters
+               lwd = 1, lty = 2, 
+               leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+  })
+
+  #Output datatables
+  output$BIC_table <- renderDT({dapc_items$bicDF}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+  output$DAPC_table <- renderDT({dapc_items$assignments}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+  ##GWAS items
   gwas_vars <- reactiveValues(
     gwas_df = NULL
 
-
     )
+
   observeEvent(input$phenotype_file, {
     info_df <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
     trait_var <- colnames(info_df)
@@ -1958,7 +2252,7 @@ server <- function(input, output, session) {
   pred_outputs$corr_output <- results$PredictionAccuracy
 
   #TESTING!!!
-  #write.csv(results$GEBVs, "GEBVs_test.csv")
+  write.csv(results$GEBVs, "GEBVs_test.csv")
 
   #Status
   updateProgressBar(session = session, id = "pb_prediction", value = 90, status = "info", title = "Generating Results")
