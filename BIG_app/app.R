@@ -335,7 +335,7 @@ ui <- dashboardPage(
                   div(style="display:inline-block; float:right",dropdownButton(
 
                     tags$h3("DAPC Inputs"),
-                    "DAPC Input file and analysis info",
+                    "DAPC Input file and analysis info. The DAPC analysis is broken down into two steps. The first step (Step 1), uses Kmeans clustering to estimate the most likely number of clusters within the dataset. This is visualized in the BIC plot and is typically the minimum BIC value. Step 2 is the DAPC analysis where the most likely value for K (number of clusters) is input and the cluster memberships are determined in the DAPC results",
                     circle = FALSE,
                     status = "warning", 
                     icon = icon("info"), width = "300px",
@@ -381,22 +381,24 @@ ui <- dashboardPage(
                                                                                   "Pastel1","Paired","Dark2","Accent","Spectral",
                                                                                   "RdYlGn","RdYlBu","RdGy","RdBu","PuOr","PRGn",
                                                                                   "PiYG","BrBG"), selected = "Paired"),
-                materialSwitch('plot_BICX', label = "Mark Suggested K?", status = "success", value = TRUE),
+                materialSwitch('plot_BICX', label = "Label Suggested K?", status = "success", value = TRUE),
                 #selectInput("pc_X", "X-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC1"),
                 #selectInput("pc_Y", "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
                 div(style="display:inline-block; float:right",dropdownButton(
-                      tags$h3("Save Image"),
+                      tags$h3("Save Output"),
                       selectInput(inputId = 'dapc_figure', label = 'Figure', choices = c("BIC Plot", "DAPC Plot"), selected = "BIC Plot"),
                       selectInput(inputId = 'dapc_image_type', label = 'File', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'dapc_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                       sliderInput(inputId = 'dapc_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
                       sliderInput(inputId = 'dapc_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
-                      downloadButton("download_dapc", "Save"),
+                      fluidRow(
+                      downloadButton("download_dapc_image", "Save Image"),
+                      downloadButton("download_dapc_file", "Save Files")),
                       circle = FALSE,
                       status = "danger", 
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
-                      ))
+                    ))
               ),
 
               box(title = "Status", width = 12, collapsible = TRUE, status = "info",
@@ -524,7 +526,7 @@ ui <- dashboardPage(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
               fileInput("diversity_file", "Choose Genotypes File"),
-              fileInput("pop_file", "Choose Passport File"),
+              #fileInput("pop_file", "Choose Passport File"),
               #textInput("output_name", "Output File Name"),
               numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = 2),
               #numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
@@ -553,11 +555,13 @@ ui <- dashboardPage(
             box(
               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
               tabsetPanel(
-                tabPanel("Dosage Plot"),
+                tabPanel("Dosage Plot", plotOutput('dosage_plot')),
                 tabPanel("AF Plot"),
                 tabPanel("MAF Plot"),
-                tabPanel("PIC Plot"),
-                tabPanel("Diversity Statistics")
+                tabPanel("Het Plot"),
+                tabPanel("Diversity Stats (Sample)",DTOutput('sample_table')),
+                tabPanel("Diversity Stats (SNP)",DTOutput('snp_table'))
+
 
                 )
               
@@ -1100,6 +1104,7 @@ server <- function(input, output, session) {
   # Update dropdown menu choices based on uploaded passport file
   observeEvent(input$passport_file, {
     info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
     data$info_df <- info_df  # Store info_df in reactiveValues
 
     updateSelectInput(session, "group_info", choices = colnames(info_df))
@@ -1533,7 +1538,7 @@ server <- function(input, output, session) {
   })
 
   ###Outputs from DAPC
-  #Output the genomic prediction correlation box plots
+  #Output the BIC plot
   output$BIC_plot <- renderPlot({
     req(dapc_items$bicDF, dapc_items$bestK)
 
@@ -1802,104 +1807,189 @@ server <- function(input, output, session) {
     updateProgressBar(session = session, id = "pb_gwas", value = 100, status = "success", title = "Finished")
 
   })
+  
 
-  #Genomic Diversity analysis
-  observeEvent(input$Diversity_Start, {
 
-    #Input variables
-    ploidy <- input$ploidy
-    genomat_cleaned <- read.csv(input$genotype_file$datapath)
+  #######Genomic Diversity analysis
 
-    #Diversity statistics (might want to output a dataframe of stats for each marker and sample (avg depth, maf, af, het))
+  #Genomic Diversity output files
+  diversity_items <- reactiveValues(
+    diversity_df = NULL,
+    dosage_df = NULL,
+    box_plot = NULL,
+    het_df = NULL,
+    maf_df = NULL
+
+
+  )
+
+  observeEvent(input$diversity_start, {
+
+    req(input$diversity_file, input$diversity_ploidy)
+
+    #Input variables (need to add support for VCF file)
+    ploidy <- as.numeric(input$diversity_ploidy)
+    geno_mat <- read.csv(input$diversity_file$datapath, header = TRUE, check.names = FALSE)
+    #pheno <- read.csv(input$pop_file$datapath, header = TRUE, check.names = FALSE)
+
+    #Set values as numeric
+    #geno_mat <- as.matrix(geno_mat)
+    #row.names(geno_mat) <- geno_mat[,1]
+    #geno_mat <- geno_mat[,-1]
+
+    ###ERROR is with the calculateMAF function..
+
+    print("Genotype file successfully imported")
+    ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate) 
     
-    #Output heterozygosity statistics (Need to be able to account for different ploidy - maybe use if statements, or ignore the max min over a range of numbers length ploidy?)
-    
-    #Can I do a range for sum? like sum(genomat_cleaned == c(1:(ploidy-1)))
-    if (ploidy == 2) {
-      pop_heterozygosity <- sum(sum(genomat_cleaned == 1)) / length(genomat_cleaned)
-    } else if (ploidy == 4) {
-      pop_heterozygosity <- sum(sum(genomat_cleaned == 1) + sum(genomat_cleaned == 2) + sum(genomat_cleaned == 3)) / length(genomat_cleaned)
-    } else if (ploidy == 6) {
-      pop_heterozygosity <- sum(sum(genomat_cleaned == 1) + sum(genomat_cleaned == 2) + sum(genomat_cleaned == 3) + sum(genomat_cleaned == 4) + sum(genomat_cleaned == 5)) / length(genomat_cleaned)
-    } else if (ploidy == 8) {
-      pop_heterozygosity <- sum(sum(genomat_cleaned == 1) + sum(genomat_cleaned == 2) + sum(genomat_cleaned == 3) + sum(genomat_cleaned == 4) + sum(genomat_cleaned == 5) + sum(genomat_cleaned == 6) + sum(genomat_cleaned == 7)) / length(genomat_cleaned)
-    } else if (ploidy > 8) {
-      print("Sorry, you will have to manually edit R script to estimate heterozygosity for ploidy > 8")
+    #Updated MAF function
+    calculateMAF <- function(df, ploidy = 4) {
+      if (is.matrix(df)) {
+        df <- as.data.frame(df)
+      }
+  
+      allele_frequencies <- apply(df, 1, function(row) {
+        non_na_count <- sum(!is.na(row))
+        allele_sum <- sum(row, na.rm = TRUE)
+        #print(paste("Non-NA count:", non_na_count, "Allele sum:", allele_sum))
+        if (non_na_count > 0) {
+          allele_sum / (ploidy * non_na_count)
+        } else {
+          NA
+        }
+      })
+
+      maf <- ifelse(allele_frequencies <= 0.5, allele_frequencies, 1 - allele_frequencies)
+  
+      df$AF <- allele_frequencies
+      df$MAF <- maf
+  
+      maf_df <- df[,c("AF", "MAF"), drop = FALSE]
+  
+      return(maf_df)
     }
-    
-    if (exists("pop_heterozygosity")) {
-      cat("Population heterozygosity =", pop_heterozygosity, "\n")
-    }
-    #print('Population heterozygosity =',sum(sum(genomat_cleaned == 1)) / length(genomat_cleaned))
-    
-    
-    ######Get MAF plot
-    # Copy the dataframe (assuming you have 'updog_df' loaded)
-    df <- genomat_cleaned
-    
-    # Switch values so that 0 = homozygous reference
-    #df[df == 0] <- 2
-    #df[df == 2] <- 0
-    
-    # Calculate the allele frequency values
-    result_values <- apply(df, 1, function(row) sum(row) / (as.numeric(ploidy) * ncol(df)))
-    
-    # Calculate the row-wise sum
-    row_sums <- rowSums(df)
-    
-    # Calculate the length of each row multiplied by ploidy
-    row_lengths <- ncol(df) * as.numeric(ploidy)
-    
-    # Divide the row sums by the row lengths
-    result <- row_sums / row_lengths
-    
-    # Convert the result to allele frequency list
-    result_list <- as.vector(result)
-    
-    # Get minor allele frequency values
-    maf_list <- ifelse(result_list < 0.5, result_list, 1 - result_list)
-    
-    # Create a histogram
-    maf_name <- paste0(output_name,'_MADC_Ref_Alt_filtered_bias0.5-2_updog_SNPs_MAF_histogram.pdf')
-    pdf(maf_name)
-    hist(maf_list, breaks = 25, col = "lightblue", border = "black", xlab = "Minor Allele Frequency (MAF)",
-         ylab = "Frequency", main = "MAF Distribution")
-    
-    dev.off()
-    
-    
-    ######Make dosage ratio plot
-    
-    # Calculate the value counts and percentages for each DataFrame (assuming you have 'updog_df' and 'geno_df' loaded)
-    value_counts1 <- table(unlist(genomat_cleaned))
-    total_values1 <- length(unlist(genomat_cleaned))
-    percentages1 <- (value_counts1 / total_values1) * 100
-    
-    
-    # Create a bar chart
-    bar_width <- 0.35
-    dosage_calls <- unique(names(percentages1))
-    dosage_counts1 <- ifelse(names(percentages1) %in% dosage_calls, percentages1, 0)
-    
-    bar_data <- data.frame(DosageCall = dosage_calls,
-                           DArT_Updog = dosage_counts1)
-    
-    # Plot the bar chart using ggplot2
-    
-    ggplot(bar_data, aes(x = DosageCall)) +
-      geom_bar(aes(y = DArT_Updog), stat = "identity", position = "dodge", fill = "blue", width = bar_width, alpha = 0.7) +
-      labs(x = "Dosage Call", y = "Percentage", title = "MADC Updog Alt Ref Dosage Call Ratios") +
-      theme_minimal() +
-      scale_x_discrete(labels = dosage_calls) +
-      scale_fill_manual(values = c("blue", "red")) +
-      theme_minimal() +
-      scale_y_continuous(limits = c(0, max(max(dosage_counts1)) + 10))
-    
-    # Display the plot
-    dosage_name <- paste0(output_name,'_MADC_Ref_Alt_filtered_bias0.5-2_updog_SNPs_dosage_ratios.png')
-    ggsave(dosage_name, width = 8, height = 6, dpi = 300)  # Save the plot as an image
    
+    # Function to calculate percentages for each genotype in each sample
+    calculate_percentages <- function(matrix_data, ploidy) {
+      apply(matrix_data, 2, function(col) {
+        counts <- table(col)
+        prop <- prop.table(counts) * 100
+        #max_val <- max(as.numeric(names(counts)))  # Find the maximum value in the column
+        prop[as.character(0:ploidy)]  # Adjust the range based on the max value (consider entering the ploidy value explicitly for max_val)
+      })
+    } 
 
+    # Calculate percentages for both genotype matrices
+    percentages1 <- calculate_percentages(geno_mat, ploidy)
+    # Combine the data matrices into a single data frame
+    percentages1_df <- as.data.frame(t(percentages1))
+    percentages1_df$Data <- "Loci"
+    # Assuming my_data is your dataframe
+    melted_data <- percentages1_df %>%
+      pivot_longer(cols = -(Data),names_to = "Dosage", values_to = "Percentage")
+
+    diversity_items$dosage_df <- melted_data
+
+  print("Dosage calculations worked")
+
+    #Heterozygosity function
+    calculate_heterozygosity <- function(genotype_matrix, ploidy = 2) {
+      # Determine the heterozygous values based on ploidy
+      heterozygous_values <- seq(1, ploidy - 1)
+  
+      # Create a logical matrix where TRUE represents heterozygous loci
+      is_heterozygous <- sapply(genotype_matrix, function(x) x %in% heterozygous_values)
+  
+      # Count the number of heterozygous loci per sample, ignoring NAs
+      heterozygosity_counts <- colSums(is_heterozygous, na.rm = TRUE)
+  
+      # Calculate the total number of non-NA loci per sample
+      total_non_na_loci <- colSums(!is.na(genotype_matrix))
+  
+      # Compute the proportion of heterozygous loci
+      heterozygosity_proportion <- heterozygosity_counts / total_non_na_loci
+  
+      # Create a dataframe with Sample ID and Observed Heterozygosity
+      result_df <- data.frame(
+        SampleID = colnames(genotype_matrix),
+        ObservedHeterozygosity = heterozygosity_proportion
+      )
+  
+      return(result_df)
+    }
+
+    # Calculating heterozygosity for a tetraploid organism
+    diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
+
+    print("Heterozygosity success")
+    diversity_items$maf_df <- calculateMAF(geno_mat, ploidy = ploidy)
+
+    print("MAF success")
+  })
+
+  observe({
+
+    req(diversity_items$dosage_df)
+
+    #Plotting
+    #pdf("alfalfa_11_GBS_and_Realignment_doubletons_filtered_dosages.pdf")
+    box <- ggplot(diversity_items$dosage_df, aes(x=Dosage, y=Percentage, fill=Data)) +
+    #geom_point(aes(color = Data), position = position_dodge(width = 0.8), width = 0.2, alpha = 0.5) +  # Add jittered points
+    geom_boxplot(position = position_dodge(width = 0.8), alpha = 0.9) +
+    labs(x = "\nDosage", y = "Percentage\n", title = "Genotype Distribution by Sample") +
+    #scale_fill_manual(values = c("GBS loci" = "tan3", "DArTag Realignment loci" = "beige")) +
+    theme_bw() +
+      theme(
+      axis.text = element_text(size = 14),
+      axis.title = element_text(size = 14)
+    )
+    #dev.off()
+    
+    diversity_items$box_plot <- box
+
+  })
+
+  output$dosage_plot <- renderPlot({
+    
+    req(diversity_items$box_plot)
+    diversity_items$box_plot
+
+  })
+
+  observe({
+
+    req(diversity_items$het_df)
+
+    output$sample_table <- renderDT({diversity_items$het_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+    #Plot
+    #pdf("meng_filtered_alfalfa_11_GBS_DArTag_no_doubletons_sample_heterozygosity.pdf")
+    #hist(gbs.het$ObservedHeterozygosity, breaks = 5, col = "tan3", border = "black", xlim= c(0,1),
+    #  xlab = "Observed Heterozygosity",
+    #  ylab = "Number of Samples",
+    #  main = "Sample Observed Heterozygosity")
+
+    #hist(realign.het$ObservedHeterozygosity, breaks = 10, col = "beige", border = "black", xlim= c(0,1),
+    #   add=TRUE)
+    #axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
+
+
+    #legend("topright", legend = c("GBS", "DArTag Realignment"), 
+    #     fill = c("tan3", "beige"), 
+    #     border = c("black", "black"))
+    #dev.off()
+  
+  })
+
+  observe({
+
+    req(diversity_items$maf_df)
+
+    output$snp_table <- renderDT({diversity_items$maf_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+    #Plot
+
+  
   })
 
   ####Genomic Prediction
@@ -2266,6 +2356,8 @@ server <- function(input, output, session) {
   continue_prediction(NULL)
   })
 
+#####Analysis Outputs
+
   observe({
     req(pred_outputs$corr_output)
 
@@ -2330,6 +2422,8 @@ server <- function(input, output, session) {
     pred_outputs$violin_plot
     })
 
+##Saving analysis outputs
+
   #Download figures for PCA
   output$download_pca <- downloadHandler(
 
@@ -2369,6 +2463,113 @@ server <- function(input, output, session) {
     }
 
   )
+
+  #Download figures for DAPC (change this so that the figures were already saved as reactive values to then print() here)
+  output$download_dapc_image <- downloadHandler(
+
+    filename = function() {
+      if (input$dapc_image_type == "jpeg") {
+        paste("dapc-", Sys.Date(), ".jpg", sep="")
+      } else if (input$dapc_image_type == "png") {
+        paste("dapc-", Sys.Date(), ".png", sep="")
+      } else {
+        paste("dapc-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$dapc_figure)
+      
+      if (input$dapc_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
+      } else if (input$dapc_image_type == "png") {
+        png(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      if (input$dapc_figure == "DAPC Plot") {
+          req(dapc_items$dapc, input$dapc_k)
+    
+          #Get colors
+          palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
+          my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
+
+          sc1 <- scatter(dapc_items$dapc,
+               bg = "white", solid = 1, cex = 1, # cex circle size
+               col = my_palette,
+               pch = 20, # shapes
+               cstar = 1, # 0 or 1, arrows from center of cluster
+               cell = 2, # size of elipse
+               scree.da = T, # plot da
+               scree.pca = T, # plot pca
+               posi.da = "topright", 
+               posi.pca="bottomright",
+               mstree = F, # lines connecting clusters
+               lwd = 1, lty = 2, 
+               leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+      
+      } else if (input$dapc_figure == "BIC Plot") {
+          req(dapc_items$bicDF, dapc_items$bestK)
+
+          BIC <- dapc_items$bicDF
+          selected_K <- as.numeric(dapc_items$bestK)
+          plot(BIC, type = "o", xaxt = 'n')
+          axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+
+          if (input$plot_BICX) {
+            plot(BIC, type = "o", xaxt = 'n')
+            axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+            points(selected_K, BIC[selected_K,2], pch = "x", col = "red", cex = 2)
+          } else {
+            plot(BIC, type = "o", xaxt = 'n')
+            axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+          }
+      #} else if (input$pca_figure == "3D Plot") {
+        #print(all_plots$pca3d)  # Assuming you might want a 3D plot as well
+      }
+
+      dev.off()
+    }
+
+  )
+
+  #Download files for DAPC
+  output$download_dapc_file <- downloadHandler(
+    filename = function() {
+      paste0("dapc-results-", Sys.Date(), ".zip")
+    },
+    content = function(file) {
+      # Temporary files list
+      temp_dir <- tempdir()
+      temp_files <- c()
+
+      if (!is.null(dapc_items$assignments)) {
+        # Create a temporary file for assignments
+        assignments_file <- file.path(temp_dir, paste0("DAPC-values-", Sys.Date(), ".csv"))
+        write.csv(dapc_items$assignments, assignments_file, row.names = TRUE)
+        temp_files <- c(temp_files, assignments_file)
+      }
+    
+      if (!is.null(dapc_items$bicDF)) {
+        # Create a temporary file for BIC data frame
+        bicDF_file <- file.path(temp_dir, paste0("BIC-values-", Sys.Date(), ".csv"))
+        write.csv(dapc_items$bicDF, bicDF_file, row.names = FALSE)
+        temp_files <- c(temp_files, bicDF_file)
+      }
+
+      # Zip files only if there's something to zip
+      if (length(temp_files) > 0) {
+        zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
+      }
+
+      # Optionally clean up
+      file.remove(temp_files)
+    }
+  ) 
+
+  
 
   output$downloadData <- downloadHandler(
     filename = function() {
