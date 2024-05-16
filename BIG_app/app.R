@@ -5,7 +5,7 @@ required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate"
                        "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
                        "dichromat", "bs4Dash", "shinyWidgets","data.table",
                        "matrixcalc","Matrix", "shinyalert","rrBLUP", "tidyverse",
-                       "foreach", "doParallel","VariantAnnotation")
+                       "foreach", "doParallel","VariantAnnotation", "vcfR")
 
 required_bio_packages <- c("SNPRelate","VariantAnnotation")
 
@@ -237,7 +237,7 @@ ui <- dashboardPage(
           column(width = 3,
             box(
               title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
-              fileInput("dosage_file", "Choose Genotypes File"),#, accept = c(".csv",".vcf",".vcf.gz")),
+              fileInput("dosage_file", "Choose Genotypes File"), accept = c(".csv",".vcf",".vcf.gz")),
               fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
               #textInput("output_name", "Output File Name (disabled)"),
               #Dropdown will update after pasport upload
@@ -525,7 +525,7 @@ ui <- dashboardPage(
         fluidRow(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-              fileInput("diversity_file", "Choose Genotypes File"),
+              fileInput("diversity_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
               #fileInput("pop_file", "Choose Passport File"),
               #textInput("output_name", "Output File Name"),
               numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = 2),
@@ -1153,7 +1153,7 @@ server <- function(input, output, session) {
       if (ploidy == 2) {
     
       #Get genotypes from VCF
-      geno.mat <- geno(vcf)$GT
+      geno.mat <- extract.gt(vcf)
     
       #Convert to dosages (0,1,2, etc)
       geno.mat[geno.mat == "0/0"] <- 0
@@ -1197,7 +1197,7 @@ server <- function(input, output, session) {
       }
 
       #Import genotypes and convert to dosage format
-      vcf <- readVcf(geno)
+      vcf <- read.vcfR(geno)
       genomat <- VCF2GT(vcf, ploidy=2)
       
       #drop vcf
@@ -1843,7 +1843,7 @@ server <- function(input, output, session) {
       if (ploidy == 2) {
     
       #Get genotypes from VCF
-      geno.mat <- geno(vcf)$GT
+      geno.mat <- extract.gt(vcf)
     
       #Convert to dosages (0,1,2, etc)
       geno.mat[geno.mat == "0/0"] <- 0
@@ -1887,7 +1887,7 @@ server <- function(input, output, session) {
       }
 
       #Import genotypes and convert to dosage format
-      vcf <- readVcf(geno)
+      vcf <- read.vcfR(geno)
       geno_mat <- VCF2GT(vcf, ploidy=2)
       #drop vcf
       rm(vcf)
@@ -1963,7 +1963,7 @@ server <- function(input, output, session) {
     percentages1 <- calculate_percentages(geno_mat, ploidy)
     # Combine the data matrices into a single data frame
     percentages1_df <- as.data.frame(t(percentages1))
-    percentages1_df$Data <- "."
+    percentages1_df$Data <- "Dosages"
     # Assuming my_data is your dataframe
     print("Percentage Complete: melting dataframe")
     melted_data <- percentages1_df %>%
