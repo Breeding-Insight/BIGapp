@@ -237,7 +237,7 @@ ui <- dashboardPage(
           column(width = 3,
             box(
               title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
-              fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+              fileInput("dosage_file", "Choose Genotypes File"),#, accept = c(".csv",".vcf",".vcf.gz")),
               fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
               #textInput("output_name", "Output File Name (disabled)"),
               #Dropdown will update after pasport upload
@@ -529,6 +529,7 @@ ui <- dashboardPage(
               #fileInput("pop_file", "Choose Passport File"),
               #textInput("output_name", "Output File Name"),
               numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = 2),
+              selectInput("zero_value", "What are the Dosage Calls?", choices = c("Reference Allele Counts", "Alternate Allele Counts"), selected = NULL),
               #numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
               actionButton("diversity_start", "Run Analysis"),
               #downloadButton("download_pca", "Download All Files"),
@@ -548,6 +549,27 @@ ui <- dashboardPage(
                 ))#,
               #style = "overflow-y: auto; height: 550px"
 
+              ),
+              box(title = "Plot Controls", width=12, status = "warning", solidHeader = TRUE, collapsible = TRUE,
+                sliderInput("hist_bins","Histogram Bins", min = 1, max = 200, value = c(20), step = 1),
+                div(style="display:inline-block; float:left",dropdownButton(
+                      tags$h3("Save Image"),
+                      selectInput(inputId = 'div_figure', label = 'Figure', choices = c("Dosage Plot",
+                                                                                        "AF Histogram", 
+                                                                                         "MAF Histogram", 
+                                                                                         "OHet Histogram")),
+                      selectInput(inputId = 'div_image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                      sliderInput(inputId = 'div_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
+                      sliderInput(inputId = 'div_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
+                      sliderInput(inputId = 'div_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      fluidRow(
+                      downloadButton("download_div_figure", "Save Image"),
+                      downloadButton("download_div_file", "Save Files")),
+                      circle = FALSE,
+                      status = "danger", 
+                      icon = icon("floppy-disk"), width = "300px",
+                      tooltip = tooltipOptions(title = "Click to see inputs!")
+                      ))
               )
             ),
 
@@ -555,12 +577,12 @@ ui <- dashboardPage(
             box(
               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
               tabsetPanel(
-                tabPanel("Dosage Plot", plotOutput('dosage_plot')),
-                tabPanel("AF Plot"),
-                tabPanel("MAF Plot"),
-                tabPanel("Het Plot"),
-                tabPanel("Diversity Stats (Sample)",DTOutput('sample_table')),
-                tabPanel("Diversity Stats (SNP)",DTOutput('snp_table'))
+                tabPanel("Dosage Plot", plotOutput('dosage_plot'),style = "overflow-y: auto; height: 500px"),
+                tabPanel("AF Plot", plotOutput('af_plot'),style = "overflow-y: auto; height: 500px"),
+                tabPanel("MAF Plot", plotOutput('maf_plot'),style = "overflow-y: auto; height: 500px"),
+                tabPanel("OHet Plot", plotOutput('het_plot'),style = "overflow-y: auto; height: 500px"),
+                tabPanel("Diversity Stats (Sample)",DTOutput('sample_table'),style = "overflow-y: auto; height: 470px"),
+                tabPanel("Diversity Stats (SNP)",DTOutput('snp_table'),style = "overflow-y: auto; height: 470px")
 
 
                 )
@@ -572,25 +594,8 @@ ui <- dashboardPage(
             #valueBoxOutput("snps"),
             valueBox(0.365,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
             valueBox(0.245,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
-            valueBox(0.301,"Mean PIC", icon = icon("dna"), width = NULL, color = "info"),
-            box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,
-                sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
-                div(style="display:inline-block; float:left",dropdownButton(
-                      tags$h3("Save Image"),
-                      selectInput(inputId = 'filter_hist', label = 'Figure', choices = c("Bias Histogram", 
-                                                                                         "OD Histogram", 
-                                                                                         "MaxPostProb Histogram")),
-                      selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
-                      sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
-                      downloadButton("download_diversity", "Save"),
-                      circle = FALSE,
-                      status = "danger", 
-                      icon = icon("floppy-disk"), width = "300px",
-                      tooltip = tooltipOptions(title = "Click to see inputs!")
-                      ))
-            )          
+            valueBox(0.301,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
+          
           )
           
           )
@@ -1825,29 +1830,100 @@ server <- function(input, output, session) {
 
   observeEvent(input$diversity_start, {
 
-    req(input$diversity_file, input$diversity_ploidy)
+    req(input$diversity_file, input$diversity_ploidy, input$zero_value)
 
     #Input variables (need to add support for VCF file)
     ploidy <- as.numeric(input$diversity_ploidy)
-    geno_mat <- read.csv(input$diversity_file$datapath, header = TRUE, check.names = FALSE)
+    geno <- input$diversity_file$datapath
+    #geno_mat <- read.csv(input$diversity_file$datapath, header = TRUE, check.names = FALSE, row.names = 1)
     #pheno <- read.csv(input$pop_file$datapath, header = TRUE, check.names = FALSE)
 
-    #Set values as numeric
-    #geno_mat <- as.matrix(geno_mat)
-    #row.names(geno_mat) <- geno_mat[,1]
-    #geno_mat <- geno_mat[,-1]
+    #Import genotype information if in VCF format
+    VCF2GT <- function(vcf, ploidy = NULL) {
+      if (ploidy == 2) {
+    
+      #Get genotypes from VCF
+      geno.mat <- geno(vcf)$GT
+    
+      #Convert to dosages (0,1,2, etc)
+      geno.mat[geno.mat == "0/0"] <- 0
+      geno.mat[geno.mat == "0/1"] <- 1
+      geno.mat[geno.mat == "1/0"] <- 1
+      geno.mat[geno.mat == "1/1"] <- 2
+      geno.mat[geno.mat == "./."] <- NA
+    
+      }
+  
+      type(geno.mat) <- "numeric"
+  
+      return(as.data.frame(geno.mat))
+    }
 
-    ###ERROR is with the calculateMAF function..
+    #If the input file is a VCF, extract genotypes (throw an error if ploidy is also > 2)
+    if (grepl("\\.vcf(\\.gz)?$", geno)) {
+
+      #Throw error if VCF file and ploidy is not diploid (only support diploid VCF for now)
+      if (as.numeric(ploidy) != 2) {
+      # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "Only diploid VCF files supported",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE
+          )
+                         
+      
+        # Stop the observeEvent gracefully
+        return()
+      }
+
+      #Import genotypes and convert to dosage format
+      vcf <- readVcf(geno)
+      geno_mat <- VCF2GT(vcf, ploidy=2)
+      #drop vcf
+      rm(vcf)
+
+    } else {
+      #Import genotype matrix
+      geno_mat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    }
+
+    print(class(geno_mat))
+    #Convert genotypes to alternate counts if they are the reference allele counts
+    #Importantly, the dosage plot is based on the input format NOT the converted genotypes
+    is_reference <- (input$zero_value == "Reference Allele Counts")
+    convert_genotype_counts <- function(df, ploidy, is_reference = TRUE) {
+      if (is_reference) {
+        # Convert from reference to alternate alleles
+        return(abs(df - ploidy))
+      } else {
+        # Data already represents alternate alleles
+        return(df)
+      }
+    }
+
 
     print("Genotype file successfully imported")
     ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate) 
     
     #Updated MAF function
-    calculateMAF <- function(df, ploidy = 4) {
+    calculateMAF <- function(df, ploidy) {
       if (is.matrix(df)) {
         df <- as.data.frame(df)
       }
-  
+      
+      #Convert the elements to numeric if they are characters
+      df[] <- lapply(df, function(x) if(is.character(x)) as.numeric(as.character(x)) else x)
+
       allele_frequencies <- apply(df, 1, function(row) {
         non_na_count <- sum(!is.na(row))
         allele_sum <- sum(row, na.rm = TRUE)
@@ -1865,6 +1941,10 @@ server <- function(input, output, session) {
       df$MAF <- maf
   
       maf_df <- df[,c("AF", "MAF"), drop = FALSE]
+
+      #Make the row names (SNP ID) the first column
+      maf_df <- maf_df %>%
+        tibble::rownames_to_column(var = "SNP_ID")
   
       return(maf_df)
     }
@@ -1878,13 +1958,14 @@ server <- function(input, output, session) {
         prop[as.character(0:ploidy)]  # Adjust the range based on the max value (consider entering the ploidy value explicitly for max_val)
       })
     } 
-
+    print("Starting percentage calc")
     # Calculate percentages for both genotype matrices
     percentages1 <- calculate_percentages(geno_mat, ploidy)
     # Combine the data matrices into a single data frame
     percentages1_df <- as.data.frame(t(percentages1))
-    percentages1_df$Data <- "Loci"
+    percentages1_df$Data <- "."
     # Assuming my_data is your dataframe
+    print("Percentage Complete: melting dataframe")
     melted_data <- percentages1_df %>%
       pivot_longer(cols = -(Data),names_to = "Dosage", values_to = "Percentage")
 
@@ -1917,6 +1998,9 @@ server <- function(input, output, session) {
   
       return(result_df)
     }
+
+    #Convert the genotype calls prior to het,af, and maf calculation
+    geno_mat <- convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference)
 
     # Calculating heterozygosity for a tetraploid organism
     diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
@@ -1956,28 +2040,55 @@ server <- function(input, output, session) {
 
   })
 
-  observe({
-
-    req(diversity_items$het_df)
-
-    output$sample_table <- renderDT({diversity_items$het_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
+  #Het plot
+  output$het_plot <- renderPlot({
+    
+    req(diversity_items$het_df, input$hist_bins)
+    
     #Plot
     #pdf("meng_filtered_alfalfa_11_GBS_DArTag_no_doubletons_sample_heterozygosity.pdf")
-    #hist(gbs.het$ObservedHeterozygosity, breaks = 5, col = "tan3", border = "black", xlim= c(0,1),
-    #  xlab = "Observed Heterozygosity",
-    #  ylab = "Number of Samples",
-    #  main = "Sample Observed Heterozygosity")
+    hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+      xlab = "Observed Heterozygosity",
+      ylab = "Number of Samples",
+      main = "Sample Observed Heterozygosity")
 
-    #hist(realign.het$ObservedHeterozygosity, breaks = 10, col = "beige", border = "black", xlim= c(0,1),
-    #   add=TRUE)
-    #axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
+    axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
 
 
     #legend("topright", legend = c("GBS", "DArTag Realignment"), 
     #     fill = c("tan3", "beige"), 
     #     border = c("black", "black"))
     #dev.off()
+
+  })
+
+  #AF Plot
+  output$af_plot <- renderPlot({
+    
+    req(diversity_items$maf_df, input$hist_bins)
+    
+    #Plot
+    hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
+      ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
+
+  })
+
+  #MAF plot
+  output$maf_plot <- renderPlot({
+    
+    req(diversity_items$maf_df, input$hist_bins)
+    
+    #Plot
+    hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
+      ylab = "Frequency", main = "Minor Allele Frequency Distribution")
+
+  })
+
+  observe({
+
+    req(diversity_items$het_df)
+
+    output$sample_table <- renderDT({diversity_items$het_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
   
   })
 
@@ -2557,6 +2668,100 @@ server <- function(input, output, session) {
         bicDF_file <- file.path(temp_dir, paste0("BIC-values-", Sys.Date(), ".csv"))
         write.csv(dapc_items$bicDF, bicDF_file, row.names = FALSE)
         temp_files <- c(temp_files, bicDF_file)
+      }
+
+      # Zip files only if there's something to zip
+      if (length(temp_files) > 0) {
+        zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
+      }
+
+      # Optionally clean up
+      file.remove(temp_files)
+    }
+  )
+
+  #Download Figures for Diversity Tab (Need to convert figures to ggplot)
+  output$download_div_figure <- downloadHandler(
+
+    filename = function() {
+      if (input$div_image_type == "jpeg") {
+        paste("genomic-diversity-", Sys.Date(), ".jpg", sep="")
+      } else if (input$div_image_type == "png") {
+        paste("genomic-diversity-", Sys.Date(), ".png", sep="")
+      } else {
+        paste("genomic-diversity-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$div_figure)
+      
+      if (input$div_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
+      } else if (input$div_image_type == "png") {
+        png(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      if (input$div_figure == "Dosage Plot") {
+          req(diversity_items$box_plot)
+          print(diversity_items$box_plot)
+      
+      } else if (input$div_figure == "AF Histogram") {
+          req(diversity_items$maf_df, input$hist_bins)
+    
+          #Plot
+          hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
+            ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
+
+      } else if (input$div_figure == "MAF Histogram") {
+        req(diversity_items$maf_df, input$hist_bins)
+    
+        #Plot
+        hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
+          ylab = "Frequency", main = "Minor Allele Frequency Distribution")
+
+      } else if (input$div_figure == "OHet Histogram") {
+          req(diversity_items$het_df, input$hist_bins)
+ 
+          hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+            xlab = "Observed Heterozygosity",
+            ylab = "Number of Samples",
+            main = "Sample Observed Heterozygosity")
+
+          axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
+
+      }
+
+      dev.off()
+    }
+
+  )
+
+  #Download files for Genotype Diversity
+  output$download_div_file <- downloadHandler(
+    filename = function() {
+      paste0("genomic-diversity-results-", Sys.Date(), ".zip")
+    },
+    content = function(file) {
+      # Temporary files list
+      temp_dir <- tempdir()
+      temp_files <- c()
+
+      if (!is.null(diversity_items$het_df)) {
+        # Create a temporary file for assignments
+        het_file <- file.path(temp_dir, paste0("Sample-statistics-", Sys.Date(), ".csv"))
+        write.csv(diversity_items$het_df, het_file, row.names = FALSE)
+        temp_files <- c(temp_files, het_file)
+      }
+    
+      if (!is.null(diversity_items$maf_df)) {
+        # Create a temporary file for BIC data frame
+        maf_file <- file.path(temp_dir, paste0("SNP-statistics-", Sys.Date(), ".csv"))
+        write.csv(diversity_items$maf_df, maf_file, row.names = FALSE)
+        temp_files <- c(temp_files, maf_file)
       }
 
       # Zip files only if there's something to zip
