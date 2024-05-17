@@ -48,3 +48,4 @@ if (!require("BiocManager", quietly = TRUE))
 **jhg**
 
 ## Funding Sources
+Breeding Insight is funded by USDA through Cornell University.
