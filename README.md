@@ -28,7 +28,7 @@ In-progress:
 ```
 install.packages("shiny") #This is only needed for the first time running shiny
 library("shiny")
-setwd("/Genomics_Shiny_App")
+setwd("path_to_shiny_app/Genomics_Shiny_App")
 runApp("BIG_app")
 ```
 8. View shiny app in browser
