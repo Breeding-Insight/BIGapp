@@ -53,7 +53,6 @@ Dev_tools_packages <- c("GWASpoly")
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
     
-**jhg**
 
 ## Funding Sources
 Breeding Insight is funded by USDA through Cornell University.
