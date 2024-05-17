@@ -27,9 +27,9 @@ In-progress:
 4. Initialize R in Terminal and enter the below commands
 ```
 install.packages("shiny") #This is only needed for the first time running shiny
-library("shiny")
-setwd("path_to_shiny_app/Genomics_Shiny_App")
-runApp("BIG_app")
+library("shiny") #Starting the shiny package
+setwd("path_to_shiny_app/Genomics_Shiny_App") #Direct R to the downloaded app folder
+runApp("BIG_app") #Start the app
 ```
 8. View shiny app in browser
 
