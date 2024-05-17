@@ -38,6 +38,8 @@ runApp("BIG_app") #Start the app
 ## References
 The BIG app relies on both custom scripts and previously developed R packages cited below:
 
+R: version 4.2.2
+
 required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate",
                        "adegenet", "future", "scales", "AGHmatrix", "stats", 
                        "factoextra", "readxl", "ggrepel", "dplyr", "shiny",
