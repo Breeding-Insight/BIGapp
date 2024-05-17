@@ -6,26 +6,26 @@ Currently, Breeding Insight provides bioinformatic processing support for our ex
 Initial supported analyses will include the mature genomics/bioinformatics pipelines developed within Breeding Insight, with additional analyses continuing to be added.
 
 Supported:
-1. Dosage calling from MADC file
-2. SNP filtering
-3. Population Structure
-4. Genomic Diversity
-5. GWAS
+- Dosage calling from MADC file
+- SNP filtering
+- Population Structure
+- Genomic Diversity
+- GWAS
 
 In-progress:
-1. Genomic Prediction/Selection
+- Genomic Prediction/Selection
 
-### Running the BIG app online (in progress)
+### Running the BIG app
 
+**Local computer**
+1. Install R
+2. Install.packages("shiny")
+3. library("shiny")
+4. setwd("/Genomics_Shiny_App")
+5. runApp("BIG_app")
+6. View shiny app in browser
 
-
-### Running the BIG app on a local computer
-To use:
-1. Install.packages("shiny")
-2. library("shiny")
-3. setwd("/Genomics_Shiny_App")
-4. runApp("BIG_app")
-5. View shiny app in browser
+**Online (in progress)**
 
 ## References
 The BIG app relies on both custom scripts and previously developed R packages cited below:
