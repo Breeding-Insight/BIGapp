@@ -1,6 +1,6 @@
 # (B)reeding (I)nsight (G)enomics app
 
-Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app will a provide web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
+Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app will provide a web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
 
 ### Supported Analyses
 Initial supported analyses will include the mature genomics/bioinformatics pipelines developed within Breeding Insight, with additional analyses continuing to be added.
