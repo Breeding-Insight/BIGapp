@@ -1,6 +1,6 @@
 # (B)reeding (I)nsight (G)enomics app
 
-Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This app will a provide web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
+Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app will a provide web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
 
 ### Supported Analyses
 Initial supported analyses will include the mature genomics/bioinformatics pipelines developed within Breeding Insight, with additional analyses continuing to be added.
@@ -9,6 +9,8 @@ Supported:
 - Dosage calling from MADC file
 - SNP filtering
 - Population Structure
+  - PCA
+  - DAPC
 - Genomic Diversity
 - GWAS
 
@@ -18,12 +20,18 @@ In-progress:
 ### Running the BIG app
 
 **Local computer**
+
 1. Install R
-2. Install.packages("shiny")
-3. library("shiny")
-4. setwd("/Genomics_Shiny_App")
-5. runApp("BIG_app")
-6. View shiny app in browser
+2. Download this folder from GitHub
+3. Open Terminal (mac)
+4. Initialize R in Terminal and enter the below commands
+```
+install.packages("shiny") #This is only needed for the first time running shiny
+library("shiny")
+setwd("/Genomics_Shiny_App")
+runApp("BIG_app")
+```
+8. View shiny app in browser
 
 **Online (in progress)**
 
