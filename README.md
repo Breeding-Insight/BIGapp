@@ -12,6 +12,9 @@ Supported:
   - PCA
   - DAPC
 - Genomic Diversity
+  - SNP Allele Frequency
+  - SNP Minor Allele Frequency
+  - Sample Observed Heterozygosity
 - GWAS
 
 In-progress:
