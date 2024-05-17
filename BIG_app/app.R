@@ -147,8 +147,8 @@ ui <- dashboardPage(
             ),
           column(width = 3,
             valueBoxOutput("snps"),
-            valueBox(1111,"SNPs Retained", icon = icon("dna"), width = NULL, color = "info"),
-            valueBox("78%","SNPs Removed", icon = icon("filter-circle-xmark"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            valueBox(0,"SNPs Retained", icon = icon("dna"), width = NULL, color = "info"),
+            valueBox("0%","SNPs Removed", icon = icon("filter-circle-xmark"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,
                 sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                 div(style="display:inline-block; float:left",dropdownButton(
@@ -525,7 +525,7 @@ ui <- dashboardPage(
         fluidRow(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-              fileInput("diversity_file", "Choose Genotypes File"),
+              fileInput("diversity_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
               #fileInput("pop_file", "Choose Passport File"),
               #textInput("output_name", "Output File Name"),
               numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = 2),
@@ -592,9 +592,9 @@ ui <- dashboardPage(
             ),
           column(width = 3,
             #valueBoxOutput("snps"),
-            valueBox(0.365,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
-            valueBox(0.245,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
-            valueBox(0.301,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
+            valueBox(0,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
+            valueBox(0,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            valueBox(0,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
           
           )
           
@@ -672,8 +672,8 @@ ui <- dashboardPage(
             ),
           
           column(width = 3,
-            valueBox(87,"Samples in Genotype File", icon = icon("dna"), width = NULL, color = "info"),
-            valueBox(30,"Samples with Phenotype Information", icon = icon("dna"), width = NULL, color = "info"),
+            valueBox(0,"Samples in Genotype File", icon = icon("dna"), width = NULL, color = "info"),
+            valueBox(0,"Samples with Phenotype Information", icon = icon("dna"), width = NULL, color = "info"),
             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
@@ -710,6 +710,22 @@ ui <- dashboardPage(
       tabItem(
         tabName = "help",
         fluidPage(
+          column(width=12),
+          column(width=12,
+            box(title="Dosage Calling", width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+              tabsetPanel(
+                tabPanel("Updog Dosage Calling"),
+                tabPanel("SNP Filtering"))
+              ),
+            box(title="Population Structure", width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+              tabsetPanel(
+                tabPanel("PCA"),
+                tabPanel("DAPC"))
+
+            )
+
+          ),
+          column(width=2)
           # Add Help content here
         )
       )
