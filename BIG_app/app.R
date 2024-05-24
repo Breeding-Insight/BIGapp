@@ -440,6 +440,7 @@ ui <- dashboardPage(
               fileInput("phenotype_file", "Choose Phenotype File", accept = ".csv"),
               #textInput("output_name", "Output File Name"),
               numericInput("gwas_ploidy", "Species Ploidy", min = 1, value = 2),
+              selectInput('gwas_threshold', label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
               selectInput('trait_info', label = 'Select Trait (eg, Color):', choices = NULL),
               virtualSelectInput(
                 inputId = "fixed_info",
@@ -1743,24 +1744,25 @@ server <- function(input, output, session) {
       colnames(plotBICs)[ncol(plotBICs)]<-"RelationshipMatrix"
       plotBICs$n.PC<-factor(plotBICs$n.PC,levels=c("0","1","2","3","4","5",
                                                   "6","7","8","9","10"))
-      #write.table(plotBICs,paste(colnames(GE)[i],"_model_selection_BIC.txt",sep=""),row.names=F,sep="\t",quote=F)
+      plotBICs_kinship <- subset(plotBICs,plotBICs$RelationshipMatrix =="w/Kinship")
+      #write.table(plotBICs_kinship,paste(colnames(GE)[i],"_model_selection_BIC.txt",sep=""),row.names=F,sep="\t",quote=F)
   
-      output$bic_table <- renderDT({plotBICs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5)
+      output$bic_table <- renderDT({plotBICs_kinship}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5)
         )
 
       #setwd("~/Desktop/Alfalfa_GWAS/GWAS by year/ModelSel") #change directory in your case
       #pdf(paste(colnames(GE)[i],"_model_selection_BIC.pdf",sep=""),height=4,width=7)
       
       output$bic_plot <- renderPlot({
-      p1<-ggplot(plotBICs, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) + 
-        geom_point(aes(color=RelationshipMatrix))+
-        geom_line(aes(color=RelationshipMatrix))+
-        #geom_point(aes(shape=ISTL1_intro,size=2))+
-        theme(axis.text.x = element_text(angle =0),
-              panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-              panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-        labs(color="Relationship Matrix",x = "Number of PCs",y="BIC")
-      print(p1)
+        p1<-ggplot(plotBICs_kinship, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) + 
+          geom_line(color="grey")+
+          geom_point(shape=21, color="black", fill="#d95f0e", size=3)+
+          #geom_point(aes(shape=ISTL1_intro,size=2))+
+          theme(text=element_text(size=15),axis.text.x = element_text(angle =0),
+                panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+          labs(x = "Number of PCs",y="BIC")
+        print(p1)
 
       })
       #dev.off()
@@ -1772,18 +1774,22 @@ server <- function(input, output, session) {
       N <- nrow(data@pheno) #Population size
       model <- c("additive","1-dom","2-dom","general","diplo-general","diplo-additive")
   
-      BIC_min <- plotBICs[which.min(plotBICs$BIC),]
-      if(BIC_min$n.PC == 0){params <- set.params(geno.freq = 1 - 5/N)}else{params <- set.params(geno.freq = 1 - 5/N,n.PC = BIC_min$n.PC)}
-      if(BIC_min$RelationshipMatrix=="no Kinship"){
-        data.loco.scan <- GWASpoly(data=data,models=model,traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))}else{
-          data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))}
-                                                                                                                                                                
-      data2 <- set.threshold(data.loco.scan,method="M.eff",level=0.05)
+      BIC_min <- plotBICs_kinship[which.min(plotBICs_kinship$BIC),]
+      if(BIC_min$n.PC == 0){params <- set.params(geno.freq = 1 - 5/N)}else{params <- set.params(geno.freq = 1 - 5/N,n.PC = as.numeric(levels(BIC_min$n.PC))[BIC_min$n.PC])}
+      data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core=9)                                                                                                                                                              
+      #Consider adding options for different thresholds
+      data2 <- set.threshold(data.loco.scan,method=input$gwas_threshold,level=0.05)
       
 
       #Save manhattan plots to list (only for single trait analysis)
       #if length(traits) == 1
       manhattan_plot_list <- list()
+
+      #plot for six models per trait
+      #png(file=paste("Manplot_",colnames(data@pheno[i]),".png",sep=""),width=800, height=550) #change directory in your case
+      manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
+      #print(p1)
+      #dev.off()  
 
       #Output the manhattan plots
       output$manhattan_plot <- renderPlot({
@@ -1791,20 +1797,14 @@ server <- function(input, output, session) {
           print(manhattan_plot_list[[input$model_select]])
 
         })
-
-      #plot for six models per trait
-      #png(file=paste("Manplot_",colnames(data@pheno[i]),".png",sep=""),width=800, height=550) #change directory in your case
-      manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
-      #print(p1)
-      #dev.off()     
+   
   
       #get most significant SNPs per QTL file
       qtl <- get.QTL(data=data2,traits=colnames(data@pheno[i]),bp.window=5e6)
       #knitr::kable(qtl)
       qtl_d <- data.frame(qtl)
       
-      output$gwas_stats <-  renderDT({qtl_d}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5)
-    )
+      output$gwas_stats <-  renderDT({qtl_d}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
       #write.csv(qtl_d,file = paste("GWAS_by_year_SNP_",colnames(data@pheno[i]),"_SNP",".csv",sep=""))#change directory in your case
       
