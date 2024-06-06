@@ -181,6 +181,7 @@ ui <- dashboardPage(
               #checkboxInput("off-targets","Include off-target loci?"),
               #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("output_name", "Output File Name"),
+              selectInput("markers", "Select Markers", choices = c("All Loci (not supported)", "Target Loci Only"), selected = "Target Loci Only"),
               numericInput("ploidy", "Species Ploidy", min = 1, value = 2),
               selectInput("updog_model", "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
               numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
@@ -811,6 +812,7 @@ server <- function(input, output, session) {
     ploidy <- input$ploidy
     cores <- input$cores
     model_select <- input$updog_model
+    marker_set <- (markers == "Target Loci Only")
     
 
     #Status
@@ -826,10 +828,14 @@ server <- function(input, output, session) {
       madc_df <- read.csv(madc_file, sep = ',', skip = 7)
       
       # Retain only the Ref and Alt haplotypes
-      filtered_df <- madc_df[grep("\\|Ref$|\\|Alt$", madc_df$AlleleID), ]
+      filtered_df <- madc_df[!grepl("\\|AltMatch|\\|RefMatch", madc_df$AlleleID), ]
+
+      #Remove extra text after Ref and Alt (_001 or _002)
+      filtered_df$AlleleID <- sub("\\|Ref.*", "|Ref", filtered_df$AlleleID)
+      filtered_df$AlleleID <- sub("\\|Alt.*", "|Alt", filtered_df$AlleleID)
       
       # Save the csv file for review and use in R
-      df_name <- paste0(output_name,'_MADC_alt_ref_counts.csv')
+      #df_name <- paste0(output_name,'_MADC_alt_ref_counts.csv')
       
       #write.csv(filtered_df, file = df_name, row.names = FALSE)
       return(filtered_df)
@@ -860,6 +866,15 @@ server <- function(input, output, session) {
       # Filter rows where 'AlleleID' ends with 'Alt'
       alt_df <- subset(update_df, grepl("Alt$", AlleleID))
       
+      #remove alt or ref rows that do not have a counterpart in the other dataframe
+      if (nrow(ref_df) > nrow(alt_df)) {
+        ref_df <- ref_df[ref_df$CloneID %in% alt_df$CloneID,]
+      } else if (nrow(ref_df) < nrow(alt_df)) {
+        alt_df <- alt_df[alt_df$CloneID %in% ref_df$CloneID,]
+      } else {
+        alt_df <- alt_df[alt_df$CloneID %in% ref_df$CloneID,]
+      }
+
       #Ensure that each has the same SNPs and that they are in the same order
       identical(alt_df$CloneID,ref_df$CloneID)
       
@@ -869,6 +884,7 @@ server <- function(input, output, session) {
       row.names(alt_df) <- alt_df$CloneID
       
       #Remove unwanted columns and convert to matrix
+      #Probably best to just remove the column names that aren't wanted instead of the first 16 columns.
       ref_matrix <- as.matrix(ref_df[, -c(1:16)])
       alt_matrix <- as.matrix(alt_df[, -c(1:16)])
       
