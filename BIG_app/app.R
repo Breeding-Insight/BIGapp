@@ -759,6 +759,9 @@ ui <- dashboardPage(
           column(width=12,
             box(title="Dosage Calling", width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
               tabsetPanel(
+                tabPanel("DArT Report2VCF",
+                  "**Draft**This tab is designed to convert the DArT Dose Report and Counts files to a VCF file. **DArT Website**"
+                ),
                 tabPanel("Updog Dosage Calling",
                   "**Draft**This tab is designed to handle the process of dosage calling in genomic data. Dosage calling is essential for determining the number of copies of a particular allele at each genomic location. The app likely includes functionalities to upload raw genomic data, apply various filtering criteria, and generate plots to visualize the distribution of dosages. Users can examine histograms for SNP max post probabilities and read depths, which help in assessing the quality and accuracy of the dosage calls.**Updog**"
                 ),
