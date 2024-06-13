@@ -9,7 +9,10 @@ required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate"
 
 required_bio_packages <- c("SNPRelate","VariantAnnotation")
 
-Dev_tools_packages <- c("GWASpoly")
+Dev_tools_packages <- c(
+  "GWASpoly" = "jendelman/GWASpoly",
+  "BIGr" = "Breeding-Insight/BIGr"
+  )
 
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -31,9 +34,9 @@ for(package in required_cran_packages) {
 }
 
 #GitHub
-for(package in Dev_tools_packages) {
-  if(!require(package, character.only = TRUE)) {
-    devtools::install_github("jendelman/GWASpoly", build_vignettes=FALSE)
+for (package in names(Dev_tools_packages)) {
+  if (!require(package, character.only = TRUE)) {
+    devtools::install_github(Dev_tools_packages[package], build_vignettes = FALSE)
     library(package, character.only = TRUE)
   }
 }
@@ -68,6 +71,7 @@ ui <- dashboardPage(
       flat = FALSE,
       menuItem("Home", tabName = "welcome", icon = icon("house")),
       menuItem("Dosage Calling", tabName = "dosage_calling", icon = icon("diagram-next"),
+              menuSubItem("DArT Report2VCF", tabName = "dosage2vcf", icon = icon("share-from-square")),
               menuSubItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
               menuSubItem("SNP Filtering", tabName = "filtering", icon = icon("filter"))),
       menuItem("Population Structure", tabName = "pop_struct", icon = icon("layer-group"),
@@ -105,7 +109,7 @@ ui <- dashboardPage(
           column(width = 3,
               box(width = 12,
                 title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
-                fileInput("updog_rdata","Choose Updog Rdata File", accept = ".rda"),
+                fileInput("updog_rdata","Choose VCF File", accept = c(".vcf",".vcf.gz")),
                 textInput("output_name", "Output File Name"),
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(500), step = 1),
                 sliderInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
@@ -177,7 +181,7 @@ ui <- dashboardPage(
           fluidRow(
               box(
               title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-              fileInput("madc_file", "Choose MADC File", accept = c(".csv")),
+              fileInput("madc_file", "Choose MADC or VCF File", accept = c(".csv",".vcf",".vcf.gz")),
               #checkboxInput("off-targets","Include off-target loci?"),
               #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("output_name", "Output File Name"),
@@ -225,6 +229,44 @@ ui <- dashboardPage(
          fluidRow(
               box(title = "Status", width = 3, collapsible = TRUE, status = "info",
                 progressBar(id = "pb_madc", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+              )
+         
+         ) 
+        
+        )  
+      
+      ),
+      tabItem(
+        tabName = "dosage2vcf",
+        fluidPage(
+          fluidRow(
+              box(
+              title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
+              fileInput("report_file", "Choose DArT Dose Report File", accept = c(".csv")),
+              fileInput("counts_file", "Choose DArT Counts File", accept = c(".csv")),
+              #checkboxInput("off-targets","Include off-target loci?"),
+              #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
+              textInput("d2v_output_name", "Output File Name"),
+              numericInput("dosage2vcf_ploidy", "Species Ploidy", min = 1, value = 2),
+              downloadButton("download_d2vcf", "Download VCF File"),
+              div(style="display:inline-block; float:right",dropdownButton(
+
+                    tags$h3("DArT File Converstion"),
+                    "Converting DArT report files to VCF format. The VCF file will automatically
+                    download when complete.",
+                    circle = FALSE,
+                    status = "warning", 
+                    icon = icon("info"), width = "300px",
+                    tooltip = tooltipOptions(title = "Click to see info!")
+                ))
+              ),
+              valueBoxOutput("ReportSnps")
+              #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
+          ),
+         
+         fluidRow(
+              box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+                progressBar(id = "dosage2vcf_pb", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
               )
          
          ) 
@@ -802,6 +844,79 @@ server <- function(input, output, session) {
   output$MADCsnps <- renderValueBox({
     valueBox(snp_number(), "Markers in MADC File", icon = icon("dna"), color = "info")
     })
+
+  report_snp_number <- reactiveVal(0)
+
+  #SNP counts value box
+  output$ReportSnps <- renderValueBox({
+    valueBox(snp_number(), "Markers in VCF File", icon = icon("dna"), color = "info")
+    })
+
+##This is for the DArT files conversion to VCF
+  output$download_d2vcf <- downloadHandler(
+    filename = function() {
+      paste0(input$d2v_output_name, ".vcf.gz")
+    },
+    content = function(file) {
+      # Ensure the files are uploaded
+      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+      
+      # Get the uploaded file paths
+      dosage_file <- input$report_file$datapath
+      counts_file <- input$counts_file$datapath
+      ploidy <- input$dosage2vcf_ploidy
+      
+      # Use a temporary file path without appending .vcf
+      temp_base <- tempfile()
+      
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Converting DArT files to VCF")
+
+      # Convert to VCF using the BIGr package
+      cat("Running BIGr::dosage2vcf...\n")
+      BIGr::dosage2vcf(
+        dart.report = dosage_file,
+        dart.counts = counts_file,
+        output.file = temp_base,
+        ploidy = as.numeric(ploidy)
+      )
+      
+      # The output file should be temp_base.vcf
+      output_name <- paste0(temp_base, ".vcf")
+      
+      # Check if the VCF file was created
+      if (file.exists(output_name)) {
+        cat("VCF file created successfully.\n")
+        
+        # Compress the VCF file using gzip
+        gzip_file <- paste0(output_name, ".gz")
+        gz <- gzfile(gzip_file, "w")
+        writeLines(readLines(output_name), gz)
+        close(gz)
+        
+        # Check if the gzip file was created
+        if (file.exists(gzip_file)) {
+          cat("Gzip file created successfully.\n")
+          
+          # Move the compressed file to the path specified by 'file'
+          file.copy(gzip_file, file)
+          
+          # Delete the temporary files
+          unlink(gzip_file)
+          unlink(output_name)
+          
+          cat("Temporary files deleted successfully.\n")
+        } else {
+          stop("Error: Failed to create the gzip file.")
+        }
+      } else {
+        stop("Error: Failed to create the VCF file.")
+      }
+
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+    }
+  )
 
 ##This is for performing Updog Dosage Calling
   observeEvent(input$run_analysis, {
