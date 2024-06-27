@@ -111,7 +111,7 @@ ui <- dashboardPage(
                 title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
                 fileInput("updog_rdata","Choose VCF File", accept = c(".vcf",".vcf.gz")),
                 textInput("filter_output_name", "Output File Name"),
-                numericInput("filter_ploidy","Ploidy", min = 0, value = 2),
+                numericInput("filter_ploidy","Ploidy", min = 0, value = NULL),
                 numericInput("filter_maf","MAF filter", min = 0, max=1, value = 0.05, step = 0.01),
                 sliderInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
                 numericInput("snp_miss","Remove SNPs with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
