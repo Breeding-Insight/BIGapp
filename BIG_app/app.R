@@ -148,8 +148,8 @@ ui <- dashboardPage(
               id = "updog_tab", height = "600px",
               tabPanel("Bias Histogram", icon = icon("image"), plotOutput("bias_hist", height = '550px')),
               tabPanel("OD Histogram", icon = icon("image"), plotOutput("od_hist", height = '550px')),
-              tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px')),
-              tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px'))
+              tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px'))
+              #tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px'))
               #tabPanel("SNP Distribution Plot", icon = icon("image"), plotOutput("snp_dist", height = '550px')),
               #tabPanel("SNP % Missing Histogram", icon = icon("image"), plotOutput("missing_snp_hist", height = '550px')),
               #tabPanel("Sample % Missing Histogram", icon = icon("image"), plotOutput("missing_sample_hist", height = '550px')),
@@ -158,16 +158,16 @@ ui <- dashboardPage(
               )
             ),
           column(width = 3,
-            valueBoxOutput("snps"),
-            valueBox(0,"SNPs Retained", icon = icon("dna"), width = NULL, color = "info"),
-            valueBox("0%","SNPs Removed", icon = icon("filter-circle-xmark"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            valueBoxOutput("snp_retained_box", width = NULL),
+            valueBoxOutput("snp_removed_box", width = NULL),
+            #valueBox("0%","SNPs Removed", icon = icon("filter-circle-xmark"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,
                 sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
                       selectInput(inputId = 'filter_hist', label = 'Figure', choices = c("Bias Histogram", 
                                                                                          "OD Histogram", 
-                                                                                         "MaxPostProb Histogram")),
+                                                                                         "Prop_mis Histogram")),
                       selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                       sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
@@ -178,6 +178,9 @@ ui <- dashboardPage(
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                       ))
+            ),
+            box(title = "Status", width =12, collapsible = TRUE, status = "info",
+                progressBar(id = "pb_filter", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
             )          
           )
         )
@@ -1093,6 +1096,24 @@ server <- function(input, output, session) {
 
     )
 
+  #Reactive boxes
+  output$snp_retained_box <- renderValueBox({
+    valueBox(
+      value = 0,
+      subtitle = "SNPs Retained",
+      icon = icon("dna"),
+      color = "info"
+    )
+  })
+
+  output$snp_removed_box <- renderValueBox({
+    valueBox(
+      value = 0,
+      subtitle = "Percent SNPs Removed",
+      icon = icon("filter-circle-xmark"),
+      color = "info"
+    )
+  })
   #Updog filtering
   output$start_updog_filter <- downloadHandler(
     filename = function() {
@@ -1137,11 +1158,17 @@ server <- function(input, output, session) {
 
       # Convert to VCF using the BIGr package
       cat("Running BIGr::dosage2vcf...\n")
-      
+      updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
+
       #Input file
       vcf <- vcfR::read.vcfR(input$updog_rdata$datapath)
+      #Starting SNPs
+      starting_snps <- nrow(vcf)
       #export INFO dataframe
       filtering_files$raw_vcf_df <- data.frame(vcf@fix)
+
+      #Pb
+      updateProgressBar(session = session, id = "pb_filter", value = 40, title = "Filtering VCF file")
 
       #Filtering
       vcf <- BIGr::filterVCF(vcf.file = vcf,
@@ -1157,9 +1184,14 @@ server <- function(input, output, session) {
           filter.MAF = as.numeric(maf_filter),
           filter.MPP = max_post)
       
+      #Pb
+      updateProgressBar(session = session, id = "pb_filter", value = 70, title = "Exporting Filtered VCF")
 
       #Writing file
       vcfR::write.vcf(vcf, file = temp_file)
+
+      #Get final_snps
+      final_snps <- nrow(vcf)
 
       # Check if the VCF file was created
       if (file.exists(temp_file)) {
@@ -1175,8 +1207,27 @@ server <- function(input, output, session) {
       }
 
       # Status
-      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+      updateProgressBar(session = session, id = "pb_filter", value = 100, title = "Finished!")
 
+      #Updating value boxes
+      output$snp_retained_box <- renderValueBox({
+      valueBox(
+        value = final_snps,
+        subtitle = "SNPs Retained",
+        icon = icon("dna"),
+        color = "info"
+        )
+      })
+      output$snp_removed_box <- renderValueBox({
+      valueBox(
+        value = round(((starting_snps - final_snps)/starting_snps*100),1),
+        subtitle = "Percent SNPs Removed",
+        icon = icon("dna"),
+        color = "info"
+        )
+      })
+
+      #Unload vcf
       rm(vcf)
 
     }
