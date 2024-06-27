@@ -73,7 +73,7 @@ ui <- dashboardPage(
       menuItem("Dosage Calling", tabName = "dosage_calling", icon = icon("diagram-next"),
               menuSubItem("DArT Report2VCF", tabName = "dosage2vcf", icon = icon("share-from-square")),
               menuSubItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
-              menuSubItem("SNP Filtering", tabName = "filtering", icon = icon("filter"))),
+              menuSubItem("VCF Filtering", tabName = "filtering", icon = icon("filter"))),
       menuItem("Population Structure", tabName = "pop_struct", icon = icon("layer-group"),
               menuSubItem("PCA", tabName = "pca", icon = icon("chart-simple")),
               menuSubItem("DAPC", tabName = "dapc", icon = icon("circle-nodes"))),
