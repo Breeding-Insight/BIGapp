@@ -11,7 +11,7 @@ required_bio_packages <- c("SNPRelate","VariantAnnotation")
 
 Dev_tools_packages <- c(
   "GWASpoly" = "jendelman/GWASpoly",
-  "BIGr" = "Breeding-Insight/BIGr"
+  "BIGr" = "Breeding-Insight/BIGr::latest"
   )
 
 if (!require("BiocManager", quietly = TRUE))
@@ -103,32 +103,39 @@ ui <- dashboardPage(
               style = "overflow-y: auto; height: 400px")
           )
         ),
-      tabItem(
-        tabName = "filtering",
+    tabItem(
+      tabName = "filtering",
         fluidRow(
           column(width = 3,
               box(width = 12,
                 title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
                 fileInput("updog_rdata","Choose VCF File", accept = c(".vcf",".vcf.gz")),
-                textInput("output_name", "Output File Name"),
-                #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(500), step = 1),
+                textInput("filter_output_name", "Output File Name"),
+                numericInput("filter_ploidy","Ploidy", min = 0, value = 2),
+                numericInput("filter_maf","MAF filter", min = 0, max=1, value = 0.05, step = 0.01),
                 sliderInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
-                #numericInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
-                sliderInput("Bias","Bias (Updog filter)", min = 0, max = 10, value = c(0.5,2), step = 0.1),
-                #numericInput("Bias_min","Bias minimum (Updog filter)", min = 0, max = 10, value = 0.5, step = 0.1),
-                #numericInput("Bias_max","Bias maximum (Updog filter)", min = 0, max = 10, value = 2, step = 0.1),
-                numericInput("OD_filter","OD (Updog filter)", min = 0, value = 0.5),
-                numericInput("Prop_mis","Prop_mis (Updog filter)", min = 0, max=1, value = 0.05, step = 0.05),
-                numericInput("maxpostprob_filter","maxpostprob (Updog filter)", min = 0, value = 0.9, step = 0.1),
-                #numericInput("missing_filter","Remove SNPs with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
-                #numericInput("missing_filter","Remove Samples with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
-                actionButton("start_updog_filter", "Download Filtered Dosage File", icon = icon("download")),
+                numericInput("snp_miss","Remove SNPs with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
+                numericInput("sample_miss","Remove Samples with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
+                "Updog Filtering Parameters",
+                checkboxInput("use_updog", "Use Updog Filtering Parameters?", value = FALSE),
+                conditionalPanel(
+                  condition = "input.use_updog == true",
+                  div(
+                    numericInput("OD_filter", "Max OD (Updog filter)", min = 0, value = 0.05),
+                    sliderInput("Bias", "Bias (Updog filter)", min = 0, max = 10, value = c(0.5, 2), step = 0.1),
+                    numericInput("Prop_mis", "Max Prop_mis (Updog filter)", min = 0, max = 1, value = 0.05, step = 0.05),
+                    numericInput("maxpostprob_filter", "Minimum maxpostprob (Updog filter)", min = 0, value = 0.5, step = 0.1)
+                  )
+                ),
+                downloadButton("start_updog_filter", "Download Filtered VCF", icon = icon("download")),
                   div(style="display:inline-block; float:right",dropdownButton(
                     tags$h3("Updog Filter Parameters"),
                     #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
                     #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
                     #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
-                    "Add description of each filter",
+                    "Add description of each filter. Presently, all filtering parameters that are typically used for processing
+                    a VCF file from Updog dosage calling are included. If a VCF file does not contain these values, it will only be
+                    filtered for read depth, missing data, and maf.",
                     circle = FALSE,
                     status = "warning", 
                     icon = icon("info"), width = "300px",
@@ -141,7 +148,7 @@ ui <- dashboardPage(
               id = "updog_tab", height = "600px",
               tabPanel("Bias Histogram", icon = icon("image"), plotOutput("bias_hist", height = '550px')),
               tabPanel("OD Histogram", icon = icon("image"), plotOutput("od_hist", height = '550px')),
-              tabPanel("MaxPostProb Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px')),
+              tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px')),
               tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px'))
               #tabPanel("SNP Distribution Plot", icon = icon("image"), plotOutput("snp_dist", height = '550px')),
               #tabPanel("SNP % Missing Histogram", icon = icon("image"), plotOutput("missing_snp_hist", height = '550px')),
@@ -1080,100 +1087,134 @@ server <- function(input, output, session) {
   
   })
   
+  #vcf
+  filtering_files <- reactiveValues(
+      raw_vcf_df = NULL
+
+    )
+
   #Updog filtering
-  observeEvent(input$start_updog_filter, {
-    req(input$Prop_mis, input$Bias, input$OD_filter, input$size_depth)
-
-    #Variables
-    Prop_mis <- input$Prop_mis
-    Bias_min <- input$Bias[1]
-    Bias_max <- input$Bias[2]
-    OD_filter <- input$OD_filter
-    size_depth <- input$size_depth
-    output_name <- input$output_name
-
-
-    #Input file
-    madc_path <- input$updog_rdata$datapath
-    load(madc_path)
-
-    #Number of SNPs
-    length(mout$snpdf$bias)
-
-    #Filter dosage calls (I think this is the updog recommended)
-    #mout_cleaned <- filter_snp(mout, prop_mis < input$Prop_mis & bias > input$Bias_min & bias < input$Bias_max & od > input$OD_filter) #Recommended filtering by updog
-    print("Filtering")
-    #Needing to paste the updog filter_snp() method directly to work with shiny
-    filter_snp_custom <- function(x, expr) {
-      assertthat::assert_that(is.multidog(x))
-      cond <- eval(expr = substitute(expr), envir = x$snpdf)
-      x$snpdf <- x$snpdf[cond, , drop = FALSE]
-      goodsnps <- x$snpdf$snp
-      x$inddf <- x$inddf[x$inddf$snp %in% goodsnps, , drop = FALSE]
-      return(x)
-    }
-
-    mout_cleaned <- filter_snp_custom(mout, prop_mis < Prop_mis & bias > Bias_min & bias < Bias_max & od < OD_filter) #Recommended filtering by updog
-    print("Filtering complete")
-    # Filter using the dynamically constructed expression
-    #mout_cleaned <- filter_snp(mout, filter_expr)
-    
-    #Notify user if all SNPs were removed and stop filtering
-    if (length(mout_cleaned$snpdf$snp) == 0) {
-      # If condition is met, show notification toast
-        shinyalert(
-            title = "Oops",
-            text = "No SNPs were found after cleaning the data.\n Adjust filtering parameters.",
-            size = "xs",
-            closeOnEsc = TRUE,
-            closeOnClickOutside = TRUE,
-            html = TRUE,
-            type = "info",
-            showConfirmButton = TRUE,
-            confirmButtonText = "OK",
-            confirmButtonCol = "#004192",
-            showCancelButton = FALSE,
-            imageUrl = "",
-            animation = TRUE
-          )
-                         
+  output$start_updog_filter <- downloadHandler(
+    filename = function() {
+      paste0(input$filter_output_name, ".vcf.gz")
+    },
+    content = function(file) {
+      # Ensure the files are uploaded
+      req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
       
-      # Stop the observeEvent gracefully
-      return()
+      if (input$use_updog) {
+        # Use Updog filtering parameters
+        OD_filter <- as.numeric(input$OD_filter)
+        Prop_mis <- as.numeric(input$Prop_mis)
+        Bias_min <- as.numeric(input$Bias[1])
+        Bias_max <- as.numeric(input$Bias[2])
+        max_post <- as.numeric(input$maxpostprob_filter)
+      
+        # Perform filtering with Updog parameters
+        # (insert your filtering code here)
+      } else {
+        # Do not use Updog filtering parameters
+        OD_filter = NULL
+        Prop_mis = NULL
+        Bias_min = NULL
+        Bias_max = NULL
+        max_post = NULL
+      }
+
+      #Variables
+      size_depth <- input$size_depth
+      output_name <- input$filter_output_name
+      snp_miss <- input$snp_miss
+      sample_miss <- input$sample_miss
+      ploidy <- as.numeric(input$filter_ploidy)
+      maf_filter <- input$filter_maf
+
+      
+      temp_file <- tempfile(fileext = ".vcf.gz")
+
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Converting DArT files to VCF")
+
+      # Convert to VCF using the BIGr package
+      cat("Running BIGr::dosage2vcf...\n")
+      
+      #Input file
+      vcf <- vcfR::read.vcfR(input$updog_rdata$datapath)
+      #export INFO dataframe
+      filtering_files$raw_vcf_df <- data.frame(vcf@fix)
+
+      #Filtering
+      vcf <- BIGr::filterVCF(vcf.file = vcf,
+          ploidy=ploidy,
+          output.file=NULL,
+          filter.OD = OD_filter,
+          filter.BIAS.min = Bias_min,
+          filter.BIAS.max = Bias_max,
+          filter.DP = as.numeric(size_depth),
+          filter.PMC = Prop_mis,
+          filter.SAMPLE.miss = as.numeric(sample_miss),
+          filter.SNP.miss = as.numeric(snp_miss),
+          filter.MAF = as.numeric(maf_filter),
+          filter.MPP = max_post)
+      
+
+      #Writing file
+      vcfR::write.vcf(vcf, file = temp_file)
+
+      # Check if the VCF file was created
+      if (file.exists(temp_file)) {
+        cat("VCF file created successfully.\n")
+      
+        # Move the file to the path specified by 'file'
+        file.copy(temp_file, file, overwrite = TRUE)
+      
+        # Delete the temporary file
+        unlink(temp_file)
+      } else {
+        stop("Error: Failed to create the VCF file.")
+      }
+
+      # Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+
+      rm(vcf)
+
     }
-    
+  )
 
-    # Replace values in "geno" column with NA where "size" is less than input value
-    mout_cleaned$inddf$geno[mout_cleaned$inddf$size < size_depth] <- NA
+  ##Updog file stats
+  #Consider Extracting the GT info or UD info if present as a datafrfame,
+  #Obtaining the info in the INFO column as it's own dataframe with a column for each value
+  #Then remove the VCF file and use the remaining dataframes for producing the figures
+  observeEvent(filtering_files$raw_vcf_df, {
 
-    #Save the filtered dosage matrix
-    genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
-    print("Generated genotype matrix")
-    cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_updog_dosage_genotype_matrix.csv')
-    #Save the matrix as a csv file
-    write.csv(genomat_cleaned,file= cleaned_name)
-    print("Write csv complete")
+
+    # Function to split INFO column and expand it into multiple columns
+    split_info_column <- function(info) {
+    # Split the INFO column by semicolon
+    info_split <- str_split(info, ";")[[1]]
   
-  })
+    # Create a named list by splitting each element by equals sign
+    info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
+                         map(info_split, ~ str_split(.x, "=")[[1]][1]))
+  
+    return(info_list)
+    }
 
-  observeEvent(input$updog_rdata, {
-    #req(filter_hist$hist_bin_value)
+    # Apply the function to each row and bind the results into a new dataframe
+    new_df <- data.frame(filtering_files$raw_vcf_df) %>%
+      mutate(INFO_list = map(INFO, split_info_column)) %>%
+      unnest_wider(INFO_list)
 
-    #Variables
+      ##Make plots
+      #Number of SNPs
+      nrow(filtering_files$raw_vcf_df)
 
+      ###Bias
 
-    #Input file
-    madc_path <- input$updog_rdata$datapath
-    load(madc_path)
-
-    #Number of SNPs
-    length(mout$snpdf$bias)
-
-    ###Bias
-
-    #Histogram
-    output$bias_hist <- renderPlot({
-      hist(mout$snpdf$bias, 
+      #Histogram
+      output$bias_hist <- renderPlot({
+        hist(as.numeric(new_df$BIAS), 
           main = "Unfiltered SNP bias histogram",
           xlab = "bias",
           ylab = "SNPs",
@@ -1181,19 +1222,18 @@ server <- function(input, output, session) {
           border = "black",
           xlim = c(0,5),
           breaks = as.numeric(input$hist_bins))
-      axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
-      abline(v = mean(mout$snpdf$bias), col = "red", lty = 2)  # Mean line
-      abline(v = median(mout$snpdf$bias), col = "green", lty = 2)  # Median line
-      abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
-      abline(v = 2, col = "black", lty = 2)  # proposed upper line
-    })
+        axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
+        abline(v = mean(as.numeric(new_df$BIAS)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$BIAS)), col = "green", lty = 2)  # Median line
+        abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
+        abline(v = 2, col = "black", lty = 2)  # proposed upper line
+      })
 
-    ###OD
-    quantile(mout$snpdf$od, 0.95)
-    #Histogram
-    output$od_hist <- renderPlot({
-
-      hist(mout$snpdf$od, 
+      ###OD
+      quantile(as.numeric(new_df$OD), 0.95)
+      #Histogram
+      output$od_hist <- renderPlot({
+        hist(as.numeric(new_df$OD), 
           main = "Unfiltered SNP overdispersion parameter histogram",
           xlab = "OD",
           ylab = "SNPs",
@@ -1201,27 +1241,27 @@ server <- function(input, output, session) {
           border = "black",
           xlim = c(0,0.6),
           breaks = as.numeric(input$hist_bins))
-      axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
-      abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
-      # Add vertical lines
-      abline(v = mean(mout$snpdf$od), col = "red", lty = 2)  # Mean line
-      abline(v = median(mout$snpdf$od), col = "green", lty = 2)  # Median line
-      abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        # Add vertical lines
+        abline(v = mean(as.numeric(new_df$OD)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$OD)), col = "green", lty = 2)  # Median line
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
-    })
+      })
 
-    ##MAXPOSTPROB
+      ##MAXPOSTPROB
 
-    #Histogram
+      #Histogram
 
-    output$maxpostprob_hist <- renderPlot({
+      output$maxpostprob_hist <- renderPlot({
 
         #Histogram
-        hist(mout$inddf$maxpostprob, 
-            main = "SNP max post probabilities histogram",
-            xlab = "Max Post Probability",
-            ylab = "Genomic Sites",
+        hist(as.numeric(new_df$PMC), 
+            main = "The estimated proportion of individuals misclassified in the SNP from updog",
+            xlab = "Proportion of Misclassified Genotypes per SNP",
+            ylab = "Number of SNPs",
             col = "lightblue",
             border = "black",
             xlim = c(0,1),
@@ -1229,46 +1269,36 @@ server <- function(input, output, session) {
         axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
 
         # Add vertical lines
-        abline(v = mean(mout$inddf$maxpostprob), col = "red", lty = 2)  # Mean line
-        abline(v = median(mout$inddf$maxpostprob), col = "green", lty = 2)  # Median line
-        abline(v = quantile(mout$inddf$maxpostprob, 0.95), col = "blue", lty = 2) 
+        abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2) 
 
-    })
+      })
 
-    ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
+      ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
 
-    quantile(mout$inddf$size, 0.95)
-    #Histogram
-    output$depth_hist <- renderPlot({
+      quantile(as.numeric(new_df$DP), 0.95)
+      #Histogram
+      output$depth_hist <- renderPlot({
 
-      hist(mout$inddf$size, 
-          main = "Unfiltered SNP overdispersion parameter histogram",
-          xlab = "Read Depth per SNP/Sample",
+        hist(as.numeric(new_df$DP), 
+          main = "Unfiltered SNP Total Read Depth Across All Samples",
+          xlab = "Total Read Depth per SNP",
           ylab = "Genomic Sites",
           col = "lightblue",
           border = "black",
           xlim = c(0,1000),
           breaks = as.numeric(input$hist_bins))
-      axis(1, at = seq(0, 1000, by = 20), labels = rep("", length(seq(0, 1000, by = 20))))  # Add ticks
-      abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        axis(1, at = seq(0, 1000, by = 20), labels = rep("", length(seq(0, 1000, by = 20))))  # Add ticks
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
-      # Add vertical lines
-      abline(v = mean(mout$inddf$size), col = "red", lty = 2)  # Mean line
-      abline(v = median(mout$inddf$size), col = "green", lty = 2)  # Median line
-      #abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        # Add vertical lines
+        abline(v = mean(as.numeric(new_df$DP)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$DP)), col = "green", lty = 2)  # Median line
+        #abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
-    })
-
-    #Filter dosage calls (I think this is the updog recommended)
-
-    #mout_cleaned <- filter_snp(mout, prop_mis < as.numeric(input$Prop_mis) & bias > input$Bias_min & bias < input$Bias_max & od > input$OD_filter) #Recommended filtering by updog
-
-    # Replace values in "geno" column with NA where "size" is less than input value
-    #mout_cleaned$inddf$geno[mout_cleaned$inddf$size < as.numeric(input$size_depth)] <- NA
-
-    #Save the filtered dosage matrix
-    #genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
-
+      })
+  
   })
   
   #PCA dropdown
