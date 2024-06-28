@@ -2338,14 +2338,16 @@ server <- function(input, output, session) {
       result_df <- data.frame(
         SampleID = colnames(genotype_matrix),
         ObservedHeterozygosity = heterozygosity_proportion,
-        row.names = NULL
+        row.names = NULL,
+        check.names = FALSE
       )
   
       return(result_df)
     }
 
     #Convert the genotype calls prior to het,af, and maf calculation
-    geno_mat <- data.frame(convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference))
+    geno_mat <- data.frame(convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference),
+                            check.names = FALSE)
 
     # Calculating heterozygosity for a tetraploid organism
     diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
