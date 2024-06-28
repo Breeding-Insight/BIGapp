@@ -1399,63 +1399,51 @@ server <- function(input, output, session) {
     PCY <- input$pc_Y
 
     #Import genotype information if in VCF format
-    VCF2GT <- function(vcf, ploidy = NULL) {
-      if (ploidy == 2) {
-    
-      #Get genotypes from VCF
-      geno.mat <- extract.gt(vcf)
-    
-      #Convert to dosages (0,1,2, etc)
-      geno.mat[geno.mat == "0/0"] <- 0
-      geno.mat[geno.mat == "0/1"] <- 1
-      geno.mat[geno.mat == "1/0"] <- 1
-      geno.mat[geno.mat == "1/1"] <- 2
-      geno.mat[geno.mat == "./."] <- NA
-    
+    vcf <- read.vcfR(geno)
+
+    convert_to_dosage <- function(gt) {
+      # Split the genotype string
+      alleles <- strsplit(gt, "[|/]")
+      # Sum the alleles, treating NA values appropriately
+      sapply(alleles, function(x) {
+        if (any(is.na(x))) {
+          return(NA)
+        } else {
+          return(sum(as.numeric(x), na.rm = TRUE))
+          }
+        })
       }
-  
-      type(geno.mat) <- "numeric"
-  
-      return(geno.mat)
+
+    #Get items in FORMAT column
+    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+    extract_info_ids <- function(info_string) {
+        # Split the INFO string by ';'
+        info_parts <- strsplit(info_string, ":")[[1]]
+        # Extract the part before the '=' in each segment
+        info_ids <- gsub("=.*", "", info_parts)
+          return(info_ids)
+        }
+
+    # Apply the function to the first INFO string
+    info_ids <- extract_info_ids(info[1])
+      
+    #Get the genotype values if the updog dosage calls are present
+    if ("UD" %in% info_ids) {
+      genomat <- extract.gt(vcf, element = "UD")
+      class(genomat) <- "numeric"
+      rm(vcf) #Remove vcf
+    }else{
+      #Extract GT and convert to numeric calls
+      genomat <- extract.gt(vcf, element = "GT")
+      genomat <- apply(genomat, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
     }
 
-    #If the input file is a VCF, extract genotypes (throw an error if ploidy is also > 2)
-    if (grepl("\\.vcf(\\.gz)?$", geno)) {
-
-      #Throw error if VCF file and ploidy is not diploid (only support diploid VCF for now)
-      if (as.numeric(ploidy) != 2) {
-      # If condition is met, show notification toast
-        shinyalert(
-            title = "Oops",
-            text = "Only diploid VCF files supported",
-            size = "xs",
-            closeOnEsc = TRUE,
-            closeOnClickOutside = FALSE,
-            html = TRUE,
-            type = "info",
-            showConfirmButton = TRUE,
-            confirmButtonText = "OK",
-            confirmButtonCol = "#004192",
-            showCancelButton = FALSE,
-            imageUrl = "",
-            animation = TRUE
-          )
-                         
-      
-        # Stop the observeEvent gracefully
-        return()
-      }
-
-      #Import genotypes and convert to dosage format
-      vcf <- read.vcfR(geno)
-      genomat <- VCF2GT(vcf, ploidy=2)
-      
-      #drop vcf
-      rm(vcf)
-    } else {
+    #Add support for genotype matrix
+    #} else {
       #Import genotype matrix
-      genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
-    } 
+   #  genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+   # } 
 
 
     #Start analysis
@@ -1680,7 +1668,47 @@ server <- function(input, output, session) {
     ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
     
     #Import genotype data
-    genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #Import genotype information if in VCF format
+    vcf <- read.vcfR(geno)
+
+    convert_to_dosage <- function(gt) {
+      # Split the genotype string
+      alleles <- strsplit(gt, "[|/]")
+      # Sum the alleles, treating NA values appropriately
+      sapply(alleles, function(x) {
+        if (any(is.na(x))) {
+          return(NA)
+        } else {
+          return(sum(as.numeric(x), na.rm = TRUE))
+          }
+        })
+      }
+
+    #Get items in FORMAT column
+    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+    extract_info_ids <- function(info_string) {
+        # Split the INFO string by ';'
+        info_parts <- strsplit(info_string, ":")[[1]]
+        # Extract the part before the '=' in each segment
+        info_ids <- gsub("=.*", "", info_parts)
+          return(info_ids)
+        }
+
+    # Apply the function to the first INFO string
+    info_ids <- extract_info_ids(info[1])
+      
+    #Get the genotype values if the updog dosage calls are present
+    if ("UD" %in% info_ids) {
+      genotypeMatrix <- extract.gt(vcf, element = "UD")
+      class(genotypeMatrix) <- "numeric"
+      rm(vcf) #Remove vcf
+    }else{
+      #Extract GT and convert to numeric calls
+      genotypeMatrix <- extract.gt(vcf, element = "GT")
+      genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
+    }
 
     findK <- function(genotypeMatrix, maxK, ploidy) {
       # Convert the genotype matrix to a genlight object
@@ -1735,7 +1763,47 @@ server <- function(input, output, session) {
     selected_K <- as.numeric(input$dapc_k)
 
     #Import genotype data
-    genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #Import genotype information if in VCF format
+    vcf <- read.vcfR(geno)
+
+    convert_to_dosage <- function(gt) {
+      # Split the genotype string
+      alleles <- strsplit(gt, "[|/]")
+      # Sum the alleles, treating NA values appropriately
+      sapply(alleles, function(x) {
+        if (any(is.na(x))) {
+          return(NA)
+        } else {
+          return(sum(as.numeric(x), na.rm = TRUE))
+          }
+        })
+      }
+
+    #Get items in FORMAT column
+    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+    extract_info_ids <- function(info_string) {
+        # Split the INFO string by ';'
+        info_parts <- strsplit(info_string, ":")[[1]]
+        # Extract the part before the '=' in each segment
+        info_ids <- gsub("=.*", "", info_parts)
+          return(info_ids)
+        }
+
+    # Apply the function to the first INFO string
+    info_ids <- extract_info_ids(info[1])
+      
+    #Get the genotype values if the updog dosage calls are present
+    if ("UD" %in% info_ids) {
+      genotypeMatrix <- extract.gt(vcf, element = "UD")
+      class(genotypeMatrix) <- "numeric"
+      rm(vcf) #Remove vcf
+    }else{
+      #Extract GT and convert to numeric calls
+      genotypeMatrix <- extract.gt(vcf, element = "GT")
+      genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
+    }
 
     performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
 
@@ -2088,63 +2156,50 @@ server <- function(input, output, session) {
     #pheno <- read.csv(input$pop_file$datapath, header = TRUE, check.names = FALSE)
 
     #Import genotype information if in VCF format
-    VCF2GT <- function(vcf, ploidy = NULL) {
-      if (ploidy == 2) {
-    
-      #Get genotypes from VCF
-      geno.mat <- extract.gt(vcf)
-    
-      #Convert to dosages (0,1,2, etc)
-      geno.mat[geno.mat == "0/0"] <- 0
-      geno.mat[geno.mat == "0/1"] <- 1
-      geno.mat[geno.mat == "1/0"] <- 1
-      geno.mat[geno.mat == "1/1"] <- 2
-      geno.mat[geno.mat == "./."] <- NA
-    
+    vcf <- read.vcfR(geno)
+
+    convert_to_dosage <- function(gt) {
+      # Split the genotype string
+      alleles <- strsplit(gt, "[|/]")
+      # Sum the alleles, treating NA values appropriately
+      sapply(alleles, function(x) {
+        if (any(is.na(x))) {
+          return(NA)
+        } else {
+          return(sum(as.numeric(x), na.rm = TRUE))
+          }
+        })
       }
-  
-      type(geno.mat) <- "numeric"
-  
-      return(as.data.frame(geno.mat))
-    }
 
-    #If the input file is a VCF, extract genotypes (throw an error if ploidy is also > 2)
-    if (grepl("\\.vcf(\\.gz)?$", geno)) {
+    #Get items in FORMAT column
+    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+    extract_info_ids <- function(info_string) {
+        # Split the INFO string by ';'
+        info_parts <- strsplit(info_string, ":")[[1]]
+        # Extract the part before the '=' in each segment
+        info_ids <- gsub("=.*", "", info_parts)
+          return(info_ids)
+        }
 
-      #Throw error if VCF file and ploidy is not diploid (only support diploid VCF for now)
-      if (as.numeric(ploidy) != 2) {
-      # If condition is met, show notification toast
-        shinyalert(
-            title = "Oops",
-            text = "Only diploid VCF files supported",
-            size = "xs",
-            closeOnEsc = TRUE,
-            closeOnClickOutside = FALSE,
-            html = TRUE,
-            type = "info",
-            showConfirmButton = TRUE,
-            confirmButtonText = "OK",
-            confirmButtonCol = "#004192",
-            showCancelButton = FALSE,
-            imageUrl = "",
-            animation = TRUE
-          )
-                         
+    # Apply the function to the first INFO string
+    info_ids <- extract_info_ids(info[1])
       
-        # Stop the observeEvent gracefully
-        return()
-      }
-
-      #Import genotypes and convert to dosage format
-      vcf <- read.vcfR(geno)
-      geno_mat <- VCF2GT(vcf, ploidy=2)
-      #drop vcf
-      rm(vcf)
-
-    } else {
-      #Import genotype matrix
-      geno_mat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #Get the genotype values if the updog dosage calls are present
+    if ("UD" %in% info_ids) {
+      geno_mat <- extract.gt(vcf, element = "UD")
+      class(geno_mat) <- "numeric"
+      rm(vcf) #Remove vcf
+    }else{
+      #Extract GT and convert to numeric calls
+      geno_mat <- extract.gt(vcf, element = "GT")
+      geno_mat <- apply(geno_mat, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
     }
+
+    #} else {
+      #Import genotype matrix
+     # geno_mat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    #}
 
     print(class(geno_mat))
     #Convert genotypes to alternate counts if they are the reference allele counts
@@ -2249,7 +2304,7 @@ server <- function(input, output, session) {
     }
 
     #Convert the genotype calls prior to het,af, and maf calculation
-    geno_mat <- convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference)
+    geno_mat <- data.frame(convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference))
 
     # Calculating heterozygosity for a tetraploid organism
     diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
