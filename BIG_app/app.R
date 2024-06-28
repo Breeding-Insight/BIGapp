@@ -80,7 +80,7 @@ ui <- dashboardPage(
       menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
       menuItem("GWAS", tabName = "gwas", icon = icon("think-peaks")),
       #menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
-      menuItem("Genomic Prediction", tabName = "prediction", icon = icon("right-left")),
+      menuItem("Genomic Prediction (beta)", tabName = "prediction", icon = icon("right-left")),
       menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
       menuItem("Help", tabName = "help", icon = icon("circle-question"))
     )
@@ -636,8 +636,8 @@ ui <- dashboardPage(
                 tabPanel("AF Plot", plotOutput('af_plot'),style = "overflow-y: auto; height: 500px"),
                 tabPanel("MAF Plot", plotOutput('maf_plot'),style = "overflow-y: auto; height: 500px"),
                 tabPanel("OHet Plot", plotOutput('het_plot'),style = "overflow-y: auto; height: 500px"),
-                tabPanel("Diversity Stats (Sample)",DTOutput('sample_table'),style = "overflow-y: auto; height: 470px"),
-                tabPanel("Diversity Stats (SNP)",DTOutput('snp_table'),style = "overflow-y: auto; height: 470px")
+                tabPanel("Sample Table",DTOutput('sample_table'),style = "overflow-y: auto; height: 470px"),
+                tabPanel("SNP Table",DTOutput('snp_table'),style = "overflow-y: auto; height: 470px")
 
 
                 )
@@ -647,9 +647,15 @@ ui <- dashboardPage(
             ),
           column(width = 3,
             #valueBoxOutput("snps"),
-            valueBox(0,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
-            valueBox(0,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
-            valueBox(0,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
+            valueBoxOutput("mean_het_box", width = NULL),
+            valueBoxOutput("mean_maf_box", width = NULL),
+            box(title = "Status", width = 12, collapsible = TRUE, status = "info",
+              progressBar(id = "pb_diversity", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+            )
+            #valueBoxOutput("mean_pic_box", width = NULL),
+            #valueBox(0,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
+            #valueBox(0,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            #valueBox(0,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
           
           )
           
@@ -1947,8 +1953,12 @@ server <- function(input, output, session) {
 
     phenotype_file <- phenotype_file[,included_var]
 
+    # Create a temporary file for the selected phenotype data
+    temp_pheno_file <- tempfile(fileext = ".csv")
+
     #Save new phenotype file with selected traits and fixed effects
-    write.csv(phenotype_file, file = "phenotypes_selected_traits.csv", row.names = FALSE)
+    #write.csv(phenotype_file, file = "phenotypes_selected_traits.csv", row.names = FALSE)
+    write.csv(phenotype_file, file = temp_pheno_file, row.names = FALSE)
 
     #Remove the phenotype_file from memory
     rm(phenotype_file)
@@ -1956,11 +1966,14 @@ server <- function(input, output, session) {
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 5, title = "Upload Complete: Now Formatting GWASpoly Data")
 
-    data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file="phenotypes_selected_traits.csv", geno.file=input$gwas_file$datapath,
+    data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
                           format="numeric", n.traits=length(traits), delim=",") #only need to change files here
 
 
     data.loco <- set.K(data,LOCO=F,n.core= as.numeric(cores))
+
+    #Delete temp pheno file
+    unlink(temp_pheno_file)
 
     ####Pheno, kinship, PCs from results of GWASpoly
     GE<- data@pheno
@@ -2145,6 +2158,25 @@ server <- function(input, output, session) {
 
   )
 
+  #Reactive boxes
+  output$mean_het_box <- renderValueBox({
+    valueBox(
+      value = 0,
+      subtitle = "Mean Heterozygosity",
+      icon = icon("dna"),
+      color = "info"
+    )
+  })
+
+  output$mean_maf_box <- renderValueBox({
+    valueBox(
+      value = 0,
+      subtitle = "Mean MAF",
+      icon = icon("dna"),
+      color = "info"
+    )
+  })
+
   observeEvent(input$diversity_start, {
 
     req(input$diversity_file, input$diversity_ploidy, input$zero_value)
@@ -2154,6 +2186,9 @@ server <- function(input, output, session) {
     geno <- input$diversity_file$datapath
     #geno_mat <- read.csv(input$diversity_file$datapath, header = TRUE, check.names = FALSE, row.names = 1)
     #pheno <- read.csv(input$pop_file$datapath, header = TRUE, check.names = FALSE)
+
+    #Status
+    updateProgressBar(session = session, id = "pb_diversity", value = 20, title = "Importing VCF")
 
     #Import genotype information if in VCF format
     vcf <- read.vcfR(geno)
@@ -2183,7 +2218,10 @@ server <- function(input, output, session) {
 
     # Apply the function to the first INFO string
     info_ids <- extract_info_ids(info[1])
-      
+    
+    #Status
+    updateProgressBar(session = session, id = "pb_diversity", value = 40, title = "Converting to Numeric")
+
     #Get the genotype values if the updog dosage calls are present
     if ("UD" %in% info_ids) {
       geno_mat <- extract.gt(vcf, element = "UD")
@@ -2263,6 +2301,8 @@ server <- function(input, output, session) {
       })
     } 
     print("Starting percentage calc")
+    #Status
+    updateProgressBar(session = session, id = "pb_diversity", value = 70, title = "Calculating...")
     # Calculate percentages for both genotype matrices
     percentages1 <- calculate_percentages(geno_mat, ploidy)
     # Combine the data matrices into a single data frame
@@ -2275,7 +2315,7 @@ server <- function(input, output, session) {
 
     diversity_items$dosage_df <- melted_data
 
-  print("Dosage calculations worked")
+    print("Dosage calculations worked")
 
     #Heterozygosity function
     calculate_heterozygosity <- function(genotype_matrix, ploidy = 2) {
@@ -2297,7 +2337,8 @@ server <- function(input, output, session) {
       # Create a dataframe with Sample ID and Observed Heterozygosity
       result_df <- data.frame(
         SampleID = colnames(genotype_matrix),
-        ObservedHeterozygosity = heterozygosity_proportion
+        ObservedHeterozygosity = heterozygosity_proportion,
+        row.names = NULL
       )
   
       return(result_df)
@@ -2313,6 +2354,27 @@ server <- function(input, output, session) {
     diversity_items$maf_df <- calculateMAF(geno_mat, ploidy = ploidy)
 
     print("MAF success")
+
+    #Updating value boxes
+      output$mean_het_box <- renderValueBox({
+      valueBox(
+        value = round(mean(diversity_items$het_df$ObservedHeterozygosity),3),
+        subtitle = "Mean Heterozygosity",
+        icon = icon("dna"),
+        color = "info"
+        )
+      })
+      output$mean_maf_box <- renderValueBox({
+      valueBox(
+        value = round(mean(diversity_items$maf_df$MAF),3),
+        subtitle = "Mean MAF",
+        icon = icon("dna"),
+        color = "info"
+        )
+      })
+
+    #Status
+    updateProgressBar(session = session, id = "pb_diversity", value = 100, title = "Complete!")
   })
 
   observe({
