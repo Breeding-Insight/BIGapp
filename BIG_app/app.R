@@ -492,7 +492,7 @@ ui <- dashboardPage(
         fluidRow(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-              fileInput("gwas_file", "Choose Genotypes File", accept = ".csv"),
+              fileInput("gwas_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
               fileInput("phenotype_file", "Choose Phenotype File", accept = ".csv"),
               #textInput("output_name", "Output File Name"),
               numericInput("gwas_ploidy", "Species Ploidy", min = 1, value = 2),
@@ -1969,9 +1969,66 @@ server <- function(input, output, session) {
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 5, title = "Upload Complete: Now Formatting GWASpoly Data")
 
-    data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
+    #Geno file path
+    file_path <- input$gwas_file$datapath
+
+    #Geno.file conversion if needed
+    if (grepl("\\.csv$", file_path)) {
+        data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
                           format="numeric", n.traits=length(traits), delim=",") #only need to change files here
 
+    } else if (grepl("\\.vcf$", file_path) || grepl("\\.vcf\\.gz$", file_path)) {
+      # Create a temporary file for the selected phenotype data
+      temp_geno_file <- tempfile(fileext = ".csv")
+
+      #Function to convert GT to dosage calls (add to BIGr)
+      convert_to_dosage <- function(gt) {
+      # Split the genotype string
+      alleles <- strsplit(gt, "[|/]")
+      # Sum the alleles, treating NA values appropriately
+      sapply(alleles, function(x) {
+        if (any(is.na(x))) {
+          return(NA)
+        } else {
+          return(sum(as.numeric(x), na.rm = TRUE))
+          }
+        })
+      }
+      
+      #Convert VCF file if submitted
+      vcf <- vcfR::read.vcfR(input$gwas_file$datapath)
+
+      #Extract GT
+      geno_mat <- extract.gt(vcf, element = "GT")
+      geno_mat <- apply(geno_mat, 2, convert_to_dosage)
+      info <- data.frame(vcf@fix)
+      gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
+      write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
+
+      data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=temp_geno_file,
+                          format="numeric", n.traits=length(traits), delim=",")
+    } else {
+
+        # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "No valid genotype file detected",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE,
+          )
+
+      #Stop the analysis
+      return()
+    }
 
     data.loco <- set.K(data,LOCO=F,n.core= as.numeric(cores))
 
