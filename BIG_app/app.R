@@ -80,7 +80,10 @@ ui <- dashboardPage(
       menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
       menuItem("GWAS", tabName = "gwas", icon = icon("think-peaks")),
       #menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
-      menuItem("Genomic Prediction (beta)", tabName = "prediction", icon = icon("right-left")),
+      menuItem(
+        span("Genomic Prediction", bs4Badge("beta", position = "right", color = "success")),
+        tabName = "prediction", 
+        icon = icon("right-left")),
       menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
       menuItem("Help", tabName = "help", icon = icon("circle-question"))
     )
