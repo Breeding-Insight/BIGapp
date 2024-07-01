@@ -2001,12 +2001,17 @@ server <- function(input, output, session) {
       #Extract GT
       geno_mat <- extract.gt(vcf, element = "GT")
       geno_mat <- apply(geno_mat, 2, convert_to_dosage)
+      class(geno_mat) <- "numeric"
       info <- data.frame(vcf@fix)
       gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
       write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
 
       data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=temp_geno_file,
                           format="numeric", n.traits=length(traits), delim=",")
+      rm(geno_mat)
+      rm(gpoly_df)
+      rm(vcf)
+
     } else {
 
         # If condition is met, show notification toast
