@@ -1396,36 +1396,41 @@ server <- function(input, output, session) {
 
   #PCA events
   observeEvent(input$pca_start, {
-    req(input$pca_ploidy)
+    req(input$pca_ploidy, input$dosage_file$datapath)
+    
     # Get inputs
     geno <- input$dosage_file$datapath
-    pedigree_df <- input$passport_file$datapath
+    #pedigree_df <- input$passport_file$datapath
     g_info <- as.character(input$group_info)
     output_name <- input$output_name
     ploidy <- input$pca_ploidy
-    
     PCX <- input$pc_X
     PCY <- input$pc_Y
 
-    #Import genotype information if in VCF format
-    vcf <- read.vcfR(geno)
+    #Import genotype info if genotype matrix format
+    if (grepl("\\.csv$", geno)) {
+      genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    } else{
 
-    convert_to_dosage <- function(gt) {
-      # Split the genotype string
-      alleles <- strsplit(gt, "[|/]")
-      # Sum the alleles, treating NA values appropriately
-      sapply(alleles, function(x) {
-        if (any(is.na(x))) {
-          return(NA)
-        } else {
-          return(sum(as.numeric(x), na.rm = TRUE))
-          }
-        })
-      }
+      #Import genotype information if in VCF format
+      vcf <- read.vcfR(geno)
 
-    #Get items in FORMAT column
-    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-    extract_info_ids <- function(info_string) {
+      convert_to_dosage <- function(gt) {
+        # Split the genotype string
+        alleles <- strsplit(gt, "[|/]")
+        # Sum the alleles, treating NA values appropriately
+        sapply(alleles, function(x) {
+          if (any(is.na(x))) {
+            return(NA)
+          } else {
+            return(sum(as.numeric(x), na.rm = TRUE))
+            }
+          })
+        }
+
+      #Get items in FORMAT column
+      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+      extract_info_ids <- function(info_string) {
         # Split the INFO string by ';'
         info_parts <- strsplit(info_string, ":")[[1]]
         # Extract the part before the '=' in each segment
@@ -1433,44 +1438,64 @@ server <- function(input, output, session) {
           return(info_ids)
         }
 
-    # Apply the function to the first INFO string
-    info_ids <- extract_info_ids(info[1])
+      # Apply the function to the first INFO string
+      info_ids <- extract_info_ids(info[1])
       
-    #Get the genotype values if the updog dosage calls are present
-    if ("UD" %in% info_ids) {
-      genomat <- extract.gt(vcf, element = "UD")
-      class(genomat) <- "numeric"
-      rm(vcf) #Remove vcf
-    }else{
-      #Extract GT and convert to numeric calls
-      genomat <- extract.gt(vcf, element = "GT")
-      genomat <- apply(genomat, 2, convert_to_dosage)
-      rm(vcf) #Remove VCF
+      #Get the genotype values if the updog dosage calls are present
+      if ("UD" %in% info_ids) {
+        genomat <- extract.gt(vcf, element = "UD")
+        class(genomat) <- "numeric"
+        rm(vcf) #Remove vcf
+      }else{
+        #Extract GT and convert to numeric calls
+        genomat <- extract.gt(vcf, element = "GT")
+        genomat <- apply(genomat, 2, convert_to_dosage)
+        rm(vcf) #Remove VCF
+      }
+
     }
 
-    #Add support for genotype matrix
-    #} else {
-      #Import genotype matrix
-   #  genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
-   # } 
-
-
     #Start analysis
+    print("bug")
+    # Passport info
+    if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
+      info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
 
-    #Passport info
-    # Sample dataframe with a column of taxon names
-    info_df <- read.csv(pedigree_df, header = TRUE, check.names = FALSE)
+      # Check for duplicates in the first column
+      duplicated_samples <- info_df[duplicated(info_df[, 1]), 1]
+      if (length(duplicated_samples) > 0) {
+        shinyalert(
+          title = "Duplicate Samples Detected in Passport File",
+          text = paste("The following samples are duplicated:", paste(unique(duplicated_samples), collapse = ", ")),
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+        req(length(duplicated_samples) == 0) # Stop the analysis if duplicates are found
+      }
 
+    } else {
+      info_df <- data.frame(SampleID = colnames(genomat))
+    }
+    
+    print("bug6")
     # Print the modified dataframe
     row.names(info_df) <- info_df[,1]
 
     #Plotting
     #First build a relationship matrix using the genotype values
     G.mat.updog <- AGHmatrix::Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
-    
-    #PCA...maybe add in a DAPC?
+
+    #PCA
     prin_comp <- prcomp(G.mat.updog, scale = TRUE)
-    eig <- get_eigenvalue(prin_comp)
+    eig <- factoextra::get_eigenvalue(prin_comp)
     round(sum(eig$variance.percent[1:3]),1)
     
     ###Simple plots
@@ -1493,9 +1518,16 @@ server <- function(input, output, session) {
     row.names(info_df) <- info_df[,1]
     info_df <- info_df[row.names(pc_df),]
 
-    #Add the male parent information for each sample
+    #Add the information for each sample
     pc_df_pop <- merge(pc_df, info_df, by.x = "row.names", by.y = "row.names", all.x = TRUE)
-    pc_df_pop[[g_info]] <- as.factor(pc_df_pop[[g_info]])
+    
+
+    # Ignore color input if none is entered by user
+    if (g_info != "") {
+      pc_df_pop[[g_info]] <- as.factor(pc_df_pop[[g_info]])
+    } else {
+      g_info <- NULL
+    }
 
     #Update global variable
     pca_dataframes <- pc_df_pop
@@ -1503,12 +1535,15 @@ server <- function(input, output, session) {
     #Output PC file for manoj
     #write.csv(pc_df_pop, file = 'DAl22-7535_lightly_filtered_bias0.5-2_updog_2382_SNPs_MAF_0.05_PCA_metadata.csv')
 
-    # Generate a distinct color palette
-    unique_countries <- unique(pc_df_pop[[g_info]])
-    #my_palette <- randomcoloR::distinctColorPalette(length(unique_countries))
-    palette <- brewer.pal(length(unique_countries),input$color_choice)
-    my_palette <- colorRampPalette(palette)(length(unique_countries))
-
+    # Generate a distinct color palette if g_info is provided
+    if (!is.null(g_info) && g_info != "") {
+      unique_countries <- unique(pc_df_pop[[g_info]])
+      palette <- brewer.pal(length(unique_countries), input$color_choice)
+      my_palette <- colorRampPalette(palette)(length(unique_countries))
+    } else {
+      unique_countries <- NULL
+      my_palette <- NULL
+    }
 
     # Store processed data in reactive values
     pca_data$pc_df_pop <- pc_df_pop
@@ -1516,17 +1551,21 @@ server <- function(input, output, session) {
     pca_data$my_palette <- my_palette
 
     #End of PCA section
-    }
-  )
+  })
 
   ##2D PCA plotting
   observe({
-    req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette, input$grey_choice)
+    req(pca_data$pc_df_pop, pca_data$variance_explained, input$grey_choice)
     
     # Generate colors
-    unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-    palette <- brewer.pal(length(unique_countries), input$color_choice)
-    my_palette <- colorRampPalette(palette)(length(unique_countries))
+    if (!is.null(pca_data$my_palette)) {
+      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
+      palette <- brewer.pal(length(unique_countries), input$color_choice)
+      my_palette <- colorRampPalette(palette)(length(unique_countries))
+    } else {
+      unique_countries <- NULL
+      my_palette <- NULL
+    }
 
     # Define a named vector to map input labels to grey values
     label_to_value <- c("Light Grey" = "grey80",
@@ -1539,11 +1578,11 @@ server <- function(input, output, session) {
 
     # Similar plotting logic here
     if (input$use_cat) {
-        # cat plotting logic
+      # cat plotting logic
       cat_colors <- c(input$cat_color, "grey")
       plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                        y = pca_data$pc_df_pop[[input$pc_Y]], 
-                                        color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
+                                           y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                           color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
         geom_point(size = 2, alpha = 0.8) +
         scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
@@ -1560,13 +1599,11 @@ server <- function(input, output, session) {
           y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
           color = input$group_info
         )
-    } else {
-        # non-cat plotting logic
-        plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                        y = pca_data$pc_df_pop[[input$pc_Y]], 
-                                        color = pca_data$pc_df_pop[[input$group_info]])) +
+    } else if (!input$use_cat && is.null(my_palette)) {
+      # no passport plotting logic
+      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+                                           y = pca_data$pc_df_pop[[input$pc_Y]])) +
         geom_point(size = 2, alpha = 0.8) +
-        scale_color_manual(values = my_palette) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
         theme_minimal() +
         theme(
@@ -1578,12 +1615,32 @@ server <- function(input, output, session) {
         ) +
         labs(
           x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
-          y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-          color = input$group_info
+          y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)")
         )
+    } else {
+      # non-cat plotting logic
+      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+                                           y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                           color = pca_data$pc_df_pop[[input$group_info]])) +
+      geom_point(size = 2, alpha = 0.8) +
+      scale_color_manual(values = my_palette) +
+      guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
+      theme_minimal() +
+      theme(
+        panel.border = element_rect(color = "black", fill = NA),
+        legend.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 16)
+      ) +
+      labs(
+        x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
+        y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
+        color = input$group_info
+      )
     }
 
-    all_plots$pca_2d <- plot  # Assign the plot to your reactiveValues
+      all_plots$pca_2d <- plot  # Assign the plot to your reactiveValues
   })
 
   #Plot the 2d plot
@@ -1595,7 +1652,7 @@ server <- function(input, output, session) {
   #3D PCA plotting
   output$pca_plot <- renderPlotly({
     #Plotly
-    req(pca_data$pc_df_pop, pca_data$variance_explained, pca_data$my_palette)
+    req(pca_data$pc_df_pop, pca_data$variance_explained)
 
     #Generate colors
     unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
@@ -1977,7 +2034,7 @@ server <- function(input, output, session) {
         data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
                           format="numeric", n.traits=length(traits), delim=",") #only need to change files here
 
-    } else if (grepl("\\.vcf$", file_path) || grepl("\\.vcf\\.gz$", file_path)) {
+    } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
       # Create a temporary file for the selected phenotype data
       temp_geno_file <- tempfile(fileext = ".csv")
 
