@@ -1456,7 +1456,7 @@ server <- function(input, output, session) {
     }
 
     #Start analysis
-    print("bug")
+
     # Passport info
     if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
       info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
@@ -1484,8 +1484,7 @@ server <- function(input, output, session) {
     } else {
       info_df <- data.frame(SampleID = colnames(genomat))
     }
-    
-    print("bug6")
+
     # Print the modified dataframe
     row.names(info_df) <- info_df[,1]
 
