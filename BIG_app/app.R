@@ -112,7 +112,7 @@ ui <- dashboardPage(
           column(width = 3,
               box(width = 12,
                 title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
-                fileInput("updog_rdata","Choose VCF File", accept = c(".vcf",".vcf.gz")),
+                fileInput("updog_rdata","Choose VCF File", accept = c(".vcf",".gz")),
                 textInput("filter_output_name", "Output File Name"),
                 numericInput("filter_ploidy","Ploidy", min = 0, value = NULL),
                 numericInput("filter_maf","MAF filter", min = 0, max=1, value = 0.05, step = 0.01),
@@ -525,10 +525,6 @@ ui <- dashboardPage(
                 ))#,
               #style = "overflow-y: auto; height: 550px"
 
-              ),
-            box(title = "Status", width = 12, collapsible = TRUE, status = "info",
-
-                progressBar(id = "pb_gwas", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
               )
             ),
 
@@ -549,8 +545,10 @@ ui <- dashboardPage(
             ),
           
           column(width = 3,
-            valueBox(0,"Outlier SNPs", icon = icon("dna"), width = NULL, color = "info"),
             valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            box(title = "Status", width = 12, collapsible = TRUE, status = "info",
+              progressBar(id = "pb_gwas", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+            ),
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                 selectInput("model_select", label = "Model Selection", choices = c("all","1-dom","2-dom","additive","general","diplo-general","diplo-additive")),
@@ -671,7 +669,7 @@ ui <- dashboardPage(
         fluidRow(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-              fileInput("pred_file", "Choose Genotypes File", accept = ".csv"),
+              fileInput("pred_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
               fileInput("trait_file", "Choose Passport File", accept = ".csv"),
               #textInput("output_name", "Output File Name"),
               numericInput("pred_ploidy", "Species Ploidy", min = 1, value = 2),
@@ -713,10 +711,6 @@ ui <- dashboardPage(
                 ))#,
               #style = "overflow-y: auto; height: 550px"
  
-              ),
-            box(title = "Status", width = 12, collapsible = TRUE, status = "info",
- 
-                progressBar(id = "pb_prediction", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
               )
             ),
 
@@ -738,6 +732,9 @@ ui <- dashboardPage(
           column(width = 3,
             valueBox(0,"Samples in Genotype File", icon = icon("dna"), width = NULL, color = "info"),
             valueBox(0,"Samples with Phenotype Information", icon = icon("dna"), width = NULL, color = "info"),
+            box(title = "Status", width = 12, collapsible = TRUE, status = "info",
+              progressBar(id = "pb_prediction", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+            ),
             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
@@ -2626,6 +2623,9 @@ server <- function(input, output, session) {
   observeEvent(input$prediction_start, {
     #req(pred_inputs$pheno_input, pred_inputs$geno_input)
 
+    #Status
+    updateProgressBar(session = session, id = "pb_prediction", value = 5, status = "info", title = "Checking input files")
+
     #Variables
     ploidy <- as.numeric(input$pred_ploidy)
     geno_path <- input$pred_file$datapath
@@ -2664,7 +2664,61 @@ server <- function(input, output, session) {
 
 
   #Getting genotype matrix
-  geno <- read.csv(geno_path, header = TRUE, row.names = 1, check.names = FALSE)
+
+  #Geno file path
+    file_path <- geno_path
+
+    #Geno.file conversion if needed
+    if (grepl("\\.csv$", file_path)) {
+        geno <- read.csv(geno_path, header = TRUE, row.names = 1, check.names = FALSE)
+
+    } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
+
+      #Function to convert GT to dosage calls (add to BIGr)
+      convert_to_dosage <- function(gt) {
+      # Split the genotype string
+      alleles <- strsplit(gt, "[|/]")
+      # Sum the alleles, treating NA values appropriately
+      sapply(alleles, function(x) {
+        if (any(is.na(x))) {
+          return(NA)
+        } else {
+          return(sum(as.numeric(x), na.rm = TRUE))
+          }
+        })
+      }
+      
+      #Convert VCF file if submitted
+      vcf <- vcfR::read.vcfR(file_path)
+
+      #Extract GT
+      geno <- extract.gt(vcf, element = "GT")
+      geno <- apply(geno, 2, convert_to_dosage)
+      class(geno) <- "numeric"
+      rm(vcf)
+
+    } else {
+
+        # If condition is met, show notification toast
+        shinyalert(
+            title = "Oops",
+            text = "No valid genotype file detected",
+            size = "xs",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "info",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            imageUrl = "",
+            animation = TRUE,
+          )
+
+      #Stop the analysis
+      return()
+    }
 
   #Check that the ploidy entered is correct
   if (ploidy != max(geno, na.rm = TRUE)) {
