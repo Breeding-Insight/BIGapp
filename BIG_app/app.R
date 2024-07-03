@@ -85,6 +85,10 @@ ui <- dashboardPage(
         tabName = "prediction", 
         icon = icon("right-left")),
       menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
+      menuItem(
+        span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
+        tabName = "slurm", 
+        icon = icon("fa-solid fa-clock")),
       menuItem("Help", tabName = "help", icon = icon("circle-question"))
     )
   ),
@@ -763,9 +767,16 @@ ui <- dashboardPage(
       
       ),
       tabItem(
-        tabName = "code",
+        tabName = "slurm",
         fluidPage(
-          # Add source code here
+          fluidRow(
+            box(title="Submitted Jobs", width = 12, collapsible = FALSE, status = "info", solidHeader = TRUE,
+              DTOutput("job_table"),style = "overflow-y: auto; height: 500px",
+                  div(style = "position: absolute; bottom: 20px; width: 100%;",
+                      actionButton("run", "Cancel Submitted Jobs", 
+                         style = "color: #fff; background-color: #ff0000; border-color: #ff0000;"))
+            )
+          )
         )
       ),
       tabItem(
@@ -829,11 +840,41 @@ server <- function(input, output, session) {
           "on", ifelse(input$cores == 0, "auto-detected number of cores", paste(input$cores, "cores")))
   })
 
-  #Add server configurations
-  options(shiny.maxRequestSize = 100000 * 1024^2)  # Set maximum upload size to 100GB
+  ##Add server configurations
+  options(shiny.maxRequestSize = 10000 * 1024^2)  # Set maximum upload size to 10GB
 
   #shiny.maxRequestSize = 10000 * 1024^2; # 10 GB <- This is for a future limit when using BI's server remotely
   
+  ####Command to get information from SLURM as dataframe
+  #add button to ui for user to cancel their scheduled jobs...
+  get_slurm_jobs <- reactive({
+    # Run the SLURM squeue command to get job information
+    slurm_output <- system("squeue --Format=UserName,JobName,TimeUsed --noheader", intern = TRUE)
+    
+    # Process the output
+    job_list <- strsplit(slurm_output, "\\s+")
+    
+    # Create a data frame
+    job_df <- do.call(rbind, job_list)
+    colnames(job_df) <- c("userID", "JobType", "Duration")
+    
+    # Convert to data frame
+    job_df <- as.data.frame(job_df, stringsAsFactors = FALSE)
+    
+    return(job_df)
+  })
+  
+  #Display job queue to user
+  output$job_table <- renderDT({
+    #job_df <- get_slurm_jobs() #Use this when I get the above code working on the server
+    job_df <- data.frame(userID = c("User1","User2","User3","User4"),
+                         JobType = c("Updog Dosage Calling","Updog Dosage Calling", "Updog Dosage Calling", "GWAS"),
+                         Duration = c("Completed: Email notification sent","06:11:43", "03:31:01", "00:46:00"))
+    
+    # Render the data table
+    datatable(job_df, options = list(pageLength = 10))
+  })
+
   #Plots for downloading
   all_plots <- reactiveValues(
     pca_2d = NULL,
