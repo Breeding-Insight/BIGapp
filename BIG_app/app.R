@@ -88,7 +88,7 @@ ui <- dashboardPage(
       menuItem(
         span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
         tabName = "slurm", 
-        icon = icon("fa-solid fa-clock")),
+        icon = icon("clock")),
       menuItem("Help", tabName = "help", icon = icon("circle-question"))
     )
   ),
@@ -549,7 +549,8 @@ ui <- dashboardPage(
             ),
           
           column(width = 3,
-            valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
+            valueBoxOutput("qtls_detected", width = NULL),
             box(title = "Status", width = 12, collapsible = TRUE, status = "info",
               progressBar(id = "pb_gwas", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
             ),
@@ -677,8 +678,8 @@ ui <- dashboardPage(
               fileInput("trait_file", "Choose Passport File", accept = ".csv"),
               #textInput("output_name", "Output File Name"),
               numericInput("pred_ploidy", "Species Ploidy", min = 1, value = 2),
-              numericInput("pred_cv", "Cross-Validations", min = 1, value = 10),
-              numericInput("pred_train", "Training Subset Size (%)", min = 1, max = 99, value = 60),
+              numericInput("pred_cv", "Iterations", min = 1, max=20, value = 5),
+              #numericInput("pred_folds", "Folds", min = 5, max = 5, value = 5),
               #selectInput('pred_trait_info', label = 'Select Trait (eg, Color):', choices = NULL),
               virtualSelectInput(
                 inputId = "pred_trait_info",
@@ -688,14 +689,14 @@ ui <- dashboardPage(
                 search = TRUE,
                 multiple = TRUE
               ),
-              virtualSelectInput(
-                inputId = "pred_fixed_info",
-                label = "Select Fixed Effects (eg, Group):",
-                choices = NULL,
-                showValueAsTags = TRUE,
-                search = TRUE,
-                multiple = TRUE
-              ),
+              #virtualSelectInput(
+              #  inputId = "pred_fixed_info",
+              #  label = "Select Fixed Effects (eg, Group) (not supported):",
+              #  choices = NULL,
+              #  showValueAsTags = TRUE,
+              #  search = TRUE,
+              #  multiple = TRUE
+              #),
               sliderInput("pred_cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
               actionButton("prediction_start", "Run Analysis"),
               #downloadButton("download_pca", "Download All Files"),
@@ -707,7 +708,7 @@ ui <- dashboardPage(
                     #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
                     #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
                     #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
-                    "GP uses the rrBLUP package: It can impute missing data, maybe adapt to different ploidy, perform cross validations, define training size, run multiple traits, and accept multiple fixed effects.",
+                    "GP uses the rrBLUP package: It can impute missing data, maybe adapt to different ploidy, perform 5-fold cross validations with different number of itereations, define training size, run multiple traits, and accept multiple fixed effects.",
                     circle = FALSE,
                     status = "warning", 
                     icon = icon("info"), width = "300px",
@@ -724,8 +725,9 @@ ui <- dashboardPage(
               tabsetPanel(
                 tabPanel("Violin Plot", plotOutput("pred_violin_plot", height = "500px")),
                 tabPanel("Box Plot", plotOutput("pred_box_plot", height = "500px")),
-                tabPanel("Heatmap Plot", plotOutput("pred_heat_plot", height = "500px")),
-                tabPanel("Results Table", DTOutput("pred_table"),style = "overflow-y: auto; height: 500px")
+                tabPanel("All GEBVs Table", DTOutput("pred_all_table"), style = "overflow-y: auto; height: 500px"),
+                tabPanel("Accuracy Table", DTOutput("pred_acc_table"), style = "overflow-y: auto; height: 500px"),
+                tabPanel("GEBVs Table", DTOutput("pred_gebvs_table"),style = "overflow-y: auto; height: 500px")
 
                 )
               
@@ -868,6 +870,7 @@ server <- function(input, output, session) {
   output$job_table <- renderDT({
     #job_df <- get_slurm_jobs() #Use this when I get the above code working on the server
     job_df <- data.frame(userID = c("User1","User2","User3","User4"),
+                         JobID = c("000303","000312","000335","000342"),
                          JobType = c("Updog Dosage Calling","Updog Dosage Calling", "Updog Dosage Calling", "GWAS"),
                          Duration = c("Completed: Email notification sent","06:11:43", "03:31:01", "00:46:00"))
     
@@ -2017,6 +2020,15 @@ server <- function(input, output, session) {
 
     )
 
+  output$qtls_detected <- renderValueBox({
+      valueBox(
+        value = 0,
+        subtitle = "QTLs Detected",
+        icon = icon("dna"),
+        color = "info"
+        )
+      })
+
   observeEvent(input$phenotype_file, {
     info_df <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
     trait_var <- colnames(info_df)
@@ -2262,7 +2274,16 @@ server <- function(input, output, session) {
       output$gwas_stats <-  renderDT({qtl_d}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
       #write.csv(qtl_d,file = paste("GWAS_by_year_SNP_",colnames(data@pheno[i]),"_SNP",".csv",sep=""))#change directory in your case
-      
+      #Updating value boxes
+      output$qtls_detected <- renderValueBox({
+      valueBox(
+        value = length(unique(qtl_d$Position)),
+        subtitle = "QTLs Detected",
+        icon = icon("dna"),
+        color = "info"
+        )
+      })
+
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 80, title = "GWAS Complete: Now Plotting Results")
 
@@ -2658,7 +2679,10 @@ server <- function(input, output, session) {
   pred_outputs <- reactiveValues(
     corr_output = NULL,
     box_plot = NULL,
-    violin_plot = NULL
+    violin_plot = NULL,
+    comb_output = NULL,
+    avg_GEBVs = NULL,
+    all_GEBVs = NULL
     )
 
   observeEvent(input$prediction_start, {
@@ -2674,7 +2698,7 @@ server <- function(input, output, session) {
     row.names(pheno) <- pheno[,1]
     traits <- input$pred_trait_info
     CVs <- as.numeric(input$pred_cv)
-    train_perc <- as.numeric(input$pred_train)
+    train_perc <- as.numeric(input$pred_folds)
 
 
   #Make sure at least one trait was input
@@ -2913,35 +2937,41 @@ server <- function(input, output, session) {
   pheno <- pred_inputs$pheno_input
   traits <- input$pred_trait_info
   CVs <- as.numeric(input$pred_cv)
-  train_perc <- as.numeric(input$pred_train)
+  train_perc <- as.numeric(input$pred_folds)
   fixed_traits <- input$pred_fixed_info
   cores <- input$pred_cores
 
-
+  print(fixed_traits)
   ##Need to add ability for the use of parallelism for the for cross-validation
   ##Example at this tutorial also: https://www.youtube.com/watch?v=ARWjdQU6ays
 
   # Function to perform genomic prediction
   ##Make sure this is correct (I think I need to be generating a relationship matrix A.mat() to account for missing data, but I am not sure how that works with this)
-  genomic_prediction <- function(geno, Pheno, traits, fixed_effects = NULL, k = 5, percentage = 60, cores = 1) {
-  
+  genomic_prediction <- function(geno, Pheno, traits, fixed_effects = NULL, Fold = 5, Iters = 5, cores = 1) {
+
   # Define variables
   traits <- traits
-  cycles <- as.numeric(k)
+  cycles <- as.numeric(Iters)
+  Folds <- as.numeric(Fold)
   total_population <- ncol(geno)
-  train_size <- floor(percentage / 100 * total_population)
+  #train_size <- floor(percentage / 100 * total_population)
   fixed_traits <- fixed_effects
   cores <- as.numeric(cores)
   print(cores)
-  
-  # Establish results matrix
-  results <- matrix(nrow = cycles, ncol = length(traits))
-  colnames(results) <- traits  # Set the column names to be the traits
+
+  # Establish accuracy results matrix
+  results <- matrix(nrow = cycles*Folds, ncol = length(traits))
+  colnames(results) <- paste0(traits)  # Set the column names to be the traits
 
   # Initialize a list to store GEBVs for all traits and cycles
   GEBVs <- list()
 
-  #Cross validation number
+  #Establish heritability_scores_df () Maybe get h2 values
+  # Establish results matrix
+  heritability_scores <- matrix(nrow = cycles*Folds, ncol = length(traits) + 2)
+  colnames(heritability_scores) <- c(paste0(traits,"_h2"), "Iter", "Fold")  # Set the column names to be the traits
+
+  #Cross validation number for progress bar (not involved in the calculations, just shiny visuals)
   pb_value = 10
 
   #Remove the fixed traits from the Pheno file
@@ -2962,83 +2992,137 @@ server <- function(input, output, session) {
 
   # For loop
   for (r in 1:cycles) {
+    set.seed(r)
+    fold_ids <- sample(rep(1:Folds, length.out = total_population))
+    fold_df <- data.frame(Sample = row.names(geno), FoldID = fold_ids) #Randomly assign each sample to a fold
+    fold_results <- matrix(nrow = Folds, ncol = length(traits))
+    colnames(fold_results) <- traits
 
-    #Status bar length
-    #pb_value = pb_value + floor(70 / as.numeric(cycles))
-    pb_value = pb_value + (70 / as.numeric(cycles))
+    #Initialize GEBV object for each cycle
+    GEBVs_cycle <-list()
 
     #Status
-    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), status = "info", title = paste0("Performing Cross-Validation:", r, "of", cycles))
-    
-    train <- as.matrix(sample(1:nrow(geno), train_size))
-    test <- setdiff(1:nrow(geno), train)
+    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), status = "info", title = paste0("Performing iteration:", r, "of", cycles))
 
-    #Subset datasets
-    if (length(fixed_traits) == 0) {
-      Fixed_train = NULL
-    } else{
-      Fixed_train <- Fixed[train, ]
-    }
-    Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
-    m_train <- geno[train, ]
-    Pheno_test <- Pheno[test, ]
-    #Fixed_test <- Fixed[test, ] #Where would the Fixed_test be used?
-    m_valid <- geno[test, ]
+    for (fold in 1:Folds) {
 
-    # Initialize a matrix to store GEBVs for this cycle
-    GEBVs_cycle <- matrix(nrow = train_size, ncol = length(traits))
-    colnames(GEBVs_cycle) <- traits
-    rownames(GEBVs_cycle) <- paste("Cycle", r, "Ind", train, sep="_")
+      #Status bar length
+      #pb_value = pb_value + floor(70 / as.numeric(cycles))
+      pb_value = pb_value + (70 / as.numeric(cycles*Folds))
 
-    #Evaluate each trait using the same train and testing samples for each
-    for (trait_idx in 1:length(traits)) {
-      trait <- Pheno_train[, traits[trait_idx]] # Get the trait of interest
-      trait_answer <- mixed.solve(y= trait, Z = m_train, K = NULL, X = Fixed_train, SE = FALSE, return.Hinv = FALSE)
-      TRT <- trait_answer$u
-      e <- as.matrix(TRT)
-      pred_trait_test <- m_valid %*% e
-      pred_trait <- pred_trait_test[, 1] + c(trait_answer$beta) # Make sure this still works when using multiple traits
-      trait_test <- Pheno_test[, traits[trait_idx]]
-      results[r, trait_idx] <- cor(pred_trait, trait_test, use = "complete")
+      #train <- as.matrix(sample(1:nrow(geno), train_size))
+      #test <- setdiff(1:nrow(geno), train)
+      train <- fold_df %>%
+        filter(FoldID != fold) %>%
+        pull(Sample)
+      test <- setdiff(row.names(geno),train)
 
-      # Extract GEBVs
-      # Check if Fixed_train is not NULL and include beta if it is
-      if (!is.null(Fixed_train) && !is.null(trait_answer$beta)) {
-        # Calculate GEBVs including fixed effects
-        GEBVs_cycle[, trait_idx] <- m_train %*% trait_answer$u + Fixed_train %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
-      } else {
-        # Calculate GEBVs without fixed effects
-        GEBVs_cycle[, trait_idx] <- m_train %*% trait_answer$u
+      #Subset datasets
+      if (length(fixed_traits) == 0) {
+        Fixed_train = NULL
+      } else{
+        Fixed_train <- Fixed[train, ]
       }
+      Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
+      m_train <- geno[train, ]
+      Pheno_test <- Pheno[test, ]
+      #Fixed_test <- Fixed[test, ] #Where would the Fixed_test be used?
+      m_valid <- geno[test, ]
+
+      print(Fixed_train)
+      print(dim(Fixed_train))
+
+      # Initialize a matrix to store GEBVs for this fold
+      GEBVs_fold <- matrix(nrow = length(test), ncol = length(traits)+3)
+      colnames(GEBVs_fold) <- c(traits,"Sample","Iter","Fold")
+      rownames(GEBVs_fold) <- paste("Iter", r,"Fold",fold,"Ind", test, sep="_")
+
+      #Evaluate each trait using the same train and testing samples for each
+      for (trait_idx in 1:length(traits)) {
+        trait <- Pheno_train[, traits[trait_idx]] # Get the trait of interest
+        trait_answer <- mixed.solve(y= trait, Z = m_train, K = NULL, X = Fixed_train, SE = FALSE, return.Hinv = FALSE)
+        TRT <- trait_answer$u
+        e <- as.matrix(TRT)
+        pred_trait_test <- m_valid %*% e
+        pred_trait <- pred_trait_test[, 1] + c(trait_answer$beta) # Make sure this still works when using multiple traits
+        trait_test <- Pheno_test[, traits[trait_idx]]
+        results[(((r-1)*5)+fold), trait_idx] <- cor(pred_trait, trait_test, use = "complete")
+
+        # Extract GEBVs
+        # Check if Fixed_train is not NULL and include beta if it is
+        if (!is.null(Fixed_train) && !is.null(trait_answer$beta)) {
+          # Calculate GEBVs including fixed effects
+          GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u + Fixed_train %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
+        } else {
+          # Calculate GEBVs without fixed effects
+          #GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u
+          GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u
+        }
+
+        # Calculate heritability for the current trait
+        Vu <- trait_answer$Vu
+        Ve <- trait_answer$Ve
+        heritability_scores[(((r-1)*5)+fold), trait_idx] <- Vu / (Vu + Ve)
 
       }
+      #Add iter and fold information for each trait/result
+      heritability_scores[(((r-1)*5)+fold), (length(traits)+1)] <- r
+      heritability_scores[(((r-1)*5)+fold), (length(traits)+2)] <- fold
 
-      # Store GEBVs for this cycle
-      GEBVs[[r]] <- GEBVs_cycle
+      #Add sample, iteration, and fold information to GEBVs_fold
+      GEBVs_fold[,"Iter"] = r
+      GEBVs_fold[,"Fold"] = fold
+      GEBVs_fold[,"Sample"] <- test
+
+      # Store GEBVs for this fold
+      GEBVs_cycle[[fold]] <- GEBVs_fold
 
     }
 
-    # Combine all GEBVs into a single DataFrame
-    GEBVs_df <- do.call(rbind, GEBVs)
-  
-    results <- as.data.frame(results)
-    return(list(GEBVs = GEBVs_df, PredictionAccuracy = results))
-  } 
+    # Store GEBVs for this cycle
+    GEBVs[[r]] <- do.call(rbind, GEBVs_cycle)
+
+  }
+
+  # Combine all GEBVs into a single DataFrame
+  GEBVs_df <- as.data.frame(do.call(rbind, GEBVs))
+
+  results <- as.data.frame(results)
+  heritability_scores <- as.data.frame(heritability_scores)
+
+  # Combine results and heritability_scores using cbind
+  combined_results <- cbind(results, heritability_scores)
+
+  return(list(GEBVs = GEBVs_df, PredictionAccuracy = results, CombinedResults = combined_results))
+  }
 
   # Example call to the function
   #This is slow when using 3k markers and 1.2k samples...will need to parallelize if using this script...
-  results <- genomic_prediction(geno_adj, pheno, traits = traits, fixed_effects = fixed_traits, k= CVs, percentage= train_perc, cores = cores)
+  results <- genomic_prediction(geno_adj, pheno, traits = traits, fixed_effects = fixed_traits, Iters = input$pred_cv, cores = cores)
 
-  print(results$PredictionAccuracy)
   #With fixed effects (need to inforporate the ability for fixed effects into the prediction?)
   #results <- genomic_prediction(geno_matrix, phenotype_df, c("height", "weight"), "~ age + sex")
 
   #Save to reactive value
   pred_outputs$corr_output <- results$PredictionAccuracy
+  pred_outputs$comb_output <- results$CombinedResults
+  pred_outputs$all_GEBVs <- results$GEBVs
 
   #TESTING!!!
-  write.csv(results$GEBVs, "GEBVs_test.csv")
+  #write.csv(results$GEBVs, "GEBVs_test.csv")
 
+  # Convert trait columns to numeric
+    results$GEBVs <- results$GEBVs %>%
+      mutate(across(all_of(traits), ~ as.numeric(.x)))
+
+  # Calculate the average value for each column in the traits list for each SampleID, ignoring Iter and Fold
+  average_gebvs_df <- results$GEBVs %>%
+    group_by(Sample) %>%
+    summarize(across(all_of(traits), mean, na.rm = TRUE))
+
+  pred_outputs$avg_GEBVs <- average_gebvs_df
+  #write.csv(average_gebvs_df, "GEBVs_averaged_test.csv")
+    
   #Status
   updateProgressBar(session = session, id = "pb_prediction", value = 90, status = "info", title = "Generating Results")
 
@@ -3116,6 +3200,29 @@ server <- function(input, output, session) {
     req(pred_outputs$violin_plot)
     pred_outputs$violin_plot
     })
+
+  #Output the prediction tables
+  observe({
+    #GEBVs from all iterations/folds
+    req(pred_outputs$all_GEBVs)
+
+    output$pred_all_table <- renderDT({pred_outputs$all_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+  
+  })
+  observe({
+    #Accuracy (pearson corr) and Heritability for each trait/iteration
+    req(pred_outputs$comb_output)
+
+    output$pred_acc_table <- renderDT({pred_outputs$comb_output}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+  
+  })
+  observe({
+    #Avg GEBVs for each sample/trait
+    req(pred_outputs$avg_GEBVs)
+
+    output$pred_gebvs_table <- renderDT({pred_outputs$avg_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+  
+  })
 
 ##Saving analysis outputs
 
