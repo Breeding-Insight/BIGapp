@@ -689,14 +689,14 @@ ui <- dashboardPage(
                 search = TRUE,
                 multiple = TRUE
               ),
-              #virtualSelectInput(
-              #  inputId = "pred_fixed_info",
-              #  label = "Select Fixed Effects (eg, Group) (not supported):",
-              #  choices = NULL,
-              #  showValueAsTags = TRUE,
-              #  search = TRUE,
-              #  multiple = TRUE
-              #),
+              virtualSelectInput(
+                inputId = "pred_fixed_info",
+                label = "Select Fixed Effects (optional) (not validated):",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = TRUE
+              ),
               sliderInput("pred_cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
               actionButton("prediction_start", "Run Analysis"),
               #downloadButton("download_pca", "Download All Files"),
@@ -2957,7 +2957,6 @@ server <- function(input, output, session) {
   #train_size <- floor(percentage / 100 * total_population)
   fixed_traits <- fixed_effects
   cores <- as.numeric(cores)
-  print(cores)
 
   # Establish accuracy results matrix
   results <- matrix(nrow = cycles*Folds, ncol = length(traits))
@@ -2978,8 +2977,30 @@ server <- function(input, output, session) {
   if (length(fixed_traits) == 0) {
     Pheno <- Pheno
   } else {
-    #Pheno <- subset(Pheno, select = -fixed_traits)
+    #Subset fixed traits
     Fixed <- subset(Pheno, select = fixed_traits)
+
+    #Pheno <- subset(Pheno, select = -fixed_traits)
+    convert_all_to_factor_if_not_numeric <- function(df) {
+      for (col in names(df)) {
+        if (!is.numeric(df[[col]]) && !is.integer(df[[col]])) {
+          df[[col]] <- as.factor(df[[col]])
+        }
+      }
+      return(df)
+    }
+    # Convert all columns to factor if they are not numeric or integer
+    Fixed <- convert_all_to_factor_if_not_numeric(Fixed)
+    
+    #Fixed <- as.data.frame(lapply(Fixed, as.factor)) #convert to factor
+    row.names(Fixed) <- row.names(Pheno)
+
+    #Make the matrix
+    formula_str <- paste("~", paste(fixed_traits, collapse = " + "))
+    formula <- as.formula(formula_str)
+
+    # Create the design matrix using the constructed formula
+    Fixed <- model.matrix(formula, data = Fixed)
   }
 
   #Make kinship matrix of all individuals?
@@ -3021,16 +3042,24 @@ server <- function(input, output, session) {
       if (length(fixed_traits) == 0) {
         Fixed_train = NULL
       } else{
-        Fixed_train <- Fixed[train, ]
+        Fixed_train <- data.frame(Fixed[train, ])
+        Fixed_train <- as.matrix(Fixed_train)
+        row.names(Fixed_train) <- train
+        #colnames(Fixed_train) <- colnames(Fixed)
+
+        #Fixed (testing)
+        Fixed_test<- data.frame(Fixed[test, ])
+        Fixed_test <- as.matrix(Fixed_test)
+        row.names(Fixed_test) <- test
+        #colnames(Fixed_test) <- colnames(Fixed)
+
       }
+
       Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
       m_train <- geno[train, ]
       Pheno_test <- Pheno[test, ]
       #Fixed_test <- Fixed[test, ] #Where would the Fixed_test be used?
       m_valid <- geno[test, ]
-
-      print(Fixed_train)
-      print(dim(Fixed_train))
 
       # Initialize a matrix to store GEBVs for this fold
       GEBVs_fold <- matrix(nrow = length(test), ncol = length(traits)+3)
@@ -3052,11 +3081,13 @@ server <- function(input, output, session) {
         # Check if Fixed_train is not NULL and include beta if it is
         if (!is.null(Fixed_train) && !is.null(trait_answer$beta)) {
           # Calculate GEBVs including fixed effects
-          GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u + Fixed_train %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
+          #GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u + Fixed_train %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
+          #GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u + Fixed_test %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
+          GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u + Fixed_test %*% trait_answer$beta
         } else {
           # Calculate GEBVs without fixed effects
           #GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u
-          GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u
+          GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u #Confirm it is accuract to calculate the GEBVs for testing group from the trained model
         }
 
         # Calculate heritability for the current trait
