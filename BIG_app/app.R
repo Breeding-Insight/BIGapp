@@ -1018,18 +1018,7 @@ server <- function(input, output, session) {
       #write.csv(filtered_df, file = df_name, row.names = FALSE)
       return(filtered_df)
     }
-
     
-    # Call the get_counts function with the specified MADC file path and output file path
-    result_df <- get_counts(madc_file, output_name)
-
-    #Number of SNPs
-    snp_number <- (nrow(result_df) / 2)
-    
-    output$table1 <- renderTable({
-    # Generate table
-      result_df
-    })
     
     #Get the alt, ref, and size matrix for use in Updog
     #Add functionality here to stop the script if indentical() is False
@@ -1086,8 +1075,52 @@ server <- function(input, output, session) {
     #Status
     updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
 
-    #Call the get_matrices function
-    matrices <- get_matrices(result_df)
+    #Import genotype info if genotype matrix format
+    if (grepl("\\.csv$", madc_file)) {
+      # Call the get_counts function with the specified MADC file path and output file path
+      result_df <- get_counts(madc_file, output_name)
+
+      #Call the get_matrices function
+      matrices <- get_matrices(result_df)
+
+      #Number of SNPs
+      snp_number <- (nrow(result_df) / 2)
+    
+    } else{
+
+      #Initialize matrices list
+      matrices <- list()
+
+      #Import genotype information if in VCF format
+      vcf <- vcfR::read.vcfR(madc_file)
+
+      #Get items in FORMAT column
+      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+      extract_info_ids <- function(info_string) {
+        # Split the INFO string by ';'
+        info_parts <- strsplit(info_string, ":")[[1]]
+        # Extract the part before the '=' in each segment
+        info_ids <- gsub("=.*", "", info_parts)
+          return(info_ids)
+        }
+      info_ids <- extract_info_ids(info[1])
+      
+      if (("DP" %in% info_ids) && ("RA" %in% info_ids)) {
+        #Extract DP and RA and convert to matrices
+        matrices$size_matrix <- extract.gt(vcf, element = "DP")
+        matrices$ref_matrix <- extract.gt(vcf, element = "RA")
+        rm(vcf) #Remove VCF
+
+        snp_number <- (nrow(matrices$size_matrix) / 2)
+
+      }else{
+        ##Add user warning about read depth and allele read depth not found
+        warning("Error: DP and RA FORMAT flags not found in VCF file")
+        return()
+
+      }
+
+    }
     
     #Run Updog 
     #I initially used the "norm" model
