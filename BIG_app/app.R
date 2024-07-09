@@ -155,11 +155,11 @@ ui <- dashboardPage(
               id = "updog_tab", height = "600px",
               tabPanel("Bias Histogram", icon = icon("image"), plotOutput("bias_hist", height = '550px')),
               tabPanel("OD Histogram", icon = icon("image"), plotOutput("od_hist", height = '550px')),
-              tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px'))
+              tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput("maxpostprob_hist", height = '550px')),
               #tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px'))
               #tabPanel("SNP Distribution Plot", icon = icon("image"), plotOutput("snp_dist", height = '550px')),
-              #tabPanel("SNP % Missing Histogram", icon = icon("image"), plotOutput("missing_snp_hist", height = '550px')),
-              #tabPanel("Sample % Missing Histogram", icon = icon("image"), plotOutput("missing_sample_hist", height = '550px')),
+              tabPanel("SNP_miss", icon = icon("image"), plotOutput("missing_snp_hist", height = '550px')),
+              tabPanel("Sample_miss", icon = icon("image"), plotOutput("missing_sample_hist", height = '550px'))
               #tabPanel("Summary Statistics", icon = icon("sliders"), tableOutput("dosages"))
               #plotOutput("coverage"), # Placeholder for plot outputs
               )
@@ -697,7 +697,7 @@ ui <- dashboardPage(
                 search = TRUE,
                 multiple = TRUE
               ),
-              sliderInput("pred_cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
+              #sliderInput("pred_cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
               actionButton("prediction_start", "Run Analysis"),
               #downloadButton("download_pca", "Download All Files"),
               #plotOutput("pca_plot"), # Placeholder for plot outputs
@@ -1142,7 +1142,9 @@ server <- function(input, output, session) {
   
   #vcf
   filtering_files <- reactiveValues(
-      raw_vcf_df = NULL
+      raw_vcf_df = NULL,
+      sample_miss_df = NULL,
+      snp_miss_df = NULL
 
     )
 
@@ -1217,6 +1219,7 @@ server <- function(input, output, session) {
       #export INFO dataframe
       filtering_files$raw_vcf_df <- data.frame(vcf@fix)
 
+
       #Pb
       updateProgressBar(session = session, id = "pb_filter", value = 40, title = "Filtering VCF file")
 
@@ -1233,9 +1236,21 @@ server <- function(input, output, session) {
           filter.SNP.miss = as.numeric(snp_miss),
           filter.MAF = as.numeric(maf_filter),
           filter.MPP = max_post)
+
+      #Getting missing data information
+      #Add support for genotype matrix filtering?
+      #Pb
+      updateProgressBar(session = session, id = "pb_filter", value = 50, title = "Calculating Missing Data")
+      
+      gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
+      filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
+      filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
+      print(dim(filtering_files$sample_miss_df))
+      print(filtering_files$sample_miss_df)
+      rm(gt_matrix) #Remove gt matrix
       
       #Pb
-      updateProgressBar(session = session, id = "pb_filter", value = 70, title = "Exporting Filtered VCF")
+      updateProgressBar(session = session, id = "pb_filter", value = 80, title = "Exporting Filtered VCF")
 
       #Writing file
       vcfR::write.vcf(vcf, file = temp_file)
@@ -1373,6 +1388,47 @@ server <- function(input, output, session) {
         abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
         abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2) 
+
+      })
+
+      #Missing data
+      output$missing_snp_hist <- renderPlot({
+
+        #Histogram
+        hist(as.numeric(filtering_files$snp_miss_df), 
+            main = "Ratio of Missing Data per SNP After Filtering",
+            xlab = "Proportion of Missing Data per SNP",
+            ylab = "Number of SNPs",
+            col = "lightblue",
+            border = "black",
+            xlim = c(0,1),
+            breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2) 
+
+      })
+
+      output$missing_sample_hist <- renderPlot({
+
+        #Histogram
+        hist(as.numeric(filtering_files$sample_miss_df), 
+            main = "Ratio of Missing Data per Sample After Filtering",
+            xlab = "Proportion of Missing Data per Sample",
+            ylab = "Number of Samples",
+            col = "lightblue",
+            border = "black",
+            xlim = c(0,1),
+            breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2) 
 
       })
 
@@ -1615,6 +1671,9 @@ server <- function(input, output, session) {
 
     # Get the corresponding value based on the selected grey
     selected_grey <- label_to_value[[input$grey_choice]]
+
+    #Set factor
+    pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
 
     # Similar plotting logic here
     if (input$use_cat) {
