@@ -990,7 +990,7 @@ server <- function(input, output, session) {
     ploidy <- input$ploidy
     cores <- input$cores
     model_select <- input$updog_model
-    marker_set <- (markers == "Target Loci Only")
+    marker_set <- (input$markers == "Target Loci Only")
     
 
     #Status
@@ -1109,6 +1109,8 @@ server <- function(input, output, session) {
         #Extract DP and RA and convert to matrices
         matrices$size_matrix <- extract.gt(vcf, element = "DP")
         matrices$ref_matrix <- extract.gt(vcf, element = "RA")
+        class(matrices$size_matrix) <- "numeric"
+        class(matrices$ref_matrix) <- "numeric"
         rm(vcf) #Remove VCF
 
         snp_number <- (nrow(matrices$size_matrix) / 2)
@@ -1133,10 +1135,10 @@ server <- function(input, output, session) {
                      nc = cores)
     
     #Get genotype matrix of dosage calls
-    genomat <- format_multidog(mout, varname = "geno")
+    #genomat <- format_multidog(mout, varname = "geno")
     #Save the matrix as a csv file
-    updog_file <- paste0(output_name,'_MADC_alt_ref_counts_unfiltered_dose_from_updog_norm_genotype_matrix.csv')
-    write.csv(genomat,file=updog_file)
+    #updog_file <- paste0(output_name,'_MADC_alt_ref_counts_unfiltered_dose_from_updog_norm_genotype_matrix.csv')
+    #write.csv(genomat,file=updog_file)
 
     #Filter dosage calls (I think this is the updog recommended)
     #mout_cleaned <- filter_snp(mout, prop_mis < 0.2 & bias > 0.5 & bias < 2 & od > 0.05) #Recommended filtering by updog
@@ -1150,8 +1152,15 @@ server <- function(input, output, session) {
     #write.csv(genomat_cleaned,file= cleaned_name)
 
     #Save rda file for filtering
-    save(mout, result_df, file = paste0(output_name,"_MADC_unfiltered_dose_from_updog.rda"))
+    #save(mout, result_df, file = paste0(output_name,"_MADC_unfiltered_dose_from_updog.rda"))
     
+    #Save Updog output as VCF file
+    BIGr::updog2vcf(
+      multidog.object = mout,
+      ploidy = ploidy,
+      output.file = output_name
+      )
+
     #Reactive item
     #output$table2 <- renderTable({
     # Generate table
