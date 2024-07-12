@@ -747,7 +747,7 @@ ui <- dashboardPage(
             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
-                selectInput("pred_color_select", label = "Color Selection", choices = c("red","orange","yellow","green","blue","violet", "grey")),
+                selectInput("pred_color_select", label = "Color Selection", choices = c("red","orange","yellow","green","blue","violet", "grey", "white")),
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
                       selectInput(inputId = 'pred_figures', label = 'Figure', choices = c("Violin Plot", 
