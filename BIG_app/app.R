@@ -1003,7 +1003,7 @@ server <- function(input, output, session) {
       # Note: This assumes that the first 7 rows are not useful here like in the Strawberry DSt23-8501_MADC file
       
       # Read the madc file
-      madc_df <- read.csv(madc_file, sep = ',', skip = 7)
+      madc_df <- read.csv(madc_file, sep = ',', skip = 7, check.names = FALSE)
       
       # Retain only the Ref and Alt haplotypes
       filtered_df <- madc_df[!grepl("\\|AltMatch|\\|RefMatch", madc_df$AlleleID), ]
