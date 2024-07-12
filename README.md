@@ -6,19 +6,19 @@ Currently, Breeding Insight provides bioinformatic processing support for our ex
 Initial supported analyses will include the mature genomics/bioinformatics pipelines developed within Breeding Insight, with additional analyses continuing to be added.
 
 Supported:
-- Dosage calling from MADC file
-- SNP filtering
-- Population Structure
-  - PCA
-  - DAPC
-- Genomic Diversity
+- Genotype processing
+  - Dosage call from read counts
+  - SNP filtering
+  - Sample filtering
+- Summary metrics
   - SNP Allele Frequency
   - SNP Minor Allele Frequency
   - Sample Observed Heterozygosity
+- Population Structure
+  - PCA
+  - DAPC
 - GWAS
-
-In-progress:
-- Genomic Prediction/Selection
+- GS
 
 ### Running the BIG app
 
