@@ -1715,7 +1715,11 @@ server <- function(input, output, session) {
     selected_grey <- label_to_value[[input$grey_choice]]
 
     #Set factor
-    pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
+    if (!input$use_cat && is.null(my_palette)) {
+        print("No Color Info")
+    }else{
+      pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
+    }
 
     # Similar plotting logic here
     if (input$use_cat) {
