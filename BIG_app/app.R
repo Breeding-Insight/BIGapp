@@ -174,11 +174,13 @@ ui <- dashboardPage(
                       tags$h3("Save Image"),
                       selectInput(inputId = 'filter_hist', label = 'Figure', choices = c("Bias Histogram", 
                                                                                          "OD Histogram", 
-                                                                                         "Prop_mis Histogram")),
-                      selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                                                                                         "Prop_mis Histogram",
+                                                                                         "SNP_mis",
+                                                                                         "Sample_mis")),
+                      selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      sliderInput(inputId = 'image_width', label = 'Width', value = 8, min = 1, max = 20, step=0.5),
+                      sliderInput(inputId = 'image_height', label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                       downloadButton("download_filter_hist", "Save"),
                       circle = FALSE,
                       status = "danger", 
@@ -346,8 +348,8 @@ ui <- dashboardPage(
                       selectInput(inputId = 'pca_figure', label = 'Figure', choices = c("2D Plot", "Scree Plot"), selected = "2D Plot"),
                       selectInput(inputId = 'pca_image_type', label = 'File', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'pca_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'pca_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'pca_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      sliderInput(inputId = 'pca_image_width', label = 'Width', value = 10, min = 1, max = 20, step=0.5),
+                      sliderInput(inputId = 'pca_image_height', label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
                       downloadButton("download_pca", "Save"),
                       circle = FALSE,
                       status = "danger", 
@@ -622,8 +624,8 @@ ui <- dashboardPage(
                                                                                          "OHet Histogram")),
                       selectInput(inputId = 'div_image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'div_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'div_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'div_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
+                      sliderInput(inputId = 'div_image_width', label = 'Width', value = 8, min = 1, max = 20, step=0.5),
+                      sliderInput(inputId = 'div_image_height', label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                       fluidRow(
                       downloadButton("download_div_figure", "Save Image"),
                       downloadButton("download_div_file", "Save Files")),
@@ -870,10 +872,10 @@ server <- function(input, output, session) {
   #Display job queue to user
   output$job_table <- renderDT({
     #job_df <- get_slurm_jobs() #Use this when I get the above code working on the server
-    job_df <- data.frame(userID = c("User1","User2","User3","User4"),
-                         JobID = c("000303","000312","000335","000342"),
-                         JobType = c("Updog Dosage Calling","Updog Dosage Calling", "Updog Dosage Calling", "GWAS"),
-                         Duration = c("Completed: Email notification sent","06:11:43", "03:31:01", "00:46:00"))
+    job_df <- data.frame(userID = c("User1","User2","User3","User4","User5"),
+                         JobID = c("000303","000312","000335","000342", "000348"),
+                         JobType = c("Updog Dosage Calling","Updog Dosage Calling", "Updog Dosage Calling", "GWAS", "GWAS"),
+                         Duration = c("Completed: Email notification sent","06:11:43", "03:31:01", "00:46:00", "Scheduled"))
     
     # Render the data table
     datatable(job_df, options = list(pageLength = 10))
@@ -1345,6 +1347,9 @@ server <- function(input, output, session) {
   #Consider Extracting the GT info or UD info if present as a datafrfame,
   #Obtaining the info in the INFO column as it's own dataframe with a column for each value
   #Then remove the VCF file and use the remaining dataframes for producing the figures
+
+  filtering_output <- reactiveValues(df = NULL)
+
   observeEvent(filtering_files$raw_vcf_df, {
 
 
@@ -1364,10 +1369,14 @@ server <- function(input, output, session) {
     new_df <- data.frame(filtering_files$raw_vcf_df) %>%
       mutate(INFO_list = map(INFO, split_info_column)) %>%
       unnest_wider(INFO_list)
+    
+    #Save df to reactive value
+    filtering_output$df <- new_df
+    
 
-      ##Make plots
-      #Number of SNPs
-      nrow(filtering_files$raw_vcf_df)
+    ##Make plots
+    #Number of SNPs
+    nrow(filtering_files$raw_vcf_df)
 
       ###Bias
 
@@ -3516,6 +3525,125 @@ server <- function(input, output, session) {
           }
       #} else if (input$pca_figure == "3D Plot") {
         #print(all_plots$pca3d)  # Assuming you might want a 3D plot as well
+      }
+
+      dev.off()
+    }
+
+  )
+
+  #Download figures for VCF Filtering
+  output$download_filter_hist <- downloadHandler(
+
+    filename = function() {
+      if (input$image_type == "jpeg") {
+        paste("VCF-histogram-", Sys.Date(), ".jpg", sep="")
+      } else if (input$image_type == "png") {
+        paste("VCF-histogram-", Sys.Date(), ".png", sep="")
+      } else {
+        paste("VCF-histogram-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$image_type)
+      
+      if (input$image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+      } else if (input$image_type == "png") {
+        png(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      req(filtering_output$df, filtering_files)
+      if (input$filter_hist == "Bias Histogram") {
+          
+        hist(as.numeric(filtering_output$df$BIAS), 
+          main = "Unfiltered SNP bias histogram",
+          xlab = "bias",
+          ylab = "SNPs",
+          col = "lightblue",
+          border = "black",
+          xlim = c(0,5),
+          breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
+        abline(v = mean(as.numeric(filtering_output$df$BIAS)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_output$df$BIAS)), col = "green", lty = 2)  # Median line
+        abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
+        abline(v = 2, col = "black", lty = 2)  # proposed upper line
+      
+      } else if (input$filter_hist == "OD Histogram") {
+    
+          #Plot
+        hist(as.numeric(filtering_output$df$OD), 
+          main = "Unfiltered SNP overdispersion parameter histogram",
+          xlab = "OD",
+          ylab = "SNPs",
+          col = "lightblue",
+          border = "black",
+          xlim = c(0,0.6),
+          breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_output$df$OD)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_output$df$OD)), col = "green", lty = 2)  # Median line
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+      } else if (input$filter_hist == "Prop_mis Histogram") {
+    
+        hist(as.numeric(filtering_output$df$PMC), 
+            main = "The estimated proportion of individuals misclassified in the SNP from updog",
+            xlab = "Proportion of Misclassified Genotypes per SNP",
+            ylab = "Number of SNPs",
+            col = "lightblue",
+            border = "black",
+            xlim = c(0,1),
+            breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_output$df$PMC)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_output$df$PMC)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2) 
+
+      } else if (input$filter_hist == "SNP_mis") {
+ 
+        hist(as.numeric(filtering_files$snp_miss_df), 
+            main = "Ratio of Missing Data per SNP After Filtering",
+            xlab = "Proportion of Missing Data per SNP",
+            ylab = "Number of SNPs",
+            col = "lightblue",
+            border = "black",
+            xlim = c(0,1),
+            breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
+
+      } else if (input$filter_hist == "Sample_mis") {
+ 
+        hist(as.numeric(filtering_files$sample_miss_df), 
+            main = "Ratio of Missing Data per Sample After Filtering",
+            xlab = "Proportion of Missing Data per Sample",
+            ylab = "Number of Samples",
+            col = "lightblue",
+            border = "black",
+            xlim = c(0,1),
+            breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
+
       }
 
       dev.off()
