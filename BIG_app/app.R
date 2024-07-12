@@ -120,9 +120,9 @@ ui <- dashboardPage(
                 textInput("filter_output_name", "Output File Name"),
                 numericInput("filter_ploidy","Ploidy", min = 0, value = NULL),
                 numericInput("filter_maf","MAF filter", min = 0, max=1, value = 0.05, step = 0.01),
-                sliderInput("size_depth","Minimum Read Depth", min = 0, max = 300, value = 10, step = 1),
-                numericInput("snp_miss","Remove SNPs with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
-                numericInput("sample_miss","Remove Samples with >= % missing data", min = 0, max = 1, value = 0.5, step = 0.1),
+                sliderInput("size_depth","Min Read Depth (Marker per Sample)", min = 0, max = 300, value = 10, step = 1),
+                numericInput("snp_miss","Remove SNPs with >= % missing data", min = 0, max = 100, value = 50, step = 1),
+                numericInput("sample_miss","Remove Samples with >= % missing data", min = 0, max = 100, value = 50, step = 1),
                 "Updog Filtering Parameters",
                 checkboxInput("use_updog", "Use Updog Filtering Parameters?", value = FALSE),
                 conditionalPanel(
@@ -205,7 +205,7 @@ ui <- dashboardPage(
               #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("output_name", "Output File Name"),
               selectInput("markers", "Select Markers", choices = c("All Loci (not supported)", "Target Loci Only"), selected = "Target Loci Only"),
-              numericInput("ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("ploidy", "Species Ploidy", min = 1, value = NULL),
               selectInput("updog_model", "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
               numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
               actionButton("run_analysis", "Run Analysis"),
@@ -266,7 +266,7 @@ ui <- dashboardPage(
               #checkboxInput("off-targets","Include off-target loci?"),
               #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("d2v_output_name", "Output File Name"),
-              numericInput("dosage2vcf_ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("dosage2vcf_ploidy", "Species Ploidy", min = 1, value = NULL),
               downloadButton("download_d2vcf", "Download VCF File"),
               div(style="display:inline-block; float:right",dropdownButton(
 
@@ -304,7 +304,7 @@ ui <- dashboardPage(
               fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
               #textInput("output_name", "Output File Name (disabled)"),
               #Dropdown will update after pasport upload
-              numericInput("pca_ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("pca_ploidy", "Species Ploidy", min = 1, value = NULL),
               actionButton("pca_start", "Run Analysis"),
               div(style="display:inline-block; float:right",dropdownButton(
 
@@ -501,12 +501,12 @@ ui <- dashboardPage(
               fileInput("gwas_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
               fileInput("phenotype_file", "Choose Phenotype File", accept = ".csv"),
               #textInput("output_name", "Output File Name"),
-              numericInput("gwas_ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("gwas_ploidy", "Species Ploidy", min = 1, value = NULL),
               selectInput('gwas_threshold', label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
               selectInput('trait_info', label = 'Select Trait (eg, Color):', choices = NULL),
               virtualSelectInput(
                 inputId = "fixed_info",
-                label = "Select Fixed Effects (eg, Group):",
+                label = "Select Fixed Effects (optional):",
                 choices = NULL,
                 showValueAsTags = TRUE,
                 search = TRUE,
@@ -542,7 +542,7 @@ ui <- dashboardPage(
                 tabPanel("Manhattan Plot", plotOutput("manhattan_plot", height = "500px")),
                 tabPanel("QQ Plot", plotOutput("qq_plot", height = "500px")),
                 tabPanel("BIC Table", DTOutput("bic_table"),style = "overflow-y: auto; height: 500px"),
-                tabPanel("Outlier SNPs", DTOutput('gwas_stats'),style = "overflow-y: auto; height: 500px")
+                tabPanel("QTL - significant markers", DTOutput('gwas_stats'),style = "overflow-y: auto; height: 500px")
 
                 )
               
@@ -592,7 +592,7 @@ ui <- dashboardPage(
               fileInput("diversity_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
               #fileInput("pop_file", "Choose Passport File"),
               #textInput("output_name", "Output File Name"),
-              numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = NULL),
               selectInput("zero_value", "What are the Dosage Calls?", choices = c("Reference Allele Counts", "Alternate Allele Counts"), selected = NULL),
               #numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
               actionButton("diversity_start", "Run Analysis"),
@@ -680,7 +680,7 @@ ui <- dashboardPage(
               fileInput("pred_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
               fileInput("trait_file", "Choose Passport File", accept = ".csv"),
               #textInput("output_name", "Output File Name"),
-              numericInput("pred_ploidy", "Species Ploidy", min = 1, value = 2),
+              numericInput("pred_ploidy", "Species Ploidy", min = 1, value = NULL),
               numericInput("pred_cv", "Iterations", min = 1, max=20, value = 5),
               #numericInput("pred_folds", "Folds", min = 5, max = 5, value = 5),
               #selectInput('pred_trait_info', label = 'Select Trait (eg, Color):', choices = NULL),
@@ -1242,8 +1242,8 @@ server <- function(input, output, session) {
       #Variables
       size_depth <- input$size_depth
       output_name <- input$filter_output_name
-      snp_miss <- input$snp_miss
-      sample_miss <- input$sample_miss
+      snp_miss <- input$snp_miss / 100
+      sample_miss <- input$sample_miss / 100
       ploidy <- as.numeric(input$filter_ploidy)
       maf_filter <- input$filter_maf
 
