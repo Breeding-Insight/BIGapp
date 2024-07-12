@@ -560,14 +560,15 @@ ui <- dashboardPage(
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
                       selectInput(inputId = 'gwas_figures', label = 'Figure', choices = c("BIC Plot", 
-                                                                                         "Manhattan Plot", 
-                                                                                         "QTL Statistics",
+                                                                                         "Manhattan Plot",
                                                                                          "QQ Plot")),
-                      selectInput(inputId = 'image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
-                      sliderInput(inputId = 'image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
-                      downloadButton("download_gwas_table", "Save"),
+                      selectInput(inputId = 'gwas_image_type', label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
+                      sliderInput(inputId = 'gwas_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
+                      sliderInput(inputId = 'gwas_image_width', label = 'Width', value = 9, min = 1, max = 20, step=0.5),
+                      sliderInput(inputId = 'gwas_image_height', label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
+                      fluidRow(
+                      downloadButton("download_gwas_figure", "Save Image"),
+                      downloadButton("download_gwas_file", "Save Files")),
                       circle = FALSE,
                       status = "danger", 
                       icon = icon("floppy-disk"), width = "300px",
@@ -725,7 +726,7 @@ ui <- dashboardPage(
               tabsetPanel(
                 tabPanel("Violin Plot", plotOutput("pred_violin_plot", height = "500px")),
                 tabPanel("Box Plot", plotOutput("pred_box_plot", height = "500px")),
-                tabPanel("All GEBVs Table", DTOutput("pred_all_table"), style = "overflow-y: auto; height: 500px"),
+                #tabPanel("All GEBVs Table", DTOutput("pred_all_table"), style = "overflow-y: auto; height: 500px"),
                 tabPanel("Accuracy Table", DTOutput("pred_acc_table"), style = "overflow-y: auto; height: 500px"),
                 tabPanel("GEBVs Table", DTOutput("pred_gebvs_table"),style = "overflow-y: auto; height: 500px")
 
@@ -744,18 +745,18 @@ ui <- dashboardPage(
             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
-                selectInput("pred_trait_select", label = "Trait Selection", choices = c("all","1-dom","2-dom","additive","general","diplo-general","diplo-additive")),
+                selectInput("pred_color_select", label = "Color Selection", choices = c("red","orange","yellow","green","blue","violet", "grey")),
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
-                      selectInput(inputId = 'pred_figures', label = 'Figure', choices = c("Scatter Plot", 
-                                                                                         "Box Plot", 
-                                                                                         "Heatmap Plot",
-                                                                                         "Blank")),
-                      selectInput(inputId = 'pred_image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                      selectInput(inputId = 'pred_figures', label = 'Figure', choices = c("Violin Plot", 
+                                                                                         "Box Plot")),
+                      selectInput(inputId = 'pred_image_type', label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'pred_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
-                      sliderInput(inputId = 'pred_image_width', label = 'Width', value = 3, min = 1, max = 10, step=0.5),
-                      sliderInput(inputId = 'pred_image_height', label = 'Height', value = 3, min = 1, max = 10, step = 0.5),
-                      downloadButton("download_pred_table", "Save"),
+                      sliderInput(inputId = 'pred_image_width', label = 'Width', value = 10, min = 1, max = 20, step=0.5),
+                      sliderInput(inputId = 'pred_image_height', label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
+                      fluidRow(
+                      downloadButton("download_pred_figure", "Save Image"),
+                      downloadButton("download_pred_file", "Save Files")),
                       circle = FALSE,
                       status = "danger", 
                       icon = icon("floppy-disk"), width = "300px",
@@ -2121,8 +2122,11 @@ server <- function(input, output, session) {
 
   ##GWAS items
   gwas_vars <- reactiveValues(
-    gwas_df = NULL
-
+    gwas_df = NULL,
+    manhattan_plots = NULL,
+    qq_plots = NULL,
+    bic_df = NULL,
+    BIC_ggplot = NULL
     )
 
   output$qtls_detected <- renderValueBox({
@@ -2325,8 +2329,7 @@ server <- function(input, output, session) {
       #setwd("~/Desktop/Alfalfa_GWAS/GWAS by year/ModelSel") #change directory in your case
       #pdf(paste(colnames(GE)[i],"_model_selection_BIC.pdf",sep=""),height=4,width=7)
       
-      output$bic_plot <- renderPlot({
-        p1<-ggplot(plotBICs_kinship, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) + 
+      p1<-ggplot(plotBICs_kinship, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) + 
           geom_line(color="grey")+
           geom_point(shape=21, color="black", fill="#d95f0e", size=3)+
           #geom_point(aes(shape=ISTL1_intro,size=2))+
@@ -2334,11 +2337,19 @@ server <- function(input, output, session) {
                 panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                 panel.background = element_blank(), axis.line = element_line(colour = "black"))+
           labs(x = "Number of PCs",y="BIC")
-        print(p1)
 
+      #Save BIC plot
+      gwas_vars$BIC_ggplot <- p1
+
+      #Display BIC figure
+      output$bic_plot <- renderPlot({
+        print(p1)
       })
       #dev.off()
       
+      #Save BIC plot info
+      gwas_vars$bic_df <- plotBICs_kinship
+
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 40, title = "BIC Complete: Now Performing GWAS")
 
@@ -2376,6 +2387,9 @@ server <- function(input, output, session) {
       #knitr::kable(qtl)
       qtl_d <- data.frame(qtl)
       
+      #Save QTL info
+      gwas_vars$gwas_df <- qtl_d
+
       output$gwas_stats <-  renderDT({qtl_d}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
       #write.csv(qtl_d,file = paste("GWAS_by_year_SNP_",colnames(data@pheno[i]),"_SNP",".csv",sep=""))#change directory in your case
@@ -2397,6 +2411,9 @@ server <- function(input, output, session) {
       
       source("FUN/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
 
+      #Save qq_plot info
+      gwas_vars$qq_plots <- data_qq
+
       output$qq_plot <- renderPlot({
         CMplot_shiny(data_qq,plot.type="q",col=c(1:8),
                  ylab.pos=2,
@@ -2405,8 +2422,8 @@ server <- function(input, output, session) {
                  file.name=colnames(data@pheno[i]),
                  conf.int=FALSE,
                  box=F,multraits=TRUE,file.output=FALSE)
-
       })
+
       #plot for each model per trait
       for (j in 1:6) {
         print(j)
@@ -2420,6 +2437,9 @@ server <- function(input, output, session) {
         #print(p2)
         #dev.off()         
       }
+
+      #Save manhattan plots
+      gwas_vars$manhattan_plots <- manhattan_plot_list
   
     }
 
@@ -2787,14 +2807,24 @@ server <- function(input, output, session) {
     violin_plot = NULL,
     comb_output = NULL,
     avg_GEBVs = NULL,
-    all_GEBVs = NULL
+    all_GEBVs = NULL,
+    colors = NULL
     )
+
+  observe({
+    # Update colors based on input
+    pred_outputs$colors <- switch(input$pred_color_select,
+                                  "red" = "#F8766D",
+                                  "blue" = "#00BFC4",
+                                  "green" = "#00BA38",
+                                  input$pred_color_select)
+  })
 
   observeEvent(input$prediction_start, {
     #req(pred_inputs$pheno_input, pred_inputs$geno_input)
 
     #Status
-    updateProgressBar(session = session, id = "pb_prediction", value = 5, status = "info", title = "Checking input files")
+    updateProgressBar(session = session, id = "pb_prediction", value = 5, title = "Checking input files")
 
     #Variables
     ploidy <- as.numeric(input$pred_ploidy)
@@ -3046,7 +3076,17 @@ server <- function(input, output, session) {
   fixed_traits <- input$pred_fixed_info
   cores <- input$pred_cores
 
-  print(fixed_traits)
+  #Assign colors
+  if (input$pred_color_select == "red"){
+    pred_outputs$colors <- "#F8766D"
+  } else if (input$pred_color_select == "blue") {
+    pred_outputs$colors <- "#00BFC4"
+  } else if (input$pred_color_select == "green") {
+    pred_outputs$colors <- "#00BA38"
+  } else{
+    pred_outputs$colors <- input$pred_color_select
+  }
+
   ##Need to add ability for the use of parallelism for the for cross-validation
   ##Example at this tutorial also: https://www.youtube.com/watch?v=ARWjdQU6ays
 
@@ -3128,7 +3168,7 @@ server <- function(input, output, session) {
     GEBVs_cycle <-list()
 
     #Status
-    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), status = "info", title = paste0("Performing iteration:", r, "of", cycles))
+    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
 
     for (fold in 1:Folds) {
 
@@ -3241,7 +3281,6 @@ server <- function(input, output, session) {
 
   #Save to reactive value
   pred_outputs$corr_output <- results$PredictionAccuracy
-  pred_outputs$comb_output <- results$CombinedResults
   pred_outputs$all_GEBVs <- results$GEBVs
 
   #TESTING!!!
@@ -3258,14 +3297,24 @@ server <- function(input, output, session) {
 
   pred_outputs$avg_GEBVs <- average_gebvs_df
   #write.csv(average_gebvs_df, "GEBVs_averaged_test.csv")
+
+  #Get average accuracy and h2 for each iter accross the 5 folds
+
+  columns <- setdiff(colnames(results$CombinedResults), c("Iter","Fold"))
+  average_accuracy_df <- results$CombinedResults %>%
+    group_by(Iter) %>%
+    summarize(across(all_of(columns), mean, na.rm = TRUE))
+  
+
+  pred_outputs$comb_output <- average_accuracy_df
     
   #Status
-  updateProgressBar(session = session, id = "pb_prediction", value = 90, status = "info", title = "Generating Results")
+  updateProgressBar(session = session, id = "pb_prediction", value = 90, title = "Generating Results")
 
   ##Figures and Tables
 
   #Status
-  updateProgressBar(session = session, id = "pb_prediction", value = 100, status = "success", title = "Finished")
+  updateProgressBar(session = session, id = "pb_prediction", value = 100, title = "Finished!")
 
   #End the event
   continue_prediction(NULL)
@@ -3328,13 +3377,14 @@ server <- function(input, output, session) {
   #Output the genomic prediction correlation box plots
   output$pred_box_plot <- renderPlot({
     req(pred_outputs$box_plot)
-    pred_outputs$box_plot
+    pred_outputs$box_plot  + scale_fill_manual(values = pred_outputs$colors)
     })
 
   #Output the genomic prediction correlation box plots
   output$pred_violin_plot <- renderPlot({
     req(pred_outputs$violin_plot)
-    pred_outputs$violin_plot
+    #pred_outputs$violin_plot
+    pred_outputs$violin_plot + scale_fill_manual(values = pred_outputs$colors)
     })
 
   #Output the prediction tables
@@ -3599,7 +3649,172 @@ server <- function(input, output, session) {
       # Optionally clean up
       file.remove(temp_files)
     }
-  ) 
+  )
+
+  #Download files for GWAS
+  output$download_gwas_file <- downloadHandler(
+    filename = function() {
+      paste0("GWAS-results-", Sys.Date(), ".zip")
+    },
+    content = function(file) {
+      # Temporary files list
+      temp_dir <- tempdir()
+      temp_files <- c()
+
+      if (!is.null(gwas_vars$gwas_df)) {
+        # Create a temporary file for assignments
+        gwas_file <- file.path(temp_dir, paste0("QTL-statistics-", Sys.Date(), ".csv"))
+        write.csv(gwas_vars$gwas_df, gwas_file, row.names = FALSE)
+        temp_files <- c(temp_files, gwas_file)
+      }
+    
+      if (!is.null(gwas_vars$bic_df)) {
+        # Create a temporary file for BIC data frame
+        bic_file <- file.path(temp_dir, paste0("GWAS-BIC-statistics-", Sys.Date(), ".csv"))
+        write.csv(gwas_vars$bic_df, bic_file, row.names = FALSE)
+        temp_files <- c(temp_files, bic_file)
+      }
+
+      # Zip files only if there's something to zip
+      if (length(temp_files) > 0) {
+        zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
+      }
+
+      # Optionally clean up
+      file.remove(temp_files)
+    }
+  )
+
+  #Download Figures for GWAS Tab (Need to convert figures to ggplot)
+  output$download_gwas_figure <- downloadHandler(
+
+    filename = function() {
+      if (input$gwas_image_type == "jpeg") {
+        paste("GWAS-", Sys.Date(), ".jpg", sep="")
+      } else if (input$gwas_image_type == "png") {
+        paste("GWAS-", Sys.Date(), ".png", sep="")
+      } else {
+        paste("GWAS-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$gwas_figures)
+      
+      if (input$gwas_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
+      } else if (input$gwas_image_type == "png") {
+        png(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      if (input$gwas_figures == "BIC Plot") {
+          req(gwas_vars$BIC_ggplot)
+          print(gwas_vars$BIC_ggplot)
+      
+      } else if (input$gwas_figures == "Manhattan Plot") {
+          req(gwas_vars$manhattan_plots, input$model_select)
+          #Plot
+          print(gwas_vars$manhattan_plots[[input$model_select]])
+
+      } else if (input$gwas_figures == "QQ Plot") {
+        req(gwas_vars$qq_plots)
+
+        source("FUN/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
+
+        #Plot
+        CMplot_shiny(gwas_vars$qq_plots,plot.type="q",col=c(1:8),
+                 ylab.pos=2,
+                 #threshold= 10^(-4.54042),
+                 #signal.cex=1.2,signal.col="red",signal.pch=c(1:8),
+                 #file.name=colnames(data@pheno[i]),
+                 conf.int=FALSE,
+                 box=F,multraits=TRUE,file.output=FALSE)
+
+      }
+
+      dev.off()
+    }
+
+  )
+
+  #Download files for GP
+  output$download_pred_file <- downloadHandler(
+    filename = function() {
+      paste0("GS-results-", Sys.Date(), ".zip")
+    },
+    content = function(file) {
+      # Temporary files list
+      temp_dir <- tempdir()
+      temp_files <- c()
+
+      if (!is.null(pred_outputs$avg_GEBVs)) {
+        # Create a temporary file for assignments
+        gebv_file <- file.path(temp_dir, paste0("GEBVs-", Sys.Date(), ".csv"))
+        write.csv(pred_outputs$avg_GEBVs, gebv_file, row.names = FALSE)
+        temp_files <- c(temp_files, gebv_file)
+      }
+    
+      if (!is.null(pred_outputs$comb_output)) {
+        # Create a temporary file for BIC data frame
+        acc_file <- file.path(temp_dir, paste0("GS-accuracy-statistics-", Sys.Date(), ".csv"))
+        write.csv(pred_outputs$comb_output, acc_file, row.names = FALSE)
+        temp_files <- c(temp_files, acc_file)
+      }
+
+      # Zip files only if there's something to zip
+      if (length(temp_files) > 0) {
+        zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
+      }
+
+      # Optionally clean up
+      file.remove(temp_files)
+    }
+  )
+
+  #Download GP Figures
+  output$download_pred_figure <- downloadHandler(
+
+    filename = function() {
+      if (input$gwas_image_type == "jpeg") {
+        paste("GS-", Sys.Date(), ".jpg", sep="")
+      } else if (input$gwas_image_type == "png") {
+        paste("GS-", Sys.Date(), ".png", sep="")
+      } else {
+        paste("GS-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$pred_figures)
+      
+      if (input$pred_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+      } else if (input$pred_image_type == "png") {
+        png(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      if (input$pred_figures == "Violin Plot") {
+          req(pred_outputs$violin_plot)
+          
+          print(pred_outputs$violin_plot + scale_fill_manual(values = pred_outputs$colors))
+      
+      } else if (input$pred_figures == "Box Plot") {
+          req(pred_outputs$box_plot)
+          #Plot
+          print(pred_outputs$box_plot  + scale_fill_manual(values = pred_outputs$colors))
+
+      }
+
+      dev.off()
+    }
+
+  )
 
   
 
