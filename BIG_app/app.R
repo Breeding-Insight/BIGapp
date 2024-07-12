@@ -204,7 +204,7 @@ ui <- dashboardPage(
               #checkboxInput("off-targets","Include off-target loci?"),
               #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("output_name", "Output File Name"),
-              selectInput("markers", "Select Markers", choices = c("All Loci (not supported)", "Target Loci Only"), selected = "Target Loci Only"),
+              #selectInput("markers", "Select Markers", choices = c("All Loci (not supported)", "Target Loci Only"), selected = "Target Loci Only"),
               numericInput("ploidy", "Species Ploidy", min = 1, value = NULL),
               selectInput("updog_model", "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
               numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
