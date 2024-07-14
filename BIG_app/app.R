@@ -5,7 +5,8 @@ required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate"
                        "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
                        "dichromat", "bs4Dash", "shinyWidgets","data.table",
                        "matrixcalc","Matrix", "shinyalert","rrBLUP", "tidyverse",
-                       "foreach", "doParallel","VariantAnnotation", "vcfR")
+                       "foreach", "doParallel","VariantAnnotation", "vcfR", "shinycssloaders",
+                       "shinydisconnect")
 
 required_bio_packages <- c("SNPRelate","VariantAnnotation")
 
@@ -93,6 +94,7 @@ ui <- dashboardPage(
     )
   ),
   dashboardBody(
+    disconnectMessage(), #Adds generic error message for any error if not already accounted for
     tabItems(
       tabItem(
         tabName = "welcome",
@@ -367,9 +369,9 @@ ui <- dashboardPage(
             box(
                 title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                 tabsetPanel(
-                  tabPanel("3D-Plot",plotlyOutput("pca_plot", height = '460px')),
-                  tabPanel("2D-Plot", plotOutput("pca_plot_ggplot", height = '460px')),
-                  tabPanel("Scree Plot", plotOutput("scree_plot", height = '460px'))) # Placeholder for plot outputs
+                  tabPanel("3D-Plot",shinycssloaders::withSpinner(plotlyOutput("pca_plot", height = '460px'))),
+                  tabPanel("2D-Plot", shinycssloaders::withSpinner(plotOutput("pca_plot_ggplot", height = '460px'))),
+                  tabPanel("Scree Plot", shinycssloaders::withSpinner(plotOutput("scree_plot", height = '460px')))) # Placeholder for plot outputs
               )
 
 
@@ -479,8 +481,8 @@ ui <- dashboardPage(
 
             box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                 tabsetPanel(
-                  tabPanel("BIC Plot",plotOutput("BIC_plot", height = '460px')),
-                  tabPanel("DAPC Plot", plotOutput("DAPC_plot", height = '460px')),
+                  tabPanel("BIC Plot",shinycssloaders::withSpinner(plotOutput("BIC_plot", height = '460px'))),
+                  tabPanel("DAPC Plot", shinycssloaders::withSpinner(plotOutput("DAPC_plot", height = '460px'))),
                   tabPanel("STRUCTURE Plot", "Not yet supported"))
                   #tabPanel("STRUCTURE Plot", plotOutput("STRUCTURE_plot", height = '460px')))
               )
@@ -538,11 +540,11 @@ ui <- dashboardPage(
             box(
               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
               tabsetPanel(
-                tabPanel("BIC Plot", plotOutput("bic_plot", height = "500px")),
-                tabPanel("Manhattan Plot", plotOutput("manhattan_plot", height = "500px")),
-                tabPanel("QQ Plot", plotOutput("qq_plot", height = "500px")),
-                tabPanel("BIC Table", DTOutput("bic_table"),style = "overflow-y: auto; height: 500px"),
-                tabPanel("QTL - significant markers", DTOutput('gwas_stats'),style = "overflow-y: auto; height: 500px")
+                tabPanel("BIC Plot", shinycssloaders::withSpinner(plotOutput("bic_plot", height = "500px"))),
+                tabPanel("Manhattan Plot", shinycssloaders::withSpinner(plotOutput("manhattan_plot", height = "500px"))),
+                tabPanel("QQ Plot", shinycssloaders::withSpinner(plotOutput("qq_plot", height = "500px"))),
+                tabPanel("BIC Table", shinycssloaders::withSpinner(DTOutput("bic_table")),style = "overflow-y: auto; height: 500px"),
+                tabPanel("QTL - significant markers", shinycssloaders::withSpinner(DTOutput('gwas_stats')),style = "overflow-y: auto; height: 500px")
 
                 )
               
@@ -645,8 +647,8 @@ ui <- dashboardPage(
                 tabPanel("AF Plot", plotOutput('af_plot'),style = "overflow-y: auto; height: 500px"),
                 tabPanel("MAF Plot", plotOutput('maf_plot'),style = "overflow-y: auto; height: 500px"),
                 tabPanel("OHet Plot", plotOutput('het_plot'),style = "overflow-y: auto; height: 500px"),
-                tabPanel("Sample Table",DTOutput('sample_table'),style = "overflow-y: auto; height: 470px"),
-                tabPanel("SNP Table",DTOutput('snp_table'),style = "overflow-y: auto; height: 470px")
+                tabPanel("Sample Table", DTOutput('sample_table'),style = "overflow-y: auto; height: 470px"),
+                tabPanel("SNP Table", DTOutput('snp_table'),style = "overflow-y: auto; height: 470px")
 
 
                 )
@@ -837,6 +839,14 @@ server <- function(input, output, session) {
   figures <- reactiveValues()
   tables <- reactiveValues()
 
+  #Call some plots to NULL so that the spinners do not show before analysis
+    output$bic_plot <- DT::renderDT(NULL)
+    output$manhattan_plot <- DT::renderDT(NULL)
+    output$qq_plot <- DT::renderDT(NULL)
+    output$bic_table <- DT::renderDT(NULL)
+    output$gwas_stats <- DT::renderDT(NULL)
+
+
   output$resultText <- renderText({
     # Example text output, adapt based on your script's processing
     paste("Processing file:", input$madc_file$name, "\n",
@@ -849,7 +859,7 @@ server <- function(input, output, session) {
   options(shiny.maxRequestSize = 10000 * 1024^2)  # Set maximum upload size to 10GB
 
   #shiny.maxRequestSize = 10000 * 1024^2; # 10 GB <- This is for a future limit when using BI's server remotely
-  
+
   ####Command to get information from SLURM as dataframe
   #add button to ui for user to cancel their scheduled jobs...
   get_slurm_jobs <- reactive({
@@ -926,7 +936,7 @@ server <- function(input, output, session) {
     content = function(file) {
       # Ensure the files are uploaded
       req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
-      
+
       # Get the uploaded file paths
       dosage_file <- input$report_file$datapath
       counts_file <- input$counts_file$datapath
@@ -1211,6 +1221,8 @@ server <- function(input, output, session) {
       color = "info"
     )
   })
+
+
   #Updog filtering
   output$start_updog_filter <- downloadHandler(
     filename = function() {
@@ -1220,6 +1232,7 @@ server <- function(input, output, session) {
       # Ensure the files are uploaded
       req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
       
+
       if (input$use_updog) {
         # Use Updog filtering parameters
         OD_filter <- as.numeric(input$OD_filter)
@@ -1736,8 +1749,8 @@ server <- function(input, output, session) {
       # cat plotting logic
       cat_colors <- c(input$cat_color, "grey")
       plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                           y = pca_data$pc_df_pop[[input$pc_Y]], 
-                                           color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
+                                             y = pca_data$pc_df_pop[[input$pc_Y]], 
+                                             color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
         geom_point(size = 2, alpha = 0.8) +
         scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
