@@ -1569,6 +1569,9 @@ server <- function(input, output, session) {
     PCX <- input$pc_X
     PCY <- input$pc_Y
 
+    #Notification
+    showNotification("PCA analysis in progress...")
+
     #Import genotype info if genotype matrix format
     if (grepl("\\.csv$", geno)) {
       genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
