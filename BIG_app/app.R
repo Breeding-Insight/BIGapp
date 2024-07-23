@@ -1,6 +1,6 @@
 # Install and load required packages
 required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate",
-                       "adegenet", "future", "scales", "AGHmatrix", "stats", 
+                       "adegenet", "future", "scales", "AGHmatrix", "stats",
                        "factoextra", "readxl", "ggrepel", "dplyr", "shiny",
                        "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
                        "dichromat", "bs4Dash", "shinyWidgets","data.table",
@@ -83,12 +83,12 @@ ui <- dashboardPage(
       #menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
       menuItem(
         span("Genomic Prediction", bs4Badge("beta", position = "right", color = "success")),
-        tabName = "prediction", 
+        tabName = "prediction",
         icon = icon("right-left")),
       menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
       menuItem(
         span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
-        tabName = "slurm", 
+        tabName = "slurm",
         icon = icon("clock")),
       menuItem("Help", tabName = "help", icon = icon("circle-question"))
     )
@@ -146,7 +146,7 @@ ui <- dashboardPage(
                     a VCF file from Updog dosage calling are included. If a VCF file does not contain these values, it will only be
                     filtered for read depth, missing data, and maf.",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 ))
@@ -174,8 +174,8 @@ ui <- dashboardPage(
                 sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
-                      selectInput(inputId = 'filter_hist', label = 'Figure', choices = c("Bias Histogram", 
-                                                                                         "OD Histogram", 
+                      selectInput(inputId = 'filter_hist', label = 'Figure', choices = c("Bias Histogram",
+                                                                                         "OD Histogram",
                                                                                          "Prop_mis Histogram",
                                                                                          "SNP_mis",
                                                                                          "Sample_mis")),
@@ -185,14 +185,14 @@ ui <- dashboardPage(
                       sliderInput(inputId = 'image_height', label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                       downloadButton("download_filter_hist", "Save"),
                       circle = FALSE,
-                      status = "danger", 
+                      status = "danger",
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                       ))
             ),
             box(title = "Status", width =12, collapsible = TRUE, status = "info",
                 progressBar(id = "pb_filter", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
-            )          
+            )
           )
         )
       ),
@@ -238,7 +238,7 @@ ui <- dashboardPage(
                     individuals. In practice, it seems to be much less robust to violations in modeling assumptions.
                     `uniform` A discrete uniform distribution. This should never be used in practice.",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 ))
@@ -246,16 +246,16 @@ ui <- dashboardPage(
               valueBoxOutput("MADCsnps")
               #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
           ),
-         
+
          fluidRow(
               box(title = "Status", width = 3, collapsible = TRUE, status = "info",
                 progressBar(id = "pb_madc", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
               )
-         
-         ) 
-        
-        )  
-      
+
+         )
+
+        )
+
       ),
       tabItem(
         tabName = "dosage2vcf",
@@ -276,7 +276,7 @@ ui <- dashboardPage(
                     "Converting DArT report files to VCF format. The VCF file will automatically
                     download when complete.",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 ))
@@ -284,16 +284,16 @@ ui <- dashboardPage(
               valueBoxOutput("ReportSnps")
               #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
           ),
-         
+
          fluidRow(
               box(title = "Status", width = 3, collapsible = TRUE, status = "info",
                 progressBar(id = "dosage2vcf_pb", value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
               )
-         
-         ) 
-        
-        )  
-      
+
+         )
+
+        )
+
       ),
       tabItem(
         tabName = "pca",
@@ -313,7 +313,7 @@ ui <- dashboardPage(
                     tags$h3("PCA Inputs"),
                     "PCA Input file and analysis info",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 )),
@@ -354,7 +354,7 @@ ui <- dashboardPage(
                       sliderInput(inputId = 'pca_image_height', label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
                       downloadButton("download_pca", "Save"),
                       circle = FALSE,
-                      status = "danger", 
+                      status = "danger",
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                       ))
@@ -402,7 +402,7 @@ ui <- dashboardPage(
                     tags$h3("DAPC Inputs"),
                     "DAPC Input file and analysis info. The DAPC analysis is broken down into two steps. The first step (Step 1), uses Kmeans clustering to estimate the most likely number of clusters within the dataset. This is visualized in the BIC plot and is typically the minimum BIC value. Step 2 is the DAPC analysis where the most likely value for K (number of clusters) is input and the cluster memberships are determined in the DAPC results",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                     )),
@@ -422,7 +422,7 @@ ui <- dashboardPage(
                     tags$h3("DAPC Inputs"),
                     "DAPC Input file and analysis info",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                     )),
@@ -460,7 +460,7 @@ ui <- dashboardPage(
                       downloadButton("download_dapc_image", "Save Image"),
                       downloadButton("download_dapc_file", "Save Files")),
                       circle = FALSE,
-                      status = "danger", 
+                      status = "danger",
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                     ))
@@ -527,7 +527,7 @@ ui <- dashboardPage(
                     #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                     "Add description of each filter",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 ))#,
@@ -547,11 +547,11 @@ ui <- dashboardPage(
                 tabPanel("QTL - significant markers", shinycssloaders::withSpinner(DTOutput('gwas_stats')),style = "overflow-y: auto; height: 500px")
 
                 )
-              
+
               )
 
             ),
-          
+
           column(width = 3,
             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             valueBoxOutput("qtls_detected", width = NULL),
@@ -563,7 +563,7 @@ ui <- dashboardPage(
                 selectInput("model_select", label = "Model Selection", choices = c("all","1-dom","2-dom","additive","general","diplo-general","diplo-additive")),
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
-                      selectInput(inputId = 'gwas_figures', label = 'Figure', choices = c("BIC Plot", 
+                      selectInput(inputId = 'gwas_figures', label = 'Figure', choices = c("BIC Plot",
                                                                                          "Manhattan Plot",
                                                                                          "QQ Plot")),
                       selectInput(inputId = 'gwas_image_type', label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
@@ -574,16 +574,16 @@ ui <- dashboardPage(
                       downloadButton("download_gwas_figure", "Save Image"),
                       downloadButton("download_gwas_file", "Save Files")),
                       circle = FALSE,
-                      status = "danger", 
+                      status = "danger",
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                       ))
-            )          
-          
+            )
+
           )
-          
+
         )
-      
+
       ),
       tabItem(
         tabName = "diversity",
@@ -609,7 +609,7 @@ ui <- dashboardPage(
                     #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                     "Add description of each filter",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 ))#,
@@ -621,8 +621,8 @@ ui <- dashboardPage(
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
                       selectInput(inputId = 'div_figure', label = 'Figure', choices = c("Dosage Plot",
-                                                                                        "AF Histogram", 
-                                                                                         "MAF Histogram", 
+                                                                                        "AF Histogram",
+                                                                                         "MAF Histogram",
                                                                                          "OHet Histogram")),
                       selectInput(inputId = 'div_image_type', label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'div_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
@@ -632,7 +632,7 @@ ui <- dashboardPage(
                       downloadButton("download_div_figure", "Save Image"),
                       downloadButton("download_div_file", "Save Files")),
                       circle = FALSE,
-                      status = "danger", 
+                      status = "danger",
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                       ))
@@ -652,7 +652,7 @@ ui <- dashboardPage(
 
 
                 )
-              
+
               )
 
             ),
@@ -667,11 +667,11 @@ ui <- dashboardPage(
             #valueBox(0,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
             #valueBox(0,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
             #valueBox(0,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
-          
+
           )
-          
+
           )
-      
+
       ),
       tabItem(
         tabName = "prediction",
@@ -715,12 +715,12 @@ ui <- dashboardPage(
                     #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                     "GP uses the rrBLUP package: It can impute missing data, maybe adapt to different ploidy, perform 5-fold cross validations with different number of itereations, define training size, run multiple traits, and accept multiple fixed effects.",
                     circle = FALSE,
-                    status = "warning", 
+                    status = "warning",
                     icon = icon("info"), width = "300px",
                     tooltip = tooltipOptions(title = "Click to see info!")
                 ))#,
               #style = "overflow-y: auto; height: 550px"
- 
+
               )
             ),
 
@@ -735,11 +735,11 @@ ui <- dashboardPage(
                 tabPanel("GEBVs Table", DTOutput("pred_gebvs_table"),style = "overflow-y: auto; height: 500px")
 
                 )
-              
+
               )
 
             ),
-          
+
           column(width = 3,
             valueBox(0,"Samples in Genotype File", icon = icon("dna"), width = NULL, color = "info"),
             valueBox(0,"Samples with Phenotype Information", icon = icon("dna"), width = NULL, color = "info"),
@@ -752,7 +752,7 @@ ui <- dashboardPage(
                 selectInput("pred_color_select", label = "Color Selection", choices = c("red","orange","yellow","green","blue","violet", "grey", "white")),
                 div(style="display:inline-block; float:left",dropdownButton(
                       tags$h3("Save Image"),
-                      selectInput(inputId = 'pred_figures', label = 'Figure', choices = c("Violin Plot", 
+                      selectInput(inputId = 'pred_figures', label = 'Figure', choices = c("Violin Plot",
                                                                                          "Box Plot")),
                       selectInput(inputId = 'pred_image_type', label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                       sliderInput(inputId = 'pred_image_res', label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
@@ -762,16 +762,16 @@ ui <- dashboardPage(
                       downloadButton("download_pred_figure", "Save Image"),
                       downloadButton("download_pred_file", "Save Files")),
                       circle = FALSE,
-                      status = "danger", 
+                      status = "danger",
                       icon = icon("floppy-disk"), width = "300px",
                       tooltip = tooltipOptions(title = "Click to see inputs!")
                       ))
-            )          
-          
+            )
+
           )
-          
+
         )
-      
+
       ),
       tabItem(
         tabName = "slurm",
@@ -780,7 +780,7 @@ ui <- dashboardPage(
             box(title="Submitted Jobs", width = 12, collapsible = FALSE, status = "info", solidHeader = TRUE,
               DTOutput("job_table"),style = "overflow-y: auto; height: 500px",
                   div(style = "position: absolute; bottom: 20px; width: 100%;",
-                      actionButton("run", "Cancel Submitted Jobs", 
+                      actionButton("run", "Cancel Submitted Jobs",
                          style = "color: #fff; background-color: #ff0000; border-color: #ff0000;"))
             )
           )
@@ -834,7 +834,7 @@ ui <- dashboardPage(
 
 # Server logic
 server <- function(input, output, session) {
-  
+
   # Define reactive values to store generated figures and tables
   figures <- reactiveValues()
   tables <- reactiveValues()
@@ -865,20 +865,20 @@ server <- function(input, output, session) {
   get_slurm_jobs <- reactive({
     # Run the SLURM squeue command to get job information
     slurm_output <- system("squeue --Format=UserName,JobName,TimeUsed --noheader", intern = TRUE)
-    
+
     # Process the output
     job_list <- strsplit(slurm_output, "\\s+")
-    
+
     # Create a data frame
     job_df <- do.call(rbind, job_list)
     colnames(job_df) <- c("userID", "JobType", "Duration")
-    
+
     # Convert to data frame
     job_df <- as.data.frame(job_df, stringsAsFactors = FALSE)
-    
+
     return(job_df)
   })
-  
+
   #Display job queue to user
   output$job_table <- renderDT({
     #job_df <- get_slurm_jobs() #Use this when I get the above code working on the server
@@ -886,7 +886,7 @@ server <- function(input, output, session) {
                          JobID = c("000303","000312","000335","000342", "000348"),
                          JobType = c("Updog Dosage Calling","Updog Dosage Calling", "Updog Dosage Calling", "GWAS", "GWAS"),
                          Duration = c("Completed: Email notification sent","06:11:43", "03:31:01", "00:46:00", "Scheduled"))
-    
+
     # Render the data table
     datatable(job_df, options = list(pageLength = 10))
   })
@@ -898,7 +898,7 @@ server <- function(input, output, session) {
     pca_scree = NULL
 
     )
-  
+
   #PCA reactive values
   pca_data <- reactiveValues(
     pc_df_pop = NULL,
@@ -941,10 +941,10 @@ server <- function(input, output, session) {
       dosage_file <- input$report_file$datapath
       counts_file <- input$counts_file$datapath
       ploidy <- input$dosage2vcf_ploidy
-      
+
       # Use a temporary file path without appending .vcf
       temp_base <- tempfile()
-      
+
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Converting DArT files to VCF")
 
@@ -956,31 +956,31 @@ server <- function(input, output, session) {
         output.file = temp_base,
         ploidy = as.numeric(ploidy)
       )
-      
+
       # The output file should be temp_base.vcf
       output_name <- paste0(temp_base, ".vcf")
-      
+
       # Check if the VCF file was created
       if (file.exists(output_name)) {
         cat("VCF file created successfully.\n")
-        
+
         # Compress the VCF file using gzip
         gzip_file <- paste0(output_name, ".gz")
         gz <- gzfile(gzip_file, "w")
         writeLines(readLines(output_name), gz)
         close(gz)
-        
+
         # Check if the gzip file was created
         if (file.exists(gzip_file)) {
           cat("Gzip file created successfully.\n")
-          
+
           # Move the compressed file to the path specified by 'file'
           file.copy(gzip_file, file)
-          
+
           # Delete the temporary files
           unlink(gzip_file)
           unlink(output_name)
-          
+
           cat("Temporary files deleted successfully.\n")
         } else {
           stop("Error: Failed to create the gzip file.")
@@ -1004,7 +1004,7 @@ server <- function(input, output, session) {
     cores <- input$cores
     model_select <- input$updog_model
     marker_set <- (input$markers == "Target Loci Only")
-    
+
 
     #Status
     updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
@@ -1014,38 +1014,38 @@ server <- function(input, output, session) {
     get_counts <- function(madc_file, output_name) {
       # This function takes the MADC file as input and generates a Ref and Alt counts dataframe as output
       # Note: This assumes that the first 7 rows are not useful here like in the Strawberry DSt23-8501_MADC file
-      
+
       # Read the madc file
       madc_df <- read.csv(madc_file, sep = ',', skip = 7, check.names = FALSE)
-      
+
       # Retain only the Ref and Alt haplotypes
       filtered_df <- madc_df[!grepl("\\|AltMatch|\\|RefMatch", madc_df$AlleleID), ]
 
       #Remove extra text after Ref and Alt (_001 or _002)
       filtered_df$AlleleID <- sub("\\|Ref.*", "|Ref", filtered_df$AlleleID)
       filtered_df$AlleleID <- sub("\\|Alt.*", "|Alt", filtered_df$AlleleID)
-      
+
       # Save the csv file for review and use in R
       #df_name <- paste0(output_name,'_MADC_alt_ref_counts.csv')
-      
+
       #write.csv(filtered_df, file = df_name, row.names = FALSE)
       return(filtered_df)
     }
-    
-    
+
+
     #Get the alt, ref, and size matrix for use in Updog
     #Add functionality here to stop the script if indentical() is False
     get_matrices <- function(result_df) {
       #This function takes the dataframe of ref and alt counts for each sample, and converts them to ref, alt, and size(total count) matrices for Updog
-      
+
       update_df <- result_df
-      
+
       # Filter rows where 'AlleleID' ends with 'Ref'
       ref_df <- subset(update_df, grepl("Ref$", AlleleID))
-      
+
       # Filter rows where 'AlleleID' ends with 'Alt'
       alt_df <- subset(update_df, grepl("Alt$", AlleleID))
-      
+
       #remove alt or ref rows that do not have a counterpart in the other dataframe
       if (nrow(ref_df) > nrow(alt_df)) {
         ref_df <- ref_df[ref_df$CloneID %in% alt_df$CloneID,]
@@ -1057,33 +1057,33 @@ server <- function(input, output, session) {
 
       #Ensure that each has the same SNPs and that they are in the same order
       identical(alt_df$CloneID,ref_df$CloneID)
-      
+
       ###Convert the ref and alt counts into matrices with the CloneID as the index
       #Set SNP names as index
       row.names(ref_df) <- ref_df$CloneID
       row.names(alt_df) <- alt_df$CloneID
-      
+
       #Remove unwanted columns and convert to matrix
       #Probably best to just remove the column names that aren't wanted instead of the first 16 columns.
       ref_matrix <- as.matrix(ref_df[, -c(1:16)])
       alt_matrix <- as.matrix(alt_df[, -c(1:16)])
-      
+
       #Make the size matrix by combining the two matrices
       size_matrix <- (ref_matrix + alt_matrix)
-      
+
       #Count the number of cells with 0 count to estimate missing data
       # Count the number of cells with the value 0
       count_zeros <- sum(size_matrix == 0)
-      
+
       # Print the result
       ratio_missing_data <- count_zeros / length(size_matrix)
       cat("Ratio of missing data =", ratio_missing_data, "\n")
-      
+
       # Return the ref and alt matrices as a list
       matrices_list <- list(ref_matrix = ref_matrix, size_matrix = size_matrix)
       return(matrices_list)
     }
-    
+
 
     #Status
     updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
@@ -1098,7 +1098,7 @@ server <- function(input, output, session) {
 
       #Number of SNPs
       snp_number <- (nrow(result_df) / 2)
-    
+
     } else{
 
       #Initialize matrices list
@@ -1117,7 +1117,7 @@ server <- function(input, output, session) {
           return(info_ids)
         }
       info_ids <- extract_info_ids(info[1])
-      
+
       if (("DP" %in% info_ids) && ("RA" %in% info_ids)) {
         #Extract DP and RA and convert to matrices
         matrices$size_matrix <- extract.gt(vcf, element = "DP")
@@ -1136,17 +1136,17 @@ server <- function(input, output, session) {
       }
 
     }
-    
-    #Run Updog 
+
+    #Run Updog
     #I initially used the "norm" model
     #I am also taking the ploidy from the max value in the
-    print('Performing Updog dosage calling') 
-    mout <- multidog(refmat = matrices$ref_matrix, 
-                     sizemat = matrices$size_matrix, 
-                     ploidy = as.numeric(ploidy),  
+    print('Performing Updog dosage calling')
+    mout <- multidog(refmat = matrices$ref_matrix,
+                     sizemat = matrices$size_matrix,
+                     ploidy = as.numeric(ploidy),
                      model = model_select,
                      nc = cores)
-    
+
     #Get genotype matrix of dosage calls
     #genomat <- format_multidog(mout, varname = "geno")
     #Save the matrix as a csv file
@@ -1155,18 +1155,18 @@ server <- function(input, output, session) {
 
     #Filter dosage calls (I think this is the updog recommended)
     #mout_cleaned <- filter_snp(mout, prop_mis < 0.2 & bias > 0.5 & bias < 2 & od > 0.05) #Recommended filtering by updog
-    
+
     #Save the filtered dosage matrix
     #genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
     #head(genomat_cleaned)
-    
+
     #cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_prop_miss_0.2_bias_0.5-2_updog_norm_model_dosage_genotype_matrix.csv')
     #Save the matrix as a csv file
     #write.csv(genomat_cleaned,file= cleaned_name)
 
     #Save rda file for filtering
     #save(mout, result_df, file = paste0(output_name,"_MADC_unfiltered_dose_from_updog.rda"))
-    
+
     #Save Updog output as VCF file
     BIGr::updog2vcf(
       multidog.object = mout,
@@ -1178,23 +1178,23 @@ server <- function(input, output, session) {
     #output$table2 <- renderTable({
     # Generate table
     #  genomat_cleaned
-    #}) 
-    
+    #})
+
     # Display analysis result
     #output$analysis_result <- renderText({
     #  "result" #Can add a variable to print text or figures
     #})
-  
+
   # Update reactive values with generated figures and tables
   #figures$plot1 <- heatmap(G.mat.updog, labCol = NA)# Your plot object
   #tables$table1 <- result_df# Your table object
   #tables$table2 <- genomat_cleaned
-  
+
   #Status
   updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
-  
+
   })
-  
+
   #vcf
   filtering_files <- reactiveValues(
       raw_vcf_df = NULL,
@@ -1231,7 +1231,7 @@ server <- function(input, output, session) {
     content = function(file) {
       # Ensure the files are uploaded
       req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
-      
+
 
       if (input$use_updog) {
         # Use Updog filtering parameters
@@ -1240,7 +1240,7 @@ server <- function(input, output, session) {
         Bias_min <- as.numeric(input$Bias[1])
         Bias_max <- as.numeric(input$Bias[2])
         max_post <- as.numeric(input$maxpostprob_filter)
-      
+
         # Perform filtering with Updog parameters
         # (insert your filtering code here)
       } else {
@@ -1260,7 +1260,7 @@ server <- function(input, output, session) {
       ploidy <- as.numeric(input$filter_ploidy)
       maf_filter <- input$filter_maf
 
-      
+
       temp_file <- tempfile(fileext = ".vcf.gz")
 
       #Status
@@ -1299,14 +1299,14 @@ server <- function(input, output, session) {
       #Add support for genotype matrix filtering?
       #Pb
       updateProgressBar(session = session, id = "pb_filter", value = 50, title = "Calculating Missing Data")
-      
+
       gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
       filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
       filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
       print(dim(filtering_files$sample_miss_df))
       print(filtering_files$sample_miss_df)
       rm(gt_matrix) #Remove gt matrix
-      
+
       #Pb
       updateProgressBar(session = session, id = "pb_filter", value = 80, title = "Exporting Filtered VCF")
 
@@ -1319,10 +1319,10 @@ server <- function(input, output, session) {
       # Check if the VCF file was created
       if (file.exists(temp_file)) {
         cat("VCF file created successfully.\n")
-      
+
         # Move the file to the path specified by 'file'
         file.copy(temp_file, file, overwrite = TRUE)
-      
+
         # Delete the temporary file
         unlink(temp_file)
       } else {
@@ -1370,11 +1370,11 @@ server <- function(input, output, session) {
     split_info_column <- function(info) {
     # Split the INFO column by semicolon
     info_split <- str_split(info, ";")[[1]]
-  
+
     # Create a named list by splitting each element by equals sign
     info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
                          map(info_split, ~ str_split(.x, "=")[[1]][1]))
-  
+
     return(info_list)
     }
 
@@ -1382,10 +1382,10 @@ server <- function(input, output, session) {
     new_df <- data.frame(filtering_files$raw_vcf_df) %>%
       mutate(INFO_list = map(INFO, split_info_column)) %>%
       unnest_wider(INFO_list)
-    
+
     #Save df to reactive value
     filtering_output$df <- new_df
-    
+
 
     ##Make plots
     #Number of SNPs
@@ -1395,7 +1395,7 @@ server <- function(input, output, session) {
 
       #Histogram
       output$bias_hist <- renderPlot({
-        hist(as.numeric(new_df$BIAS), 
+        hist(as.numeric(new_df$BIAS),
           main = "Unfiltered SNP bias histogram",
           xlab = "bias",
           ylab = "SNPs",
@@ -1414,7 +1414,7 @@ server <- function(input, output, session) {
       quantile(as.numeric(new_df$OD), 0.95)
       #Histogram
       output$od_hist <- renderPlot({
-        hist(as.numeric(new_df$OD), 
+        hist(as.numeric(new_df$OD),
           main = "Unfiltered SNP overdispersion parameter histogram",
           xlab = "OD",
           ylab = "SNPs",
@@ -1439,7 +1439,7 @@ server <- function(input, output, session) {
       output$maxpostprob_hist <- renderPlot({
 
         #Histogram
-        hist(as.numeric(new_df$PMC), 
+        hist(as.numeric(new_df$PMC),
             main = "The estimated proportion of individuals misclassified in the SNP from updog",
             xlab = "Proportion of Misclassified Genotypes per SNP",
             ylab = "Number of SNPs",
@@ -1452,7 +1452,7 @@ server <- function(input, output, session) {
         # Add vertical lines
         abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2) 
+        abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2)
 
       })
 
@@ -1460,7 +1460,7 @@ server <- function(input, output, session) {
       output$missing_snp_hist <- renderPlot({
 
         #Histogram
-        hist(as.numeric(filtering_files$snp_miss_df), 
+        hist(as.numeric(filtering_files$snp_miss_df),
             main = "Ratio of Missing Data per SNP After Filtering",
             xlab = "Proportion of Missing Data per SNP",
             ylab = "Number of SNPs",
@@ -1473,14 +1473,14 @@ server <- function(input, output, session) {
         # Add vertical lines
         abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2) 
+        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
 
       })
 
       output$missing_sample_hist <- renderPlot({
 
         #Histogram
-        hist(as.numeric(filtering_files$sample_miss_df), 
+        hist(as.numeric(filtering_files$sample_miss_df),
             main = "Ratio of Missing Data per Sample After Filtering",
             xlab = "Proportion of Missing Data per Sample",
             ylab = "Number of Samples",
@@ -1493,7 +1493,7 @@ server <- function(input, output, session) {
         # Add vertical lines
         abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2) 
+        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
 
       })
 
@@ -1503,7 +1503,7 @@ server <- function(input, output, session) {
       #Histogram
       output$depth_hist <- renderPlot({
 
-        hist(as.numeric(new_df$DP), 
+        hist(as.numeric(new_df$DP),
           main = "Unfiltered SNP Total Read Depth Across All Samples",
           xlab = "Total Read Depth per SNP",
           ylab = "Genomic Sites",
@@ -1520,9 +1520,9 @@ server <- function(input, output, session) {
         #abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
       })
-  
+
   })
-  
+
   #PCA dropdown
 
   data <- reactiveValues(info_df = NULL)
@@ -1547,7 +1547,7 @@ server <- function(input, output, session) {
 
     # Get selected column name
     selected_col <- input$group_info
-  
+
     # Extract unique values from the selected column
     unique_values <- unique(data$info_df[[selected_col]])
 
@@ -1559,7 +1559,7 @@ server <- function(input, output, session) {
   #PCA events
   observeEvent(input$pca_start, {
     req(input$pca_ploidy, input$dosage_file$datapath)
-    
+
     # Get inputs
     geno <- input$dosage_file$datapath
     #pedigree_df <- input$passport_file$datapath
@@ -1605,7 +1605,7 @@ server <- function(input, output, session) {
 
       # Apply the function to the first INFO string
       info_ids <- extract_info_ids(info[1])
-      
+
       #Get the genotype values if the updog dosage calls are present
       if ("UD" %in% info_ids) {
         genomat <- extract.gt(vcf, element = "UD")
@@ -1661,19 +1661,19 @@ server <- function(input, output, session) {
     prin_comp <- prcomp(G.mat.updog, scale = TRUE)
     eig <- factoextra::get_eigenvalue(prin_comp)
     round(sum(eig$variance.percent[1:3]),1)
-    
+
     ###Simple plots
     # Extract the PC scores
     pc_scores <- prin_comp$x
-    
+
     # Create a data frame with PC scores
     pc_df <- data.frame(PC1 = pc_scores[, 1], PC2 = pc_scores[, 2],
                         PC3 = pc_scores[, 3], PC4 = pc_scores[, 4],
                         PC5 = pc_scores[, 5], PC6 = pc_scores[, 6],
                         PC7 = pc_scores[, 7], PC8 = pc_scores[, 8],
                         PC9 = pc_scores[, 9], PC10 = pc_scores[, 10])
-    
-    
+
+
     # Compute the percentage of variance explained for each PC
     variance_explained <- round(100 * prin_comp$sdev^2 / sum(prin_comp$sdev^2), 1)
 
@@ -1684,7 +1684,7 @@ server <- function(input, output, session) {
 
     #Add the information for each sample
     pc_df_pop <- merge(pc_df, info_df, by.x = "row.names", by.y = "row.names", all.x = TRUE)
-    
+
 
     # Ignore color input if none is entered by user
     if (g_info != "") {
@@ -1720,7 +1720,7 @@ server <- function(input, output, session) {
   ##2D PCA plotting
   observe({
     req(pca_data$pc_df_pop, pca_data$variance_explained, input$grey_choice)
-    
+
     # Generate colors
     if (!is.null(pca_data$my_palette)) {
       unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
@@ -1751,8 +1751,8 @@ server <- function(input, output, session) {
     if (input$use_cat) {
       # cat plotting logic
       cat_colors <- c(input$cat_color, "grey")
-      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                             y = pca_data$pc_df_pop[[input$pc_Y]], 
+      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
+                                             y = pca_data$pc_df_pop[[input$pc_Y]],
                                              color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
         geom_point(size = 2, alpha = 0.8) +
         scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) +
@@ -1772,7 +1772,7 @@ server <- function(input, output, session) {
         )
     } else if (!input$use_cat && is.null(my_palette)) {
       # no passport plotting logic
-      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
+      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
                                            y = pca_data$pc_df_pop[[input$pc_Y]])) +
         geom_point(size = 2, alpha = 0.8) +
         guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
@@ -1790,8 +1790,8 @@ server <- function(input, output, session) {
         )
     } else {
       # non-cat plotting logic
-      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]], 
-                                           y = pca_data$pc_df_pop[[input$pc_Y]], 
+      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
+                                           y = pca_data$pc_df_pop[[input$pc_Y]],
                                            color = pca_data$pc_df_pop[[input$group_info]])) +
       geom_point(size = 2, alpha = 0.8) +
       scale_color_manual(values = my_palette) +
@@ -1857,12 +1857,12 @@ server <- function(input, output, session) {
     plot_data <- data.frame(PC = 1:10, Variance_Explained = var_explained[1:10])
 
     # Use ggplot for plotting
-    plot <- ggplot(plot_data, aes(x = PC, y = Variance_Explained)) + 
+    plot <- ggplot(plot_data, aes(x = PC, y = Variance_Explained)) +
       geom_bar(stat = "identity", fill = "lightblue", alpha = 0.9, color = "black") +  # Bars with some transparency
       geom_line(color = "black") +  # Connect points with a line
       geom_point(color = "black") +  # Add points on top of the line for emphasis
       scale_x_continuous(breaks = 1:10, limits = c(0.5, 10.5)) +
-      xlab("Principal Component") + 
+      xlab("Principal Component") +
       ylab("% Variance Explained") +
       ylim(0, 100) +
       theme_bw() +
@@ -1903,7 +1903,7 @@ server <- function(input, output, session) {
     geno <- input$dosage_file$datapath
 
     ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
-    
+
     #Import genotype data
     #genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
     #Import genotype information if in VCF format
@@ -1934,7 +1934,7 @@ server <- function(input, output, session) {
 
     # Apply the function to the first INFO string
     info_ids <- extract_info_ids(info[1])
-      
+
     #Get the genotype values if the updog dosage calls are present
     if ("UD" %in% info_ids) {
       genotypeMatrix <- extract.gt(vcf, element = "UD")
@@ -1949,15 +1949,15 @@ server <- function(input, output, session) {
 
     findK <- function(genotypeMatrix, maxK, ploidy) {
       # Convert the genotype matrix to a genlight object
-      genlight_new <- new("genlight", t(genotypeMatrix), 
+      genlight_new <- new("genlight", t(genotypeMatrix),
                       ind.names = row.names(t(genotypeMatrix)),
                       loc.names = colnames(t(genotypeMatrix)),
                       ploidy = ploidy,
                       NA.char = NA)
-  
+
       #Assign the populations as the sample names since there is no assumed populations
       pop(genlight_new) <- genlight_new@ind.names
-  
+
       #Estimate number of clusters
       #Retain all pca for the find.clusters step. Retain as few as possible while maximizing variance captured for DAPC step.
       #Choose is the option to allow adegenet to select the best cluster number based on the BIC minimum
@@ -2029,7 +2029,7 @@ server <- function(input, output, session) {
 
     # Apply the function to the first INFO string
     info_ids <- extract_info_ids(info[1])
-      
+
     #Get the genotype values if the updog dosage calls are present
     if ("UD" %in% info_ids) {
       genotypeMatrix <- extract.gt(vcf, element = "UD")
@@ -2045,7 +2045,7 @@ server <- function(input, output, session) {
     performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
 
       #Convert matrix to genlight
-      genlight_new <- new("genlight", t(genotypeMatrix), 
+      genlight_new <- new("genlight", t(genotypeMatrix),
                       ind.names = row.names(t(genotypeMatrix)),
                       loc.names = colnames(t(genotypeMatrix)),
                       ploidy = ploidy,
@@ -2066,23 +2066,23 @@ server <- function(input, output, session) {
                 n.pca = nInd(genlight_new),
                 n.da = nInd(genlight_new)-1,
                 parallel = FALSE)
-  
+
       #xval <- xvalDapc(genind_obj, n.pca.max = 10, n.da = NULL) #xval does not accept NAs
       a.score <- optim.a.score(dapc1, plot = FALSE)
       n.pca <- a.score$best
 
       # Perform DAPC with the best K
       finalDapc <- dapc(genlight_new, grp$grp, n.pca = n.pca, n.da = selected_K-1, parallel= FALSE)
-  
+
       # Extract the membership probabilities
       Q <- as.data.frame(finalDapc$posterior)
-  
+
       # Add cluster assignments to Q dataframe
       Q$Cluster_Assignment <- finalDapc$assign
-  
+
       #a data.frame giving the contributions of original variables (alleles in the case of genetic data) to the principal components of DAPC.
       #dapc$var.contr
-  
+
       # Return list containing BIC dataframe, Q dataframe w/ dapc assignments
       return(list(Q = Q, dapc = finalDapc))
     }
@@ -2121,7 +2121,7 @@ server <- function(input, output, session) {
   #Output the DAPC scatter plot
   output$DAPC_plot <- renderPlot({
     req(dapc_items$dapc, input$dapc_k)
-    
+
     #Get colors
     palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
     my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
@@ -2134,10 +2134,10 @@ server <- function(input, output, session) {
                cell = 2, # size of elipse
                scree.da = T, # plot da
                scree.pca = T, # plot pca
-               posi.da = "topright", 
+               posi.da = "topright",
                posi.pca="bottomright",
                mstree = F, # lines connecting clusters
-               lwd = 1, lty = 2, 
+               lwd = 1, lty = 2,
                leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
   })
 
@@ -2234,7 +2234,7 @@ server <- function(input, output, session) {
           }
         })
       }
-      
+
       #Convert VCF file if submitted
       vcf <- vcfR::read.vcfR(input$gwas_file$datapath)
 
@@ -2311,7 +2311,7 @@ server <- function(input, output, session) {
     #### calculate BIC
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 20, title = "Formatting Complete: Now Calculating BIC")
-    
+
     source("FUN/MyFun_BIC_Meng.R") #change directory in your case
 
     PC<-as.matrix(PCs)
@@ -2333,28 +2333,28 @@ server <- function(input, output, session) {
 
 
     for (i in 2:ncol(GE)){
-  
+
       #model selection
       y=as.numeric(GE[,i])
-  
+
       BICs<-CalcBIC(y=y,PC=PC,K=kin.test)
       BICs$BIC$withK
       BICs$BIC$withoutK
-  
+
       plotBICs<-cbind(rbind.data.frame(BICs$BIC$withK,BICs$BIC$withoutK),rep(c("w/Kinship","no Kinship"),each=nrow(BICs$BIC$withK)))
       colnames(plotBICs)[ncol(plotBICs)]<-"RelationshipMatrix"
       plotBICs$n.PC<-factor(plotBICs$n.PC,levels=c("0","1","2","3","4","5",
                                                   "6","7","8","9","10"))
       plotBICs_kinship <- subset(plotBICs,plotBICs$RelationshipMatrix =="w/Kinship")
       #write.table(plotBICs_kinship,paste(colnames(GE)[i],"_model_selection_BIC.txt",sep=""),row.names=F,sep="\t",quote=F)
-  
+
       output$bic_table <- renderDT({plotBICs_kinship}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5)
         )
 
       #setwd("~/Desktop/Alfalfa_GWAS/GWAS by year/ModelSel") #change directory in your case
       #pdf(paste(colnames(GE)[i],"_model_selection_BIC.pdf",sep=""),height=4,width=7)
-      
-      p1<-ggplot(plotBICs_kinship, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) + 
+
+      p1<-ggplot(plotBICs_kinship, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) +
           geom_line(color="grey")+
           geom_point(shape=21, color="black", fill="#d95f0e", size=3)+
           #geom_point(aes(shape=ISTL1_intro,size=2))+
@@ -2371,7 +2371,7 @@ server <- function(input, output, session) {
         print(p1)
       })
       #dev.off()
-      
+
       #Save BIC plot info
       gwas_vars$bic_df <- plotBICs_kinship
 
@@ -2381,13 +2381,13 @@ server <- function(input, output, session) {
       ##GWAS based on model selection
       N <- nrow(data@pheno) #Population size
       model <- c("additive","1-dom","2-dom","general","diplo-general","diplo-additive")
-  
+
       BIC_min <- plotBICs_kinship[which.min(plotBICs_kinship$BIC),]
       if(BIC_min$n.PC == 0){params <- set.params(geno.freq = 1 - 5/N)}else{params <- set.params(geno.freq = 1 - 5/N,n.PC = as.numeric(levels(BIC_min$n.PC))[BIC_min$n.PC])}
-      data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core=9)                                                                                                                                                              
+      data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core=9)
       #Consider adding options for different thresholds
       data2 <- set.threshold(data.loco.scan,method=input$gwas_threshold,level=0.05)
-      
+
 
       #Save manhattan plots to list (only for single trait analysis)
       #if length(traits) == 1
@@ -2397,7 +2397,7 @@ server <- function(input, output, session) {
       #png(file=paste("Manplot_",colnames(data@pheno[i]),".png",sep=""),width=800, height=550) #change directory in your case
       manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
       #print(p1)
-      #dev.off()  
+      #dev.off()
 
       #Output the manhattan plots
       output$manhattan_plot <- renderPlot({
@@ -2405,13 +2405,13 @@ server <- function(input, output, session) {
           print(manhattan_plot_list[[input$model_select]])
 
         })
-   
-  
+
+
       #get most significant SNPs per QTL file
       qtl <- get.QTL(data=data2,traits=colnames(data@pheno[i]),bp.window=5e6)
       #knitr::kable(qtl)
       qtl_d <- data.frame(qtl)
-      
+
       #Save QTL info
       gwas_vars$gwas_df <- qtl_d
 
@@ -2433,7 +2433,7 @@ server <- function(input, output, session) {
 
       #get qqplot
       data_qq <- cbind.data.frame(SNP=data.loco.scan@map$Marker,Chr=data.loco.scan@map$Chrom, Pos=data.loco.scan@map$Position,10^(-data.loco.scan@scores[[colnames(data@pheno[i])]]))
-      
+
       source("FUN/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
 
       #Save qq_plot info
@@ -2452,27 +2452,27 @@ server <- function(input, output, session) {
       #plot for each model per trait
       for (j in 1:6) {
         print(j)
-    
+
         data.loco.scan_2 <- GWASpoly(data=data.loco,models=model[j],
                                  traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))
-    
+
         data3 <- set.threshold(data.loco.scan_2,method="M.eff",level=0.05)
         #png(file=paste("GWAS_by_year_Manplot_",colnames(data@pheno[i]),model[j],".png",sep=""),width=800, height=550)#change directory in your case
         manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
         #print(p2)
-        #dev.off()         
+        #dev.off()
       }
 
       #Save manhattan plots
       gwas_vars$manhattan_plots <- manhattan_plot_list
-  
+
     }
 
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 100, status = "success", title = "Finished")
 
   })
-  
+
 
 
   #######Genomic Diversity analysis
@@ -2548,7 +2548,7 @@ server <- function(input, output, session) {
 
     # Apply the function to the first INFO string
     info_ids <- extract_info_ids(info[1])
-    
+
     #Status
     updateProgressBar(session = session, id = "pb_diversity", value = 40, title = "Converting to Numeric")
 
@@ -2585,14 +2585,14 @@ server <- function(input, output, session) {
 
 
     print("Genotype file successfully imported")
-    ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate) 
-    
+    ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate)
+
     #Updated MAF function
     calculateMAF <- function(df, ploidy) {
       if (is.matrix(df)) {
         df <- as.data.frame(df)
       }
-      
+
       #Convert the elements to numeric if they are characters
       df[] <- lapply(df, function(x) if(is.character(x)) as.numeric(as.character(x)) else x)
 
@@ -2608,19 +2608,19 @@ server <- function(input, output, session) {
       })
 
       maf <- ifelse(allele_frequencies <= 0.5, allele_frequencies, 1 - allele_frequencies)
-  
+
       df$AF <- allele_frequencies
       df$MAF <- maf
-  
+
       maf_df <- df[,c("AF", "MAF"), drop = FALSE]
 
       #Make the row names (SNP ID) the first column
       maf_df <- maf_df %>%
         tibble::rownames_to_column(var = "SNP_ID")
-  
+
       return(maf_df)
     }
-   
+
     # Function to calculate percentages for each genotype in each sample
     calculate_percentages <- function(matrix_data, ploidy) {
       apply(matrix_data, 2, function(col) {
@@ -2629,7 +2629,7 @@ server <- function(input, output, session) {
         #max_val <- max(as.numeric(names(counts)))  # Find the maximum value in the column
         prop[as.character(0:ploidy)]  # Adjust the range based on the max value (consider entering the ploidy value explicitly for max_val)
       })
-    } 
+    }
     print("Starting percentage calc")
     #Status
     updateProgressBar(session = session, id = "pb_diversity", value = 70, title = "Calculating...")
@@ -2651,19 +2651,19 @@ server <- function(input, output, session) {
     calculate_heterozygosity <- function(genotype_matrix, ploidy = 2) {
       # Determine the heterozygous values based on ploidy
       heterozygous_values <- seq(1, ploidy - 1)
-  
+
       # Create a logical matrix where TRUE represents heterozygous loci
       is_heterozygous <- sapply(genotype_matrix, function(x) x %in% heterozygous_values)
-  
+
       # Count the number of heterozygous loci per sample, ignoring NAs
       heterozygosity_counts <- colSums(is_heterozygous, na.rm = TRUE)
-  
+
       # Calculate the total number of non-NA loci per sample
       total_non_na_loci <- colSums(!is.na(genotype_matrix))
-  
+
       # Compute the proportion of heterozygous loci
       heterozygosity_proportion <- heterozygosity_counts / total_non_na_loci
-  
+
       # Create a dataframe with Sample ID and Observed Heterozygosity
       result_df <- data.frame(
         SampleID = colnames(genotype_matrix),
@@ -2671,7 +2671,7 @@ server <- function(input, output, session) {
         row.names = NULL,
         check.names = FALSE
       )
-  
+
       return(result_df)
     }
 
@@ -2726,13 +2726,13 @@ server <- function(input, output, session) {
       axis.title = element_text(size = 14)
     )
     #dev.off()
-    
+
     diversity_items$box_plot <- box
 
   })
 
   output$dosage_plot <- renderPlot({
-    
+
     req(diversity_items$box_plot)
     diversity_items$box_plot
 
@@ -2740,9 +2740,9 @@ server <- function(input, output, session) {
 
   #Het plot
   output$het_plot <- renderPlot({
-    
+
     req(diversity_items$het_df, input$hist_bins)
-    
+
     #Plot
     #pdf("meng_filtered_alfalfa_11_GBS_DArTag_no_doubletons_sample_heterozygosity.pdf")
     hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
@@ -2753,8 +2753,8 @@ server <- function(input, output, session) {
     axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
 
 
-    #legend("topright", legend = c("GBS", "DArTag Realignment"), 
-    #     fill = c("tan3", "beige"), 
+    #legend("topright", legend = c("GBS", "DArTag Realignment"),
+    #     fill = c("tan3", "beige"),
     #     border = c("black", "black"))
     #dev.off()
 
@@ -2762,9 +2762,9 @@ server <- function(input, output, session) {
 
   #AF Plot
   output$af_plot <- renderPlot({
-    
+
     req(diversity_items$maf_df, input$hist_bins)
-    
+
     #Plot
     hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
       ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
@@ -2773,9 +2773,9 @@ server <- function(input, output, session) {
 
   #MAF plot
   output$maf_plot <- renderPlot({
-    
+
     req(diversity_items$maf_df, input$hist_bins)
-    
+
     #Plot
     hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
       ylab = "Frequency", main = "Minor Allele Frequency Distribution")
@@ -2787,7 +2787,7 @@ server <- function(input, output, session) {
     req(diversity_items$het_df)
 
     output$sample_table <- renderDT({diversity_items$het_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-  
+
   })
 
   observe({
@@ -2798,7 +2798,7 @@ server <- function(input, output, session) {
 
     #Plot
 
-  
+
   })
 
   ####Genomic Prediction
@@ -2807,7 +2807,7 @@ server <- function(input, output, session) {
     #2) to input and validate the input files
     #3) to perform the genomic prediction
 
-   #1) Get traits  
+   #1) Get traits
   observeEvent(input$trait_file, {
     info_df <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
     trait_var <- colnames(info_df)
@@ -2880,8 +2880,8 @@ server <- function(input, output, session) {
             imageUrl = "",
             animation = TRUE,
           )
-                         
-      
+
+
         # Stop the observeEvent gracefully
         return()
 
@@ -2912,7 +2912,7 @@ server <- function(input, output, session) {
           }
         })
       }
-      
+
       #Convert VCF file if submitted
       vcf <- vcfR::read.vcfR(file_path)
 
@@ -2965,8 +2965,8 @@ server <- function(input, output, session) {
             imageUrl = "",
             animation = TRUE
           )
-                         
-      
+
+
         # Stop the observeEvent gracefully
         #return()
       }
@@ -2988,8 +2988,8 @@ server <- function(input, output, session) {
   ids_pheno <- pheno[, 1]
   # Find common identifiers
   common_ids <- intersect(colnames_geno, ids_pheno)
-  
-  #Throw an error if there are less matching samples in the phenotype file than the genotype file     
+
+  #Throw an error if there are less matching samples in the phenotype file than the genotype file
       if (length(common_ids) == 0) {
 
         # If condition is met, show notification toast
@@ -3008,8 +3008,8 @@ server <- function(input, output, session) {
             imageUrl = "",
             animation = TRUE,
           )
-                         
-      
+
+
         # Stop the observeEvent gracefully
         return()
 
@@ -3032,12 +3032,12 @@ server <- function(input, output, session) {
             imageUrl = "",
             animation = TRUE
           )
-                         
-      
+
+
         # Stop the observeEvent gracefully
         #return()
-      } 
-      
+      }
+
 
 
 
@@ -3068,7 +3068,7 @@ server <- function(input, output, session) {
               }
             }
           )
-                         
+
 
   # Subset and reorder geno and pheno to ensure they only contain and are ordered by common IDs
   geno_adj <- geno_adj_init[, common_ids]  # Assuming that the columns can be directly indexed by IDs
@@ -3161,7 +3161,7 @@ server <- function(input, output, session) {
     }
     # Convert all columns to factor if they are not numeric or integer
     Fixed <- convert_all_to_factor_if_not_numeric(Fixed)
-    
+
     #Fixed <- as.data.frame(lapply(Fixed, as.factor)) #convert to factor
     row.names(Fixed) <- row.names(Pheno)
 
@@ -3329,10 +3329,10 @@ server <- function(input, output, session) {
   average_accuracy_df <- results$CombinedResults %>%
     group_by(Iter) %>%
     summarize(across(all_of(columns), mean, na.rm = TRUE))
-  
+
 
   pred_outputs$comb_output <- average_accuracy_df
-    
+
   #Status
   updateProgressBar(session = session, id = "pb_prediction", value = 90, title = "Generating Results")
 
@@ -3377,7 +3377,7 @@ server <- function(input, output, session) {
         strip.text = element_text(size = 12),
         axis.text = element_text(size = 12),
         axis.title = element_text(size = 14),
-        axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2), 
+        axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2),
         strip.text.x = element_text(face = "bold"))
 
     plot_violin <- ggplot(df_long, aes(x = "rrBLUP", y = Correlation, fill = "red")) +
@@ -3391,7 +3391,7 @@ server <- function(input, output, session) {
           strip.text = element_text(size = 12),
           axis.text = element_text(size = 12),
           axis.title = element_text(size = 14),
-          axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2), 
+          axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2),
           strip.text.x = element_text(face = "bold"))
 
   pred_outputs$box_plot <- plot
@@ -3418,21 +3418,21 @@ server <- function(input, output, session) {
     req(pred_outputs$all_GEBVs)
 
     output$pred_all_table <- renderDT({pred_outputs$all_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-  
+
   })
   observe({
     #Accuracy (pearson corr) and Heritability for each trait/iteration
     req(pred_outputs$comb_output)
 
     output$pred_acc_table <- renderDT({pred_outputs$comb_output}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-  
+
   })
   observe({
     #Avg GEBVs for each sample/trait
     req(pred_outputs$avg_GEBVs)
 
     output$pred_gebvs_table <- renderDT({pred_outputs$avg_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-  
+
   })
 
 ##Saving analysis outputs
@@ -3452,7 +3452,7 @@ server <- function(input, output, session) {
     content = function(file) {
       #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
       req(input$pca_figure)
-      
+
       if (input$pca_image_type == "jpeg") {
         jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
       } else if (input$pca_image_type == "png") {
@@ -3492,7 +3492,7 @@ server <- function(input, output, session) {
     content = function(file) {
       #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
       req(input$dapc_figure)
-      
+
       if (input$dapc_image_type == "jpeg") {
         jpeg(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
       } else if (input$dapc_image_type == "png") {
@@ -3504,7 +3504,7 @@ server <- function(input, output, session) {
       # Conditional plotting based on input selection
       if (input$dapc_figure == "DAPC Plot") {
           req(dapc_items$dapc, input$dapc_k)
-    
+
           #Get colors
           palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
           my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
@@ -3517,12 +3517,12 @@ server <- function(input, output, session) {
                cell = 2, # size of elipse
                scree.da = T, # plot da
                scree.pca = T, # plot pca
-               posi.da = "topright", 
+               posi.da = "topright",
                posi.pca="bottomright",
                mstree = F, # lines connecting clusters
-               lwd = 1, lty = 2, 
+               lwd = 1, lty = 2,
                leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
-      
+
       } else if (input$dapc_figure == "BIC Plot") {
           req(dapc_items$bicDF, dapc_items$bestK)
 
@@ -3563,7 +3563,7 @@ server <- function(input, output, session) {
     content = function(file) {
       #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
       req(input$image_type)
-      
+
       if (input$image_type == "jpeg") {
         jpeg(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
       } else if (input$image_type == "png") {
@@ -3575,8 +3575,8 @@ server <- function(input, output, session) {
       # Conditional plotting based on input selection
       req(filtering_output$df, filtering_files)
       if (input$filter_hist == "Bias Histogram") {
-          
-        hist(as.numeric(filtering_output$df$BIAS), 
+
+        hist(as.numeric(filtering_output$df$BIAS),
           main = "Unfiltered SNP bias histogram",
           xlab = "bias",
           ylab = "SNPs",
@@ -3589,11 +3589,11 @@ server <- function(input, output, session) {
         abline(v = median(as.numeric(filtering_output$df$BIAS)), col = "green", lty = 2)  # Median line
         abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
         abline(v = 2, col = "black", lty = 2)  # proposed upper line
-      
+
       } else if (input$filter_hist == "OD Histogram") {
-    
+
           #Plot
-        hist(as.numeric(filtering_output$df$OD), 
+        hist(as.numeric(filtering_output$df$OD),
           main = "Unfiltered SNP overdispersion parameter histogram",
           xlab = "OD",
           ylab = "SNPs",
@@ -3610,8 +3610,8 @@ server <- function(input, output, session) {
         abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
       } else if (input$filter_hist == "Prop_mis Histogram") {
-    
-        hist(as.numeric(filtering_output$df$PMC), 
+
+        hist(as.numeric(filtering_output$df$PMC),
             main = "The estimated proportion of individuals misclassified in the SNP from updog",
             xlab = "Proportion of Misclassified Genotypes per SNP",
             ylab = "Number of SNPs",
@@ -3624,11 +3624,11 @@ server <- function(input, output, session) {
         # Add vertical lines
         abline(v = mean(as.numeric(filtering_output$df$PMC)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(filtering_output$df$PMC)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2) 
+        abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2)
 
       } else if (input$filter_hist == "SNP_mis") {
- 
-        hist(as.numeric(filtering_files$snp_miss_df), 
+
+        hist(as.numeric(filtering_files$snp_miss_df),
             main = "Ratio of Missing Data per SNP After Filtering",
             xlab = "Proportion of Missing Data per SNP",
             ylab = "Number of SNPs",
@@ -3644,8 +3644,8 @@ server <- function(input, output, session) {
         abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
 
       } else if (input$filter_hist == "Sample_mis") {
- 
-        hist(as.numeric(filtering_files$sample_miss_df), 
+
+        hist(as.numeric(filtering_files$sample_miss_df),
             main = "Ratio of Missing Data per Sample After Filtering",
             xlab = "Proportion of Missing Data per Sample",
             ylab = "Number of Samples",
@@ -3683,7 +3683,7 @@ server <- function(input, output, session) {
         write.csv(dapc_items$assignments, assignments_file, row.names = TRUE)
         temp_files <- c(temp_files, assignments_file)
       }
-    
+
       if (!is.null(dapc_items$bicDF)) {
         # Create a temporary file for BIC data frame
         bicDF_file <- file.path(temp_dir, paste0("BIC-values-", Sys.Date(), ".csv"))
@@ -3716,7 +3716,7 @@ server <- function(input, output, session) {
     content = function(file) {
       #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
       req(input$div_figure)
-      
+
       if (input$div_image_type == "jpeg") {
         jpeg(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
       } else if (input$div_image_type == "png") {
@@ -3729,24 +3729,24 @@ server <- function(input, output, session) {
       if (input$div_figure == "Dosage Plot") {
           req(diversity_items$box_plot)
           print(diversity_items$box_plot)
-      
+
       } else if (input$div_figure == "AF Histogram") {
           req(diversity_items$maf_df, input$hist_bins)
-    
+
           #Plot
           hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
             ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
 
       } else if (input$div_figure == "MAF Histogram") {
         req(diversity_items$maf_df, input$hist_bins)
-    
+
         #Plot
         hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
           ylab = "Frequency", main = "Minor Allele Frequency Distribution")
 
       } else if (input$div_figure == "OHet Histogram") {
           req(diversity_items$het_df, input$hist_bins)
- 
+
           hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
             xlab = "Observed Heterozygosity",
             ylab = "Number of Samples",
@@ -3777,7 +3777,7 @@ server <- function(input, output, session) {
         write.csv(diversity_items$het_df, het_file, row.names = FALSE)
         temp_files <- c(temp_files, het_file)
       }
-    
+
       if (!is.null(diversity_items$maf_df)) {
         # Create a temporary file for BIC data frame
         maf_file <- file.path(temp_dir, paste0("SNP-statistics-", Sys.Date(), ".csv"))
@@ -3811,7 +3811,7 @@ server <- function(input, output, session) {
         write.csv(gwas_vars$gwas_df, gwas_file, row.names = FALSE)
         temp_files <- c(temp_files, gwas_file)
       }
-    
+
       if (!is.null(gwas_vars$bic_df)) {
         # Create a temporary file for BIC data frame
         bic_file <- file.path(temp_dir, paste0("GWAS-BIC-statistics-", Sys.Date(), ".csv"))
@@ -3844,7 +3844,7 @@ server <- function(input, output, session) {
     content = function(file) {
       #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
       req(input$gwas_figures)
-      
+
       if (input$gwas_image_type == "jpeg") {
         jpeg(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
       } else if (input$gwas_image_type == "png") {
@@ -3857,7 +3857,7 @@ server <- function(input, output, session) {
       if (input$gwas_figures == "BIC Plot") {
           req(gwas_vars$BIC_ggplot)
           print(gwas_vars$BIC_ggplot)
-      
+
       } else if (input$gwas_figures == "Manhattan Plot") {
           req(gwas_vars$manhattan_plots, input$model_select)
           #Plot
@@ -3900,7 +3900,7 @@ server <- function(input, output, session) {
         write.csv(pred_outputs$avg_GEBVs, gebv_file, row.names = FALSE)
         temp_files <- c(temp_files, gebv_file)
       }
-    
+
       if (!is.null(pred_outputs$comb_output)) {
         # Create a temporary file for BIC data frame
         acc_file <- file.path(temp_dir, paste0("GS-accuracy-statistics-", Sys.Date(), ".csv"))
@@ -3933,7 +3933,7 @@ server <- function(input, output, session) {
     content = function(file) {
       #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
       req(input$pred_figures)
-      
+
       if (input$pred_image_type == "jpeg") {
         jpeg(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
       } else if (input$pred_image_type == "png") {
@@ -3945,9 +3945,9 @@ server <- function(input, output, session) {
       # Conditional plotting based on input selection
       if (input$pred_figures == "Violin Plot") {
           req(pred_outputs$violin_plot)
-          
+
           print(pred_outputs$violin_plot + scale_fill_manual(values = pred_outputs$colors))
-      
+
       } else if (input$pred_figures == "Box Plot") {
           req(pred_outputs$box_plot)
           #Plot
@@ -3960,7 +3960,7 @@ server <- function(input, output, session) {
 
   )
 
-  
+
 
   output$downloadData <- downloadHandler(
     filename = function() {
@@ -3970,10 +3970,10 @@ server <- function(input, output, session) {
     content = function(file) {
       # Create a zip file
       zip(file, files = NULL)
-      
+
       # Add selected files to the zip
       filenames <- input$files_to_download
-      
+
       for (filename in filenames) {
         # Write each file to the zip
         write.csv(get(filename), file.path(dirname(file), paste0(input$output_name, "_", filename, ".csv")))
