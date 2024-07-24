@@ -66,7 +66,7 @@ app_ui <- function(request) {
                   )
           ),
           tabItem(
-            tabName = "filtering"
+            tabName = "filtering", mod_Filtering_ui("Filtering_1")
           ),
           tabItem(
             tabName = "updog", mod_DosageCall_ui("DosageCall_1")

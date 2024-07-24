@@ -85,6 +85,13 @@ mod_DosageCall_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
+    snp_number <- reactiveVal(0)
+
+    #SNP counts value box
+    output$MADCsnps <- renderValueBox({
+      valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
+    })
+
     disable("download_updog_vcf")
 
     ##This is for performing Updog Dosage Calling
@@ -228,7 +235,11 @@ mod_DosageCall_server <- function(id){
           output.file = temp
         )
 
-        system(paste0("mv ", temp,".vcf ", file))
+        # Move the file to the path specified by 'file'
+        file.copy(temp, file, overwrite = TRUE)
+
+        # Delete the temporary file
+        unlink(temp)
 
         #Reactive item
         #output$table2 <- renderTable({
