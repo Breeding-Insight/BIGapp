@@ -72,28 +72,28 @@ app_ui <- function(request) {
             tabName = "updog", mod_DosageCall_ui("DosageCall_1")
           ),
           tabItem(
-            tabName = "dosage2vcf"
+            tabName = "dosage2vcf", mod_dosage2vcf_ui("dosage2vcf_1")
           ),
           tabItem(
-            tabName = "pca"
+            tabName = "pca", mod_PCA_ui("PCA_1")
           ),
           tabItem(
-            tabName = "dapc"
+            tabName = "dapc", mod_dapc_ui("dapc_1")
           ),
           tabItem(
-            tabName = "gwas"
+            tabName = "gwas", mod_gwas_ui("gwas_1")
           ),
           tabItem(
-            tabName = "diversity"
+            tabName = "diversity", mod_diversity_ui("diversity_1")
           ),
           tabItem(
-            tabName = "prediction"
+            tabName = "prediction", mod_GS_ui("GS_1")
           ),
           tabItem(
-            tabName = "slurm"
+            tabName = "slurm", mod_slurm_ui("slurm_1")
           ),
           tabItem(
-            tabName = "help"
+            tabName = "help", mod_help_ui("help_1")
           )
         )
       )

@@ -249,9 +249,291 @@ mod_Filtering_server <- function(id){
 
         #Unload vcf
         rm(vcf)
-
       }
     )
+
+    #Download figures for VCF Filtering
+    output$download_filter_hist <- downloadHandler(
+
+      filename = function() {
+        if (input$image_type == "jpeg") {
+          paste("VCF-histogram-", Sys.Date(), ".jpg", sep="")
+        } else if (input$image_type == "png") {
+          paste("VCF-histogram-", Sys.Date(), ".png", sep="")
+        } else {
+          paste("VCF-histogram-", Sys.Date(), ".tiff", sep="")
+        }
+      },
+      content = function(file) {
+        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+        req(input$image_type)
+
+        if (input$image_type == "jpeg") {
+          jpeg(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+        } else if (input$image_type == "png") {
+          png(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+        } else {
+          tiff(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+        }
+
+        # Conditional plotting based on input selection
+        req(filtering_output$df, filtering_files)
+        if (input$filter_hist == "Bias Histogram") {
+
+          hist(as.numeric(filtering_output$df$BIAS),
+               main = "Unfiltered SNP bias histogram",
+               xlab = "bias",
+               ylab = "SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,5),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
+          abline(v = mean(as.numeric(filtering_output$df$BIAS)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(filtering_output$df$BIAS)), col = "green", lty = 2)  # Median line
+          abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
+          abline(v = 2, col = "black", lty = 2)  # proposed upper line
+
+        } else if (input$filter_hist == "OD Histogram") {
+
+          #Plot
+          hist(as.numeric(filtering_output$df$OD),
+               main = "Unfiltered SNP overdispersion parameter histogram",
+               xlab = "OD",
+               ylab = "SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,0.6),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
+          abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+          # Add vertical lines
+          abline(v = mean(as.numeric(filtering_output$df$OD)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(filtering_output$df$OD)), col = "green", lty = 2)  # Median line
+          abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+        } else if (input$filter_hist == "Prop_mis Histogram") {
+
+          hist(as.numeric(filtering_output$df$PMC),
+               main = "The estimated proportion of individuals misclassified in the SNP from updog",
+               xlab = "Proportion of Misclassified Genotypes per SNP",
+               ylab = "Number of SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,1),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+          # Add vertical lines
+          abline(v = mean(as.numeric(filtering_output$df$PMC)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(filtering_output$df$PMC)), col = "green", lty = 2)  # Median line
+          abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2)
+
+        } else if (input$filter_hist == "SNP_mis") {
+
+          hist(as.numeric(filtering_files$snp_miss_df),
+               main = "Ratio of Missing Data per SNP After Filtering",
+               xlab = "Proportion of Missing Data per SNP",
+               ylab = "Number of SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,1),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+          # Add vertical lines
+          abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
+          abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
+
+        } else if (input$filter_hist == "Sample_mis") {
+
+          hist(as.numeric(filtering_files$sample_miss_df),
+               main = "Ratio of Missing Data per Sample After Filtering",
+               xlab = "Proportion of Missing Data per Sample",
+               ylab = "Number of Samples",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,1),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+          # Add vertical lines
+          abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
+          abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
+        }
+        dev.off()
+      }
+    )
+
+    # Commented code
+    ##Updog file stats
+    #Consider Extracting the GT info or UD info if present as a datafrfame,
+    #Obtaining the info in the INFO column as it's own dataframe with a column for each value
+    #Then remove the VCF file and use the remaining dataframes for producing the figures
+
+    filtering_output <- reactiveValues(df = NULL)
+
+    observeEvent(filtering_files$raw_vcf_df, {
+
+
+      # Function to split INFO column and expand it into multiple columns
+      split_info_column <- function(info) {
+        # Split the INFO column by semicolon
+        info_split <- str_split(info, ";")[[1]]
+
+        # Create a named list by splitting each element by equals sign
+        info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
+                               map(info_split, ~ str_split(.x, "=")[[1]][1]))
+
+        return(info_list)
+      }
+
+      # Apply the function to each row and bind the results into a new dataframe
+      new_df <- data.frame(filtering_files$raw_vcf_df) %>%
+        mutate(INFO_list = map(INFO, split_info_column)) %>%
+        unnest_wider(INFO_list)
+
+      #Save df to reactive value
+      filtering_output$df <- new_df
+
+
+      ##Make plots
+      #Number of SNPs
+      nrow(filtering_files$raw_vcf_df)
+
+      ###Bias
+
+      #Histogram
+      output$bias_hist <- renderPlot({
+        hist(as.numeric(new_df$BIAS),
+             main = "Unfiltered SNP bias histogram",
+             xlab = "bias",
+             ylab = "SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,5),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
+        abline(v = mean(as.numeric(new_df$BIAS)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$BIAS)), col = "green", lty = 2)  # Median line
+        abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
+        abline(v = 2, col = "black", lty = 2)  # proposed upper line
+      })
+
+      ###OD
+      quantile(as.numeric(new_df$OD), 0.95)
+      #Histogram
+      output$od_hist <- renderPlot({
+        hist(as.numeric(new_df$OD),
+             main = "Unfiltered SNP overdispersion parameter histogram",
+             xlab = "OD",
+             ylab = "SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,0.6),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(new_df$OD)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$OD)), col = "green", lty = 2)  # Median line
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+      })
+
+      ##MAXPOSTPROB
+
+      #Histogram
+
+      output$maxpostprob_hist <- renderPlot({
+
+        #Histogram
+        hist(as.numeric(new_df$PMC),
+             main = "The estimated proportion of individuals misclassified in the SNP from updog",
+             xlab = "Proportion of Misclassified Genotypes per SNP",
+             ylab = "Number of SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,1),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2)
+
+      })
+
+      #Missing data
+      output$missing_snp_hist <- renderPlot({
+
+        #Histogram
+        hist(as.numeric(filtering_files$snp_miss_df),
+             main = "Ratio of Missing Data per SNP After Filtering",
+             xlab = "Proportion of Missing Data per SNP",
+             ylab = "Number of SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,1),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
+
+      })
+
+      output$missing_sample_hist <- renderPlot({
+
+        #Histogram
+        hist(as.numeric(filtering_files$sample_miss_df),
+             main = "Ratio of Missing Data per Sample After Filtering",
+             xlab = "Proportion of Missing Data per Sample",
+             ylab = "Number of Samples",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,1),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
+
+      })
+
+      ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
+
+      quantile(as.numeric(new_df$DP), 0.95)
+      #Histogram
+      # output$depth_hist <- renderPlot({
+      #
+      #   hist(as.numeric(new_df$DP),
+      #        main = "Unfiltered SNP Total Read Depth Across All Samples",
+      #        xlab = "Total Read Depth per SNP",
+      #        ylab = "Genomic Sites",
+      #        col = "lightblue",
+      #        border = "black",
+      #        xlim = c(0,1000),
+      #        breaks = as.numeric(input$hist_bins))
+      #   axis(1, at = seq(0, 1000, by = 20), labels = rep("", length(seq(0, 1000, by = 20))))  # Add ticks
+      #   abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+      #
+      #   # Add vertical lines
+      #   abline(v = mean(as.numeric(new_df$DP)), col = "red", lty = 2)  # Mean line
+      #   abline(v = median(as.numeric(new_df$DP)), col = "green", lty = 2)  # Median line
+      #   #abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+      # })
+
+    })
   })
 }
 
