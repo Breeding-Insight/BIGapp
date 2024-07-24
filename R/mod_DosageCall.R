@@ -1,0 +1,256 @@
+#' DosageCall UI Function
+#'
+#' @description A shiny Module.
+#'
+#' @param id,input,output,session Internal parameters for {shiny}.
+#'
+#' @noRd
+#'
+#' @importFrom shinyjs enable disable useShinyjs
+#' @importFrom shiny NS tagList
+#'
+#'
+mod_DosageCall_ui <- function(id){
+  ns <- NS(id)
+  tagList(
+    fluidPage(
+      fluidRow(
+        box(
+          title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
+          fileInput(ns("madc_file"), "Choose MADC or VCF File", accept = c(".csv",".vcf",".gz")),
+          #checkboxInput("off-targets","Include off-target loci?"),
+          #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
+          textInput(ns("output_name"), "Output File Name"),
+          #selectInput("markers", "Select Markers", choices = c("All Loci (not supported)", "Target Loci Only"), selected = "Target Loci Only"),
+          numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
+          selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
+          numericInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
+          actionButton(ns("run_analysis"), "Run Analysis"),
+          useShinyjs(),
+          downloadButton(ns('download_updog_vcf'), "Download VCF File", class = "butt"),
+
+          div(style="display:inline-block; float:right",dropdownButton(
+
+            tags$h3("Updog Population Models"),
+            "Model: What form should the prior (genotype distribution) take?\n
+                    The following information is from the Updog manual:\n
+                    Possible values of the genotype distribution (values of model) are: \n
+                    `norm` A distribution whose genotype frequencies are proportional to the density value of a normal
+                    with some mean and some standard deviation. Unlike the `bb` and `hw` options, this will
+                    allow for distributions both more and less dispersed than a binomial. This seems to be the
+                    most robust to violations in modeling assumptions, and so is the default. This prior class was
+                    developed in Gerard and Ferrão (2020).
+                    `hw` A binomial distribution that results from assuming that the population is in Hardy-Weinberg
+                    equilibrium (HWE). This actually does pretty well even when there are minor to moderate
+                    deviations from HWE. Though it does not perform as well as the ‘norm‘ option when there
+                    are severe deviations from HWE.
+                    `bb` A beta-binomial distribution. This is an overdispersed version of `hw` and can be derived
+                    from a special case of the Balding-Nichols model.
+                    `s1` This prior assumes the individuals are all full-siblings resulting from one generation of selfing. I.e. there is only one parent. This model assumes a particular type of meiotic behavior:
+                    polysomic inheritance with bivalent, non-preferential pairing.
+                    `f1` This prior assumes the individuals are all full-siblings resulting from one generation of a
+                    bi-parental cross. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing.
+                    `f1pp` This prior allows for double reduction and preferential pairing in an F1 population of tretraploids.
+                    `s1pp` This prior allows for double reduction and preferential pairing in an S1 population of tretraploids.
+                    `flex` Generically any categorical distribution. Theoretically, this works well if you have a lot of
+                    individuals. In practice, it seems to be much less robust to violations in modeling assumptions.
+                    `uniform` A discrete uniform distribution. This should never be used in practice.",
+            circle = FALSE,
+            status = "warning",
+            icon = icon("info"), width = "300px",
+            tooltip = tooltipOptions(title = "Click to see info!")
+          ))
+        ),
+        valueBoxOutput(ns("MADCsnps"))
+        #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
+      ),
+
+      fluidRow(
+        box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+            progressBar(id = ns("pb_madc"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+        )
+      )
+    )
+  )
+}
+
+#' DosageCall Server Functions
+#'
+#' @import vcfR
+#' @import updog
+#' @importFrom BIGr updog2vcf
+#'
+#' @noRd
+mod_DosageCall_server <- function(id){
+  moduleServer( id, function(input, output, session){
+    ns <- session$ns
+
+    disable("download_updog_vcf")
+
+    ##This is for performing Updog Dosage Calling
+    updog_out <- eventReactive(input$run_analysis,{
+      if(!is.null(input$ploidy) & !is.null(input$output_name)){
+        # Get inputs
+        madc_file <- input$madc_file$datapath
+        #sample_file <- input$sample_file$datapath
+        output_name <- input$output_name
+        ploidy <- input$ploidy
+        cores <- input$cores
+        model_select <- input$updog_model
+        #marker_set <- (input$markers == "Target Loci Only")
+
+        # Status
+        updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
+        #Import genotype info if genotype matrix format
+        if (grepl("\\.csv$", madc_file)) {
+          # Call the get_counts function with the specified MADC file path and output file path
+          #Status
+          result_df <- get_counts(madc_file, output_name)
+
+          #Call the get_matrices function
+          matrices <- get_matrices(result_df)
+
+          #Number of SNPs
+          snp_number <- (nrow(result_df) / 2)
+
+          #SNP counts value box
+          output$MADCsnps <- renderValueBox({
+            valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+          })
+
+        } else {
+
+          #Initialize matrices list
+          matrices <- list()
+
+          #Import genotype information if in VCF format
+          vcf <- read.vcfR(madc_file, verbose = FALSE)
+
+          #Get items in FORMAT column
+          info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+          chrom <- vcf@fix[,1]
+          pos <- vcf@fix[,2]
+
+          info_ids <- extract_info_ids(info[1])
+
+          if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
+            #Extract DP and RA and convert to matrices
+            matrices$size_matrix <- extract.gt(vcf, element = "DP")
+            if("RA" %in% info_ids){
+              matrices$ref_matrix <- extract.gt(vcf, element = "RA")
+            } else {
+              ad_matrix <- extract.gt(vcf, element = "AD")
+              matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
+              colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
+              rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
+            }
+
+            class(matrices$size_matrix) <- "numeric"
+            class(matrices$ref_matrix) <- "numeric"
+            rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
+
+            rm(vcf) #Remove VCF
+
+            snp_number <- (nrow(matrices$size_matrix))
+
+            #SNP counts value box
+            output$MADCsnps <- renderValueBox({
+              valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
+            })
+
+          }else{
+            ##Add user warning about read depth and allele read depth not found
+            stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
+          }
+        }
+
+        #Run Updog
+        #I initially used the "norm" model
+        #I am also taking the ploidy from the max value in the
+        updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
+        print('Performing Updog dosage calling')
+        mout <- multidog(refmat = matrices$ref_matrix,
+                         sizemat = matrices$size_matrix,
+                         ploidy = as.numeric(ploidy),
+                         model = model_select,
+                         nc = cores)
+        #Status
+        updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
+        mout
+      } else {
+        if(is.null(input$ploidy)) stop(safeError("Define the samples ploidy."))
+        if(is.null(input$output_name)) stop(safeError("Define output VCF file name."))
+        NULL
+      }
+    })
+
+    # Only make available the download button when analysis is finished
+    observe({
+      if (!is.null(updog_out())) {
+        Sys.sleep(1)
+        # enable the download button
+        enable("download_updog_vcf")
+      } else {
+        disable("download_updog_vcf")
+      }
+    })
+
+    output$download_updog_vcf <- downloadHandler(
+      filename = function() {
+        paste0(input$output_name, ".vcf")
+      },
+      content = function(file) {
+        #Get genotype matrix of dosage calls
+        #genomat <- format_multidog(mout, varname = "geno")
+        #Save the matrix as a csv file
+        #updog_file <- paste0(output_name,'_MADC_alt_ref_counts_unfiltered_dose_from_updog_norm_genotype_matrix.csv')
+        #write.csv(genomat,file=updog_file)
+
+        #Filter dosage calls (I think this is the updog recommended)
+        #mout_cleaned <- filter_snp(mout, prop_mis < 0.2 & bias > 0.5 & bias < 2 & od > 0.05) #Recommended filtering by updog
+
+        #Save the filtered dosage matrix
+        #genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
+        #head(genomat_cleaned)
+
+        #cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_prop_miss_0.2_bias_0.5-2_updog_norm_model_dosage_genotype_matrix.csv')
+        #Save the matrix as a csv file
+        #write.csv(genomat_cleaned,file= cleaned_name)
+
+        #Save rda file for filtering
+        #save(mout, result_df, file = paste0(output_name,"_MADC_unfiltered_dose_from_updog.rda"))
+
+        #Save Updog output as VCF file
+        temp <- tempfile()
+        updog2vcf(
+          multidog.object = updog_out(),
+          ploidy = input$ploidy,
+          output.file = temp
+        )
+
+        system(paste0("mv ", temp,".vcf ", file))
+
+        #Reactive item
+        #output$table2 <- renderTable({
+        # Generate table
+        #  genomat_cleaned
+        #})
+
+        # Display analysis result
+        #output$analysis_result <- renderText({
+        #  "result" #Can add a variable to print text or figures
+        #})
+
+        # Update reactive values with generated figures and tables
+        #figures$plot1 <- heatmap(G.mat.updog, labCol = NA)# Your plot object
+        #tables$table1 <- result_df# Your table object
+        #tables$table2 <- genomat_cleaned
+      })
+  })
+}
+
+## To be copied in the UI
+# mod_DosageCall_ui("DosageCall_1")
+
+## To be copied in the server
+# mod_DosageCall_server("DosageCall_1")
