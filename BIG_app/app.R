@@ -202,7 +202,7 @@ ui <- dashboardPage(
           fluidRow(
               box(
               title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-              fileInput("madc_file", "Choose MADC or VCF File", accept = c(".csv",".vcf",".vcf.gz")),
+              fileInput("madc_file", "Choose MADC or VCF File", accept = c(".csv",".vcf",".gz")),
               #checkboxInput("off-targets","Include off-target loci?"),
               #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
               textInput("output_name", "Output File Name"),
@@ -302,7 +302,7 @@ ui <- dashboardPage(
           column(width = 3,
             box(
               title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
-              fileInput("dosage_file", "Choose Genotypes File"),#, accept = c(".csv",".vcf",".vcf.gz")),
+              fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
               fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
               #textInput("output_name", "Output File Name (disabled)"),
               #Dropdown will update after pasport upload
@@ -390,7 +390,7 @@ ui <- dashboardPage(
               title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
               tabsetPanel(
                 tabPanel("Step 1:(K)", width = 12,
-                  fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+                  fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                   #fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
                   #textInput("output_name", "Output File Name (disabled)"),
                   #Dropdown will update after pasport upload
@@ -410,7 +410,7 @@ ui <- dashboardPage(
                 ),
 
                 tabPanel("Step 2:(DAPC)", width = 12,
-                  fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+                  fileInput("dosage_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                   #fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
                   #textInput("output_name", "Output File Name (disabled)"),
                   #Dropdown will update after pasport upload
@@ -591,7 +591,7 @@ ui <- dashboardPage(
         fluidRow(
           column(width = 3,
             box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-              fileInput("diversity_file", "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+              fileInput("diversity_file", "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
               #fileInput("pop_file", "Choose Passport File"),
               #textInput("output_name", "Output File Name"),
               numericInput("diversity_ploidy", "Species Ploidy", min = 1, value = NULL),

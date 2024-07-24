@@ -15,7 +15,7 @@ mod_PCA_ui <- function(id){
       column(width = 3,
              box(
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
-               fileInput(ns("dosage_file"), "Choose Genotypes File"),#, accept = c(".csv",".vcf",".vcf.gz")),
+               fileInput(ns("dosage_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
                #textInput("output_name", "Output File Name (disabled)"),
                #Dropdown will update after pasport upload

@@ -14,7 +14,7 @@ mod_diversity_ui <- function(id){
     fluidRow(
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-                 fileInput(ns("diversity_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+                 fileInput(ns("diversity_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                  #fileInput("pop_file", "Choose Passport File"),
                  #textInput("output_name", "Output File Name"),
                  numericInput(ns("diversity_ploidy"), "Species Ploidy", min = 1, value = NULL),
