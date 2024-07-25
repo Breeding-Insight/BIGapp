@@ -1,7 +1,3 @@
-# source
-require(rrBLUP)
-require(MASS)
-
 # function name: CalcBIC()
 
 # Usage: CalcBIC(y, PC, K)
@@ -26,36 +22,43 @@ require(MASS)
 #  $BIC: BIC (BIC = n.par * log(n.sample) - 2 * LL)
 
 # Details:
-#  This function calculate BIC with 1, 2, 3, ..., P number of PCs, with and 
+#  This function calculate BIC with 1, 2, 3, ..., P number of PCs, with and
 #  without kinship matrix. Result is returned as a list object. The mixed model
 #  for GWAS was fitted by using mixed.solve() function. We can get estimated
-#  parameters from this model fitting. Then, using the estimated parameters, 
+#  parameters from this model fitting. Then, using the estimated parameters,
 #  log-likelihood is calculated by using the equation (2) in Kang et al., 2008.
 #  Finally, BIC is calculated by using the standard formula (BIC = K * log(N) - 2 * LL)
 
 
 # Note for the users who were using GAPIT:
-# The BIC in GAPIT uses an old/orginal formula (Schwarz 1978). In this case, 
+# The BIC in GAPIT uses an old/orginal formula (Schwarz 1978). In this case,
 # BIC is "the larger, the better"
 # After ~50 years of the work of Schwarz, now, many people uses a BIC formula
 # which is "the smaller, the better". I also used this new, common definition.
 # Thus, be careful with this difference.
-# You can still cite (Schwarz 1978) for the reference of BIC. 
+# You can still cite (Schwarz 1978) for the reference of BIC.
 # The old BIC and the new BIC have one-to-one correspondence. Thus, your result
 # never change whichever definition you use.
 
 
-# function for BIC calculation
+#' function for BIC calculation
+#'
+#' @param y describe documentation
+#' @param PC describe documentation
+#' @param K describe documentation
+#'
+#' @import rrBLUP
+#' @import MASS
 CalcBIC <- function(y, PC, K) {
    # number of max. PC
    n.max.pc <- ncol(PC)
-   
+
    # remove NA
    tf.na <- !is.na(y)
    y.common <- y[tf.na]
    K.common <- K[tf.na, tf.na]
    PC.common <- PC[tf.na, ]
-   
+
    # ----- BIC with K ----- #
    # fit model by using mixed.solve function
    LL.vec <- rep(NA, n.max.pc + 1)
@@ -72,18 +75,18 @@ CalcBIC <- function(y, PC, K) {
       a <- (-1) * n * log(2 * pi * ms$Vu)
       b <- (-1) * as.numeric(determinant(H, logarithm = TRUE)$modulus)
       if ( k == 0 ) {
-         X.matrix <- matrix(1, nr = n, nc = 1)
+         X.matrix <- matrix(1, nrow = n, ncol = 1)
          c <- as.numeric((-1) * (1 / ms$Vu) * t(y.common - X.matrix %*% ms$beta) %*% H.inv %*% (y.common - X.matrix %*% ms$beta))
       } else {
          c <- as.numeric((-1) * (1 / ms$Vu) * t(y.common - X.matrix %*% ms$beta) %*% H.inv %*% (y.common - X.matrix %*% ms$beta))
       }
-      LogLik.ML <- 0.5 * (a + b + c) # full likelihood based on REML 
+      LogLik.ML <- 0.5 * (a + b + c) # full likelihood based on REML
       LL.vec[k+1] <- LogLik.ML
    }
    n <- length(y.common)
    n.par.vec <- seq(from = 3, by = 1, length.out = n.max.pc + 1) # n.par starts from 3 & increases by 1
    BIC.vec <- -2 * LL.vec + n.par.vec * log(n)
-   
+
    # ----- BIC without K ----- #
    LL.vec.woK <- rep(NA, n.max.pc + 1)
    #names(LL.vec.woK) <- paste0("PC", 0:n.max.pc)
@@ -99,7 +102,7 @@ CalcBIC <- function(y, PC, K) {
    }
    n.par.vec.woK <- seq(from = 2, by = 1, length.out = n.max.pc + 1) # n.par starts from 2
    BIC.vec.woK <- n.par.vec.woK * log(n) - 2 * LL.vec.woK
-   
+
    # return
    ResList <- list("n.input" = length(y),
                    "n.sample" = length(y.common),

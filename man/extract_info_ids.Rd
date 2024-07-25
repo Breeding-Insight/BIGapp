@@ -6,6 +6,9 @@
 \usage{
 extract_info_ids(info_string)
 }
+\arguments{
+\item{info_string}{to be documented}
+}
 \description{
 Extract VCF info IDs
 }

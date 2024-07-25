@@ -98,6 +98,7 @@ mod_Filtering_ui <- function(id){
 #'
 #' @import vcfR
 #' @import BIGr
+#' @importFrom graphics abline axis hist
 #'
 #' @noRd
 mod_Filtering_server <- function(id){

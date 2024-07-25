@@ -7,6 +7,10 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @import GWASpoly
+#' @importFrom future availableCores
+#' @importFrom shinycssloaders withSpinner
+#'
 mod_gwas_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -28,7 +32,7 @@ mod_gwas_ui <- function(id){
                    search = TRUE,
                    multiple = TRUE
                  ),
-                 sliderInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
+                 sliderInput(ns("cores"), "Number of CPU Cores", min = 1, max = (availableCores() - 1), value = 1, step = 1),
                  actionButton(ns("gwas_start"), "Run Analysis"),
                  #downloadButton("download_pca", "Download All Files"),
                  #plotOutput("pca_plot"), # Placeholder for plot outputs
@@ -52,12 +56,12 @@ mod_gwas_ui <- function(id){
              box(
                title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
                bs4Dash::tabsetPanel(
-                 tabPanel("BIC Plot", shinycssloaders::withSpinner(plotOutput(ns("bic_plot"), height = "500px"))),
-                 tabPanel("Manhattan Plot", shinycssloaders::withSpinner(plotOutput(ns("manhattan_plot"), height = "500px"))),
-                 tabPanel("QQ Plot", shinycssloaders::withSpinner(plotOutput(ns("qq_plot"), height = "500px"))),
-                 tabPanel("BIC Table", shinycssloaders::withSpinner(DTOutput(ns("bic_table"))),style = "overflow-y: auto; height: 500px"),
+                 tabPanel("BIC Plot", withSpinner(plotOutput(ns("bic_plot"), height = "500px"))),
+                 tabPanel("Manhattan Plot", withSpinner(plotOutput(ns("manhattan_plot"), height = "500px"))),
+                 tabPanel("QQ Plot", withSpinner(plotOutput(ns("qq_plot"), height = "500px"))),
+                 tabPanel("BIC Table", withSpinner(DTOutput(ns("bic_table"))),style = "overflow-y: auto; height: 500px"),
                  tabPanel("QTL - significant markers",
-                          shinycssloaders::withSpinner(DTOutput(ns('gwas_stats'))),style = "overflow-y: auto; height: 500px")
+                          withSpinner(DTOutput(ns('gwas_stats'))),style = "overflow-y: auto; height: 500px")
                )
              )
       ),
@@ -95,17 +99,20 @@ mod_gwas_ui <- function(id){
 
 #' gwas Server Functions
 #'
+#' @importFrom DT renderDT
+#' @importFrom vcfR read.vcfR
+#' @import stats
 #' @noRd
 mod_gwas_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
     #Call some plots to NULL so that the spinners do not show before analysis
-    output$bic_plot <- DT::renderDT(NULL)
-    output$manhattan_plot <- DT::renderDT(NULL)
-    output$qq_plot <- DT::renderDT(NULL)
-    output$bic_table <- DT::renderDT(NULL)
-    output$gwas_stats <- DT::renderDT(NULL)
+    output$bic_plot <- renderDT(NULL)
+    output$manhattan_plot <- renderDT(NULL)
+    output$qq_plot <- renderDT(NULL)
+    output$bic_table <- renderDT(NULL)
+    output$gwas_stats <- renderDT(NULL)
 
     ##GWAS items
     gwas_vars <- reactiveValues(
@@ -176,8 +183,8 @@ mod_gwas_server <- function(id){
 
       #Geno.file conversion if needed
       if (grepl("\\.csv$", file_path)) {
-        data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
-                                        format="numeric", n.traits=length(traits), delim=",") #only need to change files here
+        data <- read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
+                              format="numeric", n.traits=length(traits), delim=",") #only need to change files here
 
       } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
         # Create a temporary file for the selected phenotype data
@@ -198,7 +205,7 @@ mod_gwas_server <- function(id){
         }
 
         #Convert VCF file if submitted
-        vcf <- vcfR::read.vcfR(input$gwas_file$datapath)
+        vcf <- read.vcfR(input$gwas_file$datapath)
 
         #Extract GT
         geno_mat <- extract.gt(vcf, element = "GT")
@@ -208,8 +215,8 @@ mod_gwas_server <- function(id){
         gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
         write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
 
-        data <- GWASpoly::read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=temp_geno_file,
-                                        format="numeric", n.traits=length(traits), delim=",")
+        data <- read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=temp_geno_file,
+                              format="numeric", n.traits=length(traits), delim=",")
         rm(geno_mat)
         rm(gpoly_df)
         rm(vcf)

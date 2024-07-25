@@ -6,7 +6,10 @@
 #'
 #' @noRd
 #'
+#' @importFrom AGHmatrix Gmatrix
+#' @importFrom shinycssloaders withSpinner
 #' @importFrom shiny NS tagList
+#'
 mod_PCA_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -81,9 +84,9 @@ mod_PCA_ui <- function(id){
              box(
                title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                bs4Dash::tabsetPanel(
-                 tabPanel("3D-Plot",shinycssloaders::withSpinner(plotlyOutput(ns("pca_plot"), height = '460px'))),
-                 tabPanel("2D-Plot", shinycssloaders::withSpinner(plotOutput(ns("pca_plot_ggplot"), height = '460px'))),
-                 tabPanel("Scree Plot", shinycssloaders::withSpinner(plotOutput(ns("scree_plot"), height = '460px')))) # Placeholder for plot outputs
+                 tabPanel("3D-Plot",withSpinner(plotlyOutput(ns("pca_plot"), height = '460px'))),
+                 tabPanel("2D-Plot", withSpinner(plotOutput(ns("pca_plot_ggplot"), height = '460px'))),
+                 tabPanel("Scree Plot", withSpinner(plotOutput(ns("scree_plot"), height = '460px')))) # Placeholder for plot outputs
              )
       ),
       column(width = 1)
@@ -92,6 +95,10 @@ mod_PCA_ui <- function(id){
 }
 
 #' PCA Server Functions
+#'
+#' @importFrom factoextra get_eigenvalue
+#' @import grDevices
+#' @importFrom plotly layout plotlyOutput renderPlotly
 #'
 #' @noRd
 mod_PCA_server <- function(id){
@@ -246,11 +253,11 @@ mod_PCA_server <- function(id){
 
       #Plotting
       #First build a relationship matrix using the genotype values
-      G.mat.updog <- AGHmatrix::Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
+      G.mat.updog <- Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
 
       #PCA
       prin_comp <- prcomp(G.mat.updog, scale = TRUE)
-      eig <- factoextra::get_eigenvalue(prin_comp)
+      eig <- get_eigenvalue(prin_comp)
       round(sum(eig$variance.percent[1:3]),1)
 
       ###Simple plots

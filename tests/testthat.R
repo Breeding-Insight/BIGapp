@@ -1,4 +1,4 @@
 library(testthat)
-library(BIG_app)
+library(BIGapp)
 
-test_check("BIG_app")
+test_check("BIGapp")

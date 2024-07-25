@@ -4,7 +4,7 @@
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#'
+#' @importFrom shinycssloaders withSpinner
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
@@ -100,8 +100,8 @@ mod_dapc_ui <- function(id){
                           )),
              bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                           bs4Dash::tabsetPanel(
-                            tabPanel("BIC Plot",shinycssloaders::withSpinner(plotOutput(ns("BIC_plot"), height = '460px'))),
-                            tabPanel("DAPC Plot", shinycssloaders::withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))),
+                            tabPanel("BIC Plot",withSpinner(plotOutput(ns("BIC_plot"), height = '460px'))),
+                            tabPanel("DAPC Plot", withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))),
                             tabPanel("STRUCTURE Plot", "Not yet supported"))
                           #tabPanel("STRUCTURE Plot", plotOutput("STRUCTURE_plot", height = '460px')))
              )
@@ -112,6 +112,10 @@ mod_dapc_ui <- function(id){
 }
 
 #' dapc Server Functions
+#' @import grDevices
+#' @importFrom methods new
+#' @import stats
+#' @importFrom graphics axis
 #'
 #' @noRd
 mod_dapc_server <- function(id){

@@ -8,6 +8,7 @@
 #'
 #' @importFrom shinyjs enable disable useShinyjs
 #' @importFrom shiny NS tagList
+#' @importFrom future availableCores
 #'
 #'
 mod_DosageCall_ui <- function(id){
@@ -39,10 +40,10 @@ mod_DosageCall_ui <- function(id){
                     with some mean and some standard deviation. Unlike the `bb` and `hw` options, this will
                     allow for distributions both more and less dispersed than a binomial. This seems to be the
                     most robust to violations in modeling assumptions, and so is the default. This prior class was
-                    developed in Gerard and Ferrão (2020).
+                    developed in Gerard and Ferrao (2020).
                     `hw` A binomial distribution that results from assuming that the population is in Hardy-Weinberg
                     equilibrium (HWE). This actually does pretty well even when there are minor to moderate
-                    deviations from HWE. Though it does not perform as well as the ‘norm‘ option when there
+                    deviations from HWE. Though it does not perform as well as the `norm` option when there
                     are severe deviations from HWE.
                     `bb` A beta-binomial distribution. This is an overdispersed version of `hw` and can be derived
                     from a special case of the Balding-Nichols model.

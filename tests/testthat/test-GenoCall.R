@@ -7,8 +7,8 @@ test_that("Dosage Calling",{
 
 
   # Run updog
-  #madc_file <- system.file("data/vcf_sample_out.vcf.gz", package = "BIGapp")
-  madc_file <- "inst/data/vcf_example_out.vcf.gz"
+  madc_file <- system.file("vcf_example_out.vcf.gz", package = "BIGapp")
+  #madc_file <- "inst/data/vcf_example_out.vcf.gz"
   ploidy <- 2
   model_select <- "norm"
   cores <- 2

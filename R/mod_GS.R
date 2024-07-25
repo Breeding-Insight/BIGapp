@@ -6,6 +6,8 @@
 #'
 #' @noRd
 #'
+#' @import utils
+#'
 #' @importFrom shiny NS tagList
 mod_GS_ui <- function(id){
   ns <- NS(id)
@@ -105,6 +107,7 @@ mod_GS_ui <- function(id){
 
 #' GS Server Functions
 #'
+#' @importFrom vcfR read.vcfR
 #' @noRd
 mod_GS_server <- function(id){
   moduleServer( id, function(input, output, session){
@@ -221,7 +224,7 @@ mod_GS_server <- function(id){
         }
 
         #Convert VCF file if submitted
-        vcf <- vcfR::read.vcfR(file_path)
+        vcf <- read.vcfR(file_path)
 
         #Extract GT
         geno <- extract.gt(vcf, element = "GT")

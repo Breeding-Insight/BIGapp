@@ -91,6 +91,9 @@ mod_diversity_ui <- function(id){
 
 #' diversity Server Functions
 #'
+#' @importFrom tibble rownames_to_column
+#' @importFrom graphics axis hist points
+#'
 #' @noRd
 mod_diversity_server <- function(id){
   moduleServer( id, function(input, output, session){
@@ -232,7 +235,7 @@ mod_diversity_server <- function(id){
 
         #Make the row names (SNP ID) the first column
         maf_df <- maf_df %>%
-          tibble::rownames_to_column(var = "SNP_ID")
+          rownames_to_column(var = "SNP_ID")
 
         return(maf_df)
       }

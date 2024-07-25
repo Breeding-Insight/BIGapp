@@ -5,10 +5,36 @@ Authors@R:
     person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
 Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+License: Apache License (== 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Imports: 
-    vcfR (>= 1.15.0)
+    vcfR (>= 1.15.0),
+    DT,
+    bs4Dash,
+    golem,
+    shiny,
+    shinyWidgets,
+    shinydisconnect,
+    shinyjs,
+    updog,
+    BIGr,
+    GWASpoly,
+    AGHmatrix,
+    factoextra,
+    future,
+    methods,
+    shinycssloaders,
+    tibble,
+    plotly,
+    rrBLUP,
+    MASS,
+    config
+Remotes:
+    github::jendelman/GWASpoly,
+    github::Breeding-Insight/BIGr,
+    bioc::release/VariantAnnotation,
+    bioc::release/SNPRelate
+Suggests:
+    testthat
