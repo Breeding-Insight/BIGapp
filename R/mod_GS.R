@@ -18,11 +18,8 @@ mod_GS_ui <- function(id){
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("pred_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                  fileInput(ns("trait_file"), "Choose Passport File", accept = ".csv"),
-                 #textInput("output_name", "Output File Name"),
                  numericInput(ns("pred_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  numericInput(ns("pred_cv"), "Iterations", min = 1, max=20, value = 5),
-                 #numericInput("pred_folds", "Folds", min = 5, max = 5, value = 5),
-                 #selectInput('pred_trait_info', label = 'Select Trait (eg, Color):', choices = NULL),
                  virtualSelectInput(
                    inputId = ns("pred_trait_info"),
                    label = "Select Trait (eg, Color):",
@@ -39,24 +36,15 @@ mod_GS_ui <- function(id){
                    search = TRUE,
                    multiple = TRUE
                  ),
-                 #sliderInput("pred_cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1, step = 1),
                  actionButton(ns("prediction_start"), "Run Analysis"),
-                 #downloadButton("download_pca", "Download All Files"),
-                 #plotOutput("pca_plot"), # Placeholder for plot outputs
-                 #checkboxGroupInput("files_to_download", "Select files to download:",
-                 #choices = c("PC1vPC2 plot", "PC2vPC3 plot"), selected = c("table1", "table2"))
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("GP Parameters"),
-                   #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
-                   #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
-                   #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                    "GP uses the rrBLUP package: It can impute missing data, maybe adapt to different ploidy, perform 5-fold cross validations with different number of itereations, define training size, run multiple traits, and accept multiple fixed effects.",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see info!")
-                 ))#,
-                 #style = "overflow-y: auto; height: 550px"
+                 ))
              )
       ),
 
@@ -66,7 +54,6 @@ mod_GS_ui <- function(id){
                bs4Dash::tabsetPanel(
                  tabPanel("Violin Plot", plotOutput(ns("pred_violin_plot"), height = "500px")),
                  tabPanel("Box Plot", plotOutput(ns("pred_box_plot"), height = "500px")),
-                 #tabPanel("All GEBVs Table", DTOutput("pred_all_table"), style = "overflow-y: auto; height: 500px"),
                  tabPanel("Accuracy Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px"),
                  tabPanel("GEBVs Table", DTOutput(ns("pred_gebvs_table")),style = "overflow-y: auto; height: 500px")
                )
@@ -79,9 +66,7 @@ mod_GS_ui <- function(id){
              box(title = "Status", width = 12, collapsible = TRUE, status = "info",
                  progressBar(id = ns("pb_prediction"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
              ),
-             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
-                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                  selectInput(ns("pred_color_select"), label = "Color Selection", choices = c("red","orange","yellow","green","blue","violet", "grey", "white")),
                  div(style="display:inline-block; float:left",dropdownButton(
                    tags$h3("Save Image"),
@@ -123,12 +108,8 @@ mod_GS_server <- function(id){
       info_df <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
       trait_var <- colnames(info_df)
       trait_var <- trait_var[2:length(trait_var)]
-      #updateSelectInput(session, "pred_trait_info", choices = c("All", trait_var))
       updateVirtualSelect("pred_fixed_info", choices = trait_var, session = session)
       updateVirtualSelect("pred_trait_info", choices = trait_var, session = session)
-
-      #output$passport_table <- renderDT({info_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 4)
-      #)
     })
 
     #2) Error check for prediction and save input files
@@ -157,8 +138,6 @@ mod_GS_server <- function(id){
     })
 
     observeEvent(input$prediction_start, {
-      #req(pred_inputs$pheno_input, pred_inputs$geno_input)
-
       #Status
       updateProgressBar(session = session, id = "pb_prediction", value = 5, title = "Checking input files")
 
@@ -190,7 +169,6 @@ mod_GS_server <- function(id){
           imageUrl = "",
           animation = TRUE,
         )
-
 
         # Stop the observeEvent gracefully
         return()
@@ -270,8 +248,6 @@ mod_GS_server <- function(id){
           confirmButtonText = "OK",
           confirmButtonCol = "#004192",
           showCancelButton = FALSE,
-          #closeOnConfirm = TRUE,
-          #closeOnCancel = TRUE,
           imageUrl = "",
           animation = TRUE
         )
@@ -337,12 +313,9 @@ mod_GS_server <- function(id){
           confirmButtonText = "OK",
           confirmButtonCol = "#004192",
           showCancelButton = FALSE,
-          #closeOnConfirm = TRUE,
-          #closeOnCancel = TRUE,
           imageUrl = "",
           animation = TRUE
         )
-
 
         # Stop the observeEvent gracefully
         #return()
@@ -364,8 +337,6 @@ mod_GS_server <- function(id){
         confirmButtonText = "Proceed",
         confirmButtonCol = "#004192",
         showCancelButton = TRUE,
-        #closeOnConfirm = TRUE,
-        #closeOnCancel = TRUE,
         imageUrl = "",
         animation = TRUE,
         callbackR = function(value) {
@@ -386,7 +357,6 @@ mod_GS_server <- function(id){
 
       #Save to reactive values
       pred_inputs$pheno_input <- pheno
-      #pred_inputs$geno_adj_input <- geno_adj
       pred_inputs$geno_input <- geno_adj
 
     })
@@ -434,7 +404,6 @@ mod_GS_server <- function(id){
         cycles <- as.numeric(Iters)
         Folds <- as.numeric(Fold)
         total_population <- ncol(geno)
-        #train_size <- floor(percentage / 100 * total_population)
         fixed_traits <- fixed_effects
         cores <- as.numeric(cores)
 
@@ -460,7 +429,6 @@ mod_GS_server <- function(id){
           #Subset fixed traits
           Fixed <- subset(Pheno, select = fixed_traits)
 
-          #Pheno <- subset(Pheno, select = -fixed_traits)
           convert_all_to_factor_if_not_numeric <- function(df) {
             for (col in names(df)) {
               if (!is.numeric(df[[col]]) && !is.integer(df[[col]])) {
@@ -508,11 +476,8 @@ mod_GS_server <- function(id){
           for (fold in 1:Folds) {
 
             #Status bar length
-            #pb_value = pb_value + floor(70 / as.numeric(cycles))
             pb_value = pb_value + (70 / as.numeric(cycles*Folds))
 
-            #train <- as.matrix(sample(1:nrow(geno), train_size))
-            #test <- setdiff(1:nrow(geno), train)
             train <- fold_df %>%
               filter(FoldID != fold) %>%
               pull(Sample)
@@ -525,14 +490,11 @@ mod_GS_server <- function(id){
               Fixed_train <- data.frame(Fixed[train, ])
               Fixed_train <- as.matrix(Fixed_train)
               row.names(Fixed_train) <- train
-              #colnames(Fixed_train) <- colnames(Fixed)
 
               #Fixed (testing)
               Fixed_test<- data.frame(Fixed[test, ])
               Fixed_test <- as.matrix(Fixed_test)
               row.names(Fixed_test) <- test
-              #colnames(Fixed_test) <- colnames(Fixed)
-
             }
 
             Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
@@ -561,12 +523,9 @@ mod_GS_server <- function(id){
               # Check if Fixed_train is not NULL and include beta if it is
               if (!is.null(Fixed_train) && !is.null(trait_answer$beta)) {
                 # Calculate GEBVs including fixed effects
-                #GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u + Fixed_train %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
-                #GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u + Fixed_test %*% matrix(trait_answer$beta, nrow = length(trait_answer$beta), ncol = 1)
                 GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u + Fixed_test %*% trait_answer$beta
               } else {
                 # Calculate GEBVs without fixed effects
-                #GEBVs_fold[, trait_idx] <- m_train %*% trait_answer$u
                 GEBVs_fold[, trait_idx] <- m_valid %*% trait_answer$u #Confirm it is accuract to calculate the GEBVs for testing group from the trained model
               }
 
@@ -618,9 +577,6 @@ mod_GS_server <- function(id){
       pred_outputs$corr_output <- results$PredictionAccuracy
       pred_outputs$all_GEBVs <- results$GEBVs
 
-      #TESTING!!!
-      #write.csv(results$GEBVs, "GEBVs_test.csv")
-
       # Convert trait columns to numeric
       results$GEBVs <- results$GEBVs %>%
         mutate(across(all_of(traits), ~ as.numeric(.x)))
@@ -631,10 +587,8 @@ mod_GS_server <- function(id){
         summarize(across(all_of(traits), mean, na.rm = TRUE))
 
       pred_outputs$avg_GEBVs <- average_gebvs_df
-      #write.csv(average_gebvs_df, "GEBVs_averaged_test.csv")
 
       #Get average accuracy and h2 for each iter accross the 5 folds
-
       columns <- setdiff(colnames(results$CombinedResults), c("Iter","Fold"))
       average_accuracy_df <- results$CombinedResults %>%
         group_by(Iter) %>%
@@ -672,15 +626,12 @@ mod_GS_server <- function(id){
 
       #This can be adapted if we start comparing more than one GP model
       #Also consider a violin plot to show each cor value
-      #plot <- ggplot(df_long, aes(x = factor(Trait), y = Correlation, fill = "red"), fill = "red") +
       plot <- ggplot(df_long, aes(x = "rrBLUP", y = Correlation, fill = "red"), fill = "red") +
-        #geom_boxplot(position = position_dodge(width = 0.8), color = "black", width = 0.7, outlier.size = 0.2) +
         geom_boxplot() +
         facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
         labs(title = "Predicton Accuracy by Trait",
              x = " ",
              y = "Pearson Correlation") +
-        #theme_minimal() +                      # Using a minimal theme
         theme(legend.position = "none",
               strip.text = element_text(size = 12),
               axis.text = element_text(size = 12),
@@ -790,7 +741,6 @@ mod_GS_server <- function(id){
         }
       },
       content = function(file) {
-        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
         req(input$pred_figures)
 
         if (input$pred_image_type == "jpeg") {

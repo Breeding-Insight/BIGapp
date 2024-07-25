@@ -13,10 +13,6 @@ get_counts <- function(madc_file, output_name) {
   filtered_df$AlleleID <- sub("\\|Ref.*", "|Ref", filtered_df$AlleleID)
   filtered_df$AlleleID <- sub("\\|Alt.*", "|Alt", filtered_df$AlleleID)
 
-  # Save the csv file for review and use in R
-  #df_name <- paste0(output_name,'_MADC_alt_ref_counts.csv')
-
-  #write.csv(filtered_df, file = df_name, row.names = FALSE)
   return(filtered_df)
 }
 

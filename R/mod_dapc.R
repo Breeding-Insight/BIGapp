@@ -19,9 +19,6 @@ mod_dapc_ui <- function(id){
                bs4Dash::tabsetPanel(
                  tabPanel("Step 1:(K)", width = 12,
                           fileInput(ns("dosage_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
-                          #fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
-                          #textInput("output_name", "Output File Name (disabled)"),
-                          #Dropdown will update after pasport upload
                           numericInput(ns("dapc_kmax"), "Maximum K", min = 1, value = 5),
                           numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = 2),
                           actionButton(ns("K_start"), "Run Analysis"),
@@ -33,13 +30,9 @@ mod_dapc_ui <- function(id){
                             icon = icon("info"), width = "300px",
                             tooltip = tooltipOptions(title = "Click to see info!")
                           )),
-                          #style = "overflow-y: auto; height: 420px"
                  ),
                  tabPanel("Step 2:(DAPC)", width = 12,
                           fileInput(ns("dosage_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
-                          #fileInput("passport_file", "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
-                          #textInput("output_name", "Output File Name (disabled)"),
-                          #Dropdown will update after pasport upload
                           numericInput(ns("dapc_k"), "Number of Clusters (K)", min = 1, value = NULL),
                           numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = 2),
                           actionButton(ns("dapc_start"), "Run Analysis"),
@@ -51,15 +44,12 @@ mod_dapc_ui <- function(id){
                             icon = icon("info"), width = "300px",
                             tooltip = tooltipOptions(title = "Click to see info!")
                           )),
-                          #style = "overflow-y: auto; height: 420px"
                  )
                )
-               #style = "overflow-y: auto; height: 420px"
              ),
              bs4Dash::box(
                title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
                "Change the plot parameters", br(),
-               #selectInput('group_info', label = 'Color Variable (eg, Taxon)', choices = NULL),
                selectInput(ns("color_choice"), "Color Palette", choices = c("YlOrRd","YlOrBr","YlGnBu","YlGn",
                                                                             "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
                                                                             "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
@@ -68,8 +58,6 @@ mod_dapc_ui <- function(id){
                                                                             "RdYlGn","RdYlBu","RdGy","RdBu","PuOr","PRGn",
                                                                             "PiYG","BrBG"), selected = "Paired"),
                materialSwitch(ns('plot_BICX'), label = "Label Suggested K?", status = "success", value = TRUE),
-               #selectInput("pc_X", "X-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC1"),
-               #selectInput("pc_Y", "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
                div(style="display:inline-block; float:right",
                    dropdownButton(
                      tags$h3("Save Output"),
@@ -96,14 +84,12 @@ mod_dapc_ui <- function(id){
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Values",DTOutput(ns('BIC_table'))),
                             tabPanel("DAPC Values", DTOutput(ns('DAPC_table'))) # Placeholder for plot outputs
-                            #style = "overflow-y: auto; height: 420px"
                           )),
              bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Plot",withSpinner(plotOutput(ns("BIC_plot"), height = '460px'))),
                             tabPanel("DAPC Plot", withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))),
                             tabPanel("STRUCTURE Plot", "Not yet supported"))
-                          #tabPanel("STRUCTURE Plot", plotOutput("STRUCTURE_plot", height = '460px')))
              )
       ),
       column(width = 1)
@@ -142,8 +128,6 @@ mod_dapc_server <- function(id){
 
       ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
 
-      #Import genotype data
-      #genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
 
@@ -237,8 +221,6 @@ mod_dapc_server <- function(id){
       ploidy <- as.numeric(input$dapc_ploidy)
       selected_K <- as.numeric(input$dapc_k)
 
-      #Import genotype data
-      #genotypeMatrix <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
 
@@ -305,7 +287,6 @@ mod_dapc_server <- function(id){
                       n.da = nInd(genlight_new)-1,
                       parallel = FALSE)
 
-        #xval <- xvalDapc(genind_obj, n.pca.max = 10, n.da = NULL) #xval does not accept NAs
         a.score <- optim.a.score(dapc1, plot = FALSE)
         n.pca <- a.score$best
 
@@ -442,8 +423,6 @@ mod_dapc_server <- function(id){
             plot(BIC, type = "o", xaxt = 'n')
             axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
           }
-          #} else if (input$pca_figure == "3D Plot") {
-          #print(all_plots$pca3d)  # Assuming you might want a 3D plot as well
         }
         dev.off()
       }

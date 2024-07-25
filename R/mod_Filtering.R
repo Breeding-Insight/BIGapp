@@ -35,9 +35,6 @@ mod_Filtering_ui <- function(id){
                  downloadButton(ns("start_updog_filter"), "Download Filtered VCF", icon = icon("download")),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Updog Filter Parameters"),
-                   #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
-                   #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
-                   #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                    "Add description of each filter. Presently, all filtering parameters that are typically used for processing
                     a VCF file from Updog dosage calling are included. If a VCF file does not contain these values, it will only be
                     filtered for read depth, missing data, and maf.",
@@ -54,18 +51,13 @@ mod_Filtering_ui <- function(id){
                     tabPanel("Bias Histogram", icon = icon("image"), plotOutput(ns("bias_hist"), height = '550px')),
                     tabPanel("OD Histogram", icon = icon("image"), plotOutput(ns("od_hist"), height = '550px')),
                     tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput(ns("maxpostprob_hist"), height = '550px')),
-                    #tabPanel("ReadDepth Histogram", icon = icon("image"), plotOutput("depth_hist", height = '550px'))
-                    #tabPanel("SNP Distribution Plot", icon = icon("image"), plotOutput("snp_dist", height = '550px')),
                     tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
                     tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
-                    #tabPanel("Summary Statistics", icon = icon("sliders"), tableOutput("dosages"))
-                    #plotOutput("coverage"), # Placeholder for plot outputs
              )
       ),
       column(width = 3,
              valueBoxOutput(ns("snp_retained_box"), width = NULL),
              valueBoxOutput(ns("snp_removed_box"), width = NULL),
-             #valueBox("0%","SNPs Removed", icon = icon("filter-circle-xmark"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,
                  sliderInput(ns("hist_bins"),"Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                  div(style="display:inline-block; float:left",dropdownButton(
@@ -266,7 +258,6 @@ mod_Filtering_server <- function(id){
         }
       },
       content = function(file) {
-        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
         req(input$image_type)
 
         if (input$image_type == "jpeg") {
@@ -512,28 +503,7 @@ mod_Filtering_server <- function(id){
       })
 
       ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
-
       quantile(as.numeric(new_df$DP), 0.95)
-      #Histogram
-      # output$depth_hist <- renderPlot({
-      #
-      #   hist(as.numeric(new_df$DP),
-      #        main = "Unfiltered SNP Total Read Depth Across All Samples",
-      #        xlab = "Total Read Depth per SNP",
-      #        ylab = "Genomic Sites",
-      #        col = "lightblue",
-      #        border = "black",
-      #        xlim = c(0,1000),
-      #        breaks = as.numeric(input$hist_bins))
-      #   axis(1, at = seq(0, 1000, by = 20), labels = rep("", length(seq(0, 1000, by = 20))))  # Add ticks
-      #   abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
-      #
-      #   # Add vertical lines
-      #   abline(v = mean(as.numeric(new_df$DP)), col = "red", lty = 2)  # Mean line
-      #   abline(v = median(as.numeric(new_df$DP)), col = "green", lty = 2)  # Median line
-      #   #abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
-      # })
-
     })
   })
 }

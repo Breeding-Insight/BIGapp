@@ -20,7 +20,6 @@ mod_PCA_ui <- function(id){
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
                fileInput(ns("dosage_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
-               #textInput("output_name", "Output File Name (disabled)"),
                #Dropdown will update after pasport upload
                numericInput(ns("pca_ploidy"), "Species Ploidy", min = 1, value = NULL),
                actionButton(ns("pca_start"), "Run Analysis"),
@@ -160,7 +159,6 @@ mod_PCA_server <- function(id){
 
       # Get inputs
       geno <- input$dosage_file$datapath
-      #pedigree_df <- input$passport_file$datapath
       g_info <- as.character(input$group_info)
       output_name <- input$output_name
       ploidy <- input$pca_ploidy
@@ -294,9 +292,6 @@ mod_PCA_server <- function(id){
       #Update global variable
       pca_dataframes <- pc_df_pop
 
-      #Output PC file for manoj
-      #write.csv(pc_df_pop, file = 'DAl22-7535_lightly_filtered_bias0.5-2_updog_2382_SNPs_MAF_0.05_PCA_metadata.csv')
-
       # Generate a distinct color palette if g_info is provided
       if (!is.null(g_info) && g_info != "") {
         unique_countries <- unique(pc_df_pop[[g_info]])
@@ -425,7 +420,6 @@ mod_PCA_server <- function(id){
 
       #Generate colors
       unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-      #my_palette <- randomcoloR::distinctColorPalette(length(unique_countries))
       palette <- brewer.pal(length(unique_countries),input$color_choice)
       my_palette <- colorRampPalette(palette)(length(unique_countries))
 
@@ -495,7 +489,6 @@ mod_PCA_server <- function(id){
         }
       },
       content = function(file) {
-        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
         req(input$pca_figure)
 
         if (input$pca_image_type == "jpeg") {
@@ -511,8 +504,6 @@ mod_PCA_server <- function(id){
           print(all_plots$pca_2d)
         } else if (input$pca_figure == "Scree Plot") {
           print(all_plots$pca_scree)
-          #} else if (input$pca_figure == "3D Plot") {
-          #print(all_plots$pca3d)  # Assuming you might want a 3D plot as well
         } else {
           plot(x = 1:10, y = 1:10, main = "Fallback Simple Test Plot")  # Fallback simple test plot
         }

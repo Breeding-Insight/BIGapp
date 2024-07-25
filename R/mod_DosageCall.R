@@ -19,10 +19,7 @@ mod_DosageCall_ui <- function(id){
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
           fileInput(ns("madc_file"), "Choose MADC or VCF File", accept = c(".csv",".vcf",".gz")),
-          #checkboxInput("off-targets","Include off-target loci?"),
-          #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
           textInput(ns("output_name"), "Output File Name"),
-          #selectInput("markers", "Select Markers", choices = c("All Loci (not supported)", "Target Loci Only"), selected = "Target Loci Only"),
           numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
           selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
           numericInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
@@ -63,7 +60,6 @@ mod_DosageCall_ui <- function(id){
           ))
         ),
         valueBoxOutput(ns("MADCsnps"))
-        #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
       ),
 
       fluidRow(
@@ -100,12 +96,10 @@ mod_DosageCall_server <- function(id){
       if(!is.null(input$ploidy) & !is.null(input$output_name)){
         # Get inputs
         madc_file <- input$madc_file$datapath
-        #sample_file <- input$sample_file$datapath
         output_name <- input$output_name
         ploidy <- input$ploidy
         cores <- input$cores
         model_select <- input$updog_model
-        #marker_set <- (input$markers == "Target Loci Only")
 
         # Status
         updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
@@ -208,26 +202,6 @@ mod_DosageCall_server <- function(id){
         paste0(input$output_name, ".vcf")
       },
       content = function(file) {
-        #Get genotype matrix of dosage calls
-        #genomat <- format_multidog(mout, varname = "geno")
-        #Save the matrix as a csv file
-        #updog_file <- paste0(output_name,'_MADC_alt_ref_counts_unfiltered_dose_from_updog_norm_genotype_matrix.csv')
-        #write.csv(genomat,file=updog_file)
-
-        #Filter dosage calls (I think this is the updog recommended)
-        #mout_cleaned <- filter_snp(mout, prop_mis < 0.2 & bias > 0.5 & bias < 2 & od > 0.05) #Recommended filtering by updog
-
-        #Save the filtered dosage matrix
-        #genomat_cleaned <- format_multidog(mout_cleaned, varname = "geno")
-        #head(genomat_cleaned)
-
-        #cleaned_name <- paste0(output_name,'_MADC_alt_ref_counts_filtered_prop_miss_0.2_bias_0.5-2_updog_norm_model_dosage_genotype_matrix.csv')
-        #Save the matrix as a csv file
-        #write.csv(genomat_cleaned,file= cleaned_name)
-
-        #Save rda file for filtering
-        #save(mout, result_df, file = paste0(output_name,"_MADC_unfiltered_dose_from_updog.rda"))
-
         #Save Updog output as VCF file
         temp <- tempfile()
         updog2vcf(
@@ -241,22 +215,6 @@ mod_DosageCall_server <- function(id){
 
         # Delete the temporary file
         unlink(temp)
-
-        #Reactive item
-        #output$table2 <- renderTable({
-        # Generate table
-        #  genomat_cleaned
-        #})
-
-        # Display analysis result
-        #output$analysis_result <- renderText({
-        #  "result" #Can add a variable to print text or figures
-        #})
-
-        # Update reactive values with generated figures and tables
-        #figures$plot1 <- heatmap(G.mat.updog, labCol = NA)# Your plot object
-        #tables$table1 <- result_df# Your table object
-        #tables$table2 <- genomat_cleaned
       })
   })
 }

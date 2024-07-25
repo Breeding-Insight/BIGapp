@@ -15,28 +15,17 @@ mod_diversity_ui <- function(id){
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("diversity_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
-                 #fileInput("pop_file", "Choose Passport File"),
-                 #textInput("output_name", "Output File Name"),
                  numericInput(ns("diversity_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  selectInput(ns("zero_value"), "What are the Dosage Calls?", choices = c("Reference Allele Counts", "Alternate Allele Counts"), selected = NULL),
-                 #numericInput("cores", "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
                  actionButton(ns("diversity_start"), "Run Analysis"),
-                 #downloadButton("download_pca", "Download All Files"),
-                 #plotOutput("pca_plot"), # Placeholder for plot outputs
-                 #checkboxGroupInput("files_to_download", "Select files to download:",
-                 #choices = c("PC1vPC2 plot", "PC2vPC3 plot"), selected = c("table1", "table2"))
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Diversity Parameters"),
-                   #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
-                   #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
-                   #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                    "Add description of each filter",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see info!")
-                 ))#,
-                 #style = "overflow-y: auto; height: 550px"
+                 ))
              ),
              box(title = "Plot Controls", width=12, status = "warning", solidHeader = TRUE, collapsible = TRUE,
                  sliderInput(ns("hist_bins"),"Histogram Bins", min = 1, max = 200, value = c(20), step = 1),
@@ -74,16 +63,11 @@ mod_diversity_ui <- function(id){
              )
       ),
       column(width = 3,
-             #valueBoxOutput("snps"),
              valueBoxOutput(ns("mean_het_box"), width = NULL),
              valueBoxOutput(ns("mean_maf_box"), width = NULL),
              box(title = "Status", width = 12, collapsible = TRUE, status = "info",
                  progressBar(id = ns("pb_diversity"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
              )
-             #valueBoxOutput("mean_pic_box", width = NULL),
-             #valueBox(0,"Mean Heterozygosity", icon = icon("dna"), width = NULL, color = "info"),
-             #valueBox(0,"Mean Minor-Allele-Frequency", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
-             #valueBox(0,"Mean PIC", icon = icon("dna"), width = NULL, color = "info")
       )
     )
   )
@@ -134,8 +118,6 @@ mod_diversity_server <- function(id){
       #Input variables (need to add support for VCF file)
       ploidy <- as.numeric(input$diversity_ploidy)
       geno <- input$diversity_file$datapath
-      #geno_mat <- read.csv(input$diversity_file$datapath, header = TRUE, check.names = FALSE, row.names = 1)
-      #pheno <- read.csv(input$pop_file$datapath, header = TRUE, check.names = FALSE)
 
       #Status
       updateProgressBar(session = session, id = "pb_diversity", value = 20, title = "Importing VCF")
@@ -184,11 +166,6 @@ mod_diversity_server <- function(id){
         rm(vcf) #Remove VCF
       }
 
-      #} else {
-      #Import genotype matrix
-      # geno_mat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
-      #}
-
       print(class(geno_mat))
       #Convert genotypes to alternate counts if they are the reference allele counts
       #Importantly, the dosage plot is based on the input format NOT the converted genotypes
@@ -218,7 +195,6 @@ mod_diversity_server <- function(id){
         allele_frequencies <- apply(df, 1, function(row) {
           non_na_count <- sum(!is.na(row))
           allele_sum <- sum(row, na.rm = TRUE)
-          #print(paste("Non-NA count:", non_na_count, "Allele sum:", allele_sum))
           if (non_na_count > 0) {
             allele_sum / (ploidy * non_na_count)
           } else {
@@ -245,7 +221,6 @@ mod_diversity_server <- function(id){
         apply(matrix_data, 2, function(col) {
           counts <- table(col)
           prop <- prop.table(counts) * 100
-          #max_val <- max(as.numeric(names(counts)))  # Find the maximum value in the column
           prop[as.character(0:ploidy)]  # Adjust the range based on the max value (consider entering the ploidy value explicitly for max_val)
         })
       }
@@ -332,18 +307,15 @@ mod_diversity_server <- function(id){
       req(diversity_items$dosage_df)
 
       #Plotting
-      #pdf("alfalfa_11_GBS_and_Realignment_doubletons_filtered_dosages.pdf")
       box <- ggplot(diversity_items$dosage_df, aes(x=Dosage, y=Percentage, fill=Data)) +
         #geom_point(aes(color = Data), position = position_dodge(width = 0.8), width = 0.2, alpha = 0.5) +  # Add jittered points
         geom_boxplot(position = position_dodge(width = 0.8), alpha = 0.9) +
         labs(x = "\nDosage", y = "Percentage\n", title = "Genotype Distribution by Sample") +
-        #scale_fill_manual(values = c("GBS loci" = "tan3", "DArTag Realignment loci" = "beige")) +
         theme_bw() +
         theme(
           axis.text = element_text(size = 14),
           axis.title = element_text(size = 14)
         )
-      #dev.off()
 
       diversity_items$box_plot <- box
     })
@@ -358,18 +330,12 @@ mod_diversity_server <- function(id){
       req(diversity_items$het_df, input$hist_bins)
 
       #Plot
-      #pdf("meng_filtered_alfalfa_11_GBS_DArTag_no_doubletons_sample_heterozygosity.pdf")
       hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
            xlab = "Observed Heterozygosity",
            ylab = "Number of Samples",
            main = "Sample Observed Heterozygosity")
 
       axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
-
-      #legend("topright", legend = c("GBS", "DArTag Realignment"),
-      #     fill = c("tan3", "beige"),
-      #     border = c("black", "black"))
-      #dev.off()
 
     })
 
@@ -414,7 +380,6 @@ mod_diversity_server <- function(id){
         }
       },
       content = function(file) {
-        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
         req(input$div_figure)
 
         if (input$div_image_type == "jpeg") {
