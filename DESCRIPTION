@@ -9,6 +9,7 @@ License: Apache License (== 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+biocViews:
 Imports: 
     vcfR (>= 1.15.0),
     DT,
@@ -33,8 +34,6 @@ Imports:
     config
 Remotes:
     github::jendelman/GWASpoly,
-    github::Breeding-Insight/BIGr,
-    bioc::release/VariantAnnotation,
-    bioc::release/SNPRelate
+    github::Breeding-Insight/BIGr
 Suggests:
     testthat
