@@ -1,7 +1,7 @@
 
 #' Describe functin
 #'
-#'@importFrom graphics box curve legend mtext par polygon rect segments strheight strwidth text title
+#'@importFrom graphics curve legend mtext par polygon rect segments strheight strwidth text title
 #'
 #' @param Pmap describe documentation
 #' @param col describe documentation
