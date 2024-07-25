@@ -20,7 +20,6 @@ mod_gwas_ui <- function(id){
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("gwas_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
                  fileInput(ns("phenotype_file"), "Choose Phenotype File", accept = ".csv"),
-                 #textInput("output_name", "Output File Name"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
                  selectInput(ns('trait_info'), label = 'Select Trait (eg, Color):', choices = NULL),
@@ -34,22 +33,14 @@ mod_gwas_ui <- function(id){
                  ),
                  sliderInput(ns("cores"), "Number of CPU Cores", min = 1, max = (availableCores() - 1), value = 1, step = 1),
                  actionButton(ns("gwas_start"), "Run Analysis"),
-                 #downloadButton("download_pca", "Download All Files"),
-                 #plotOutput("pca_plot"), # Placeholder for plot outputs
-                 #checkboxGroupInput("files_to_download", "Select files to download:",
-                 #choices = c("PC1vPC2 plot", "PC2vPC3 plot"), selected = c("table1", "table2"))
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("GWAS Parameters"),
-                   #selectInput(inputId = 'xcol', label = 'X Variable', choices = names(iris)),
-                   #selectInput(inputId = 'ycol', label = 'Y Variable', choices = names(iris), selected = names(iris)[[2]]),
-                   #sliderInput(inputId = 'clusters', label = 'Cluster count', value = 3, min = 1, max = 9),
                    "Add description of each filter",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see info!")
-                 ))#,
-                 #style = "overflow-y: auto; height: 550px"
+                 ))
              )
       ),
       column(width = 6,
@@ -66,13 +57,11 @@ mod_gwas_ui <- function(id){
              )
       ),
       column(width = 3,
-             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
              valueBoxOutput(ns("qtls_detected"), width = NULL),
              box(title = "Status", width = 12, collapsible = TRUE, status = "info",
                  progressBar(id = ns("pb_gwas"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
              ),
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
-                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                  selectInput(ns("model_select"), label = "Model Selection", choices = c("all","1-dom","2-dom","additive","general","diplo-general","diplo-additive")),
                  div(style="display:inline-block; float:left",dropdownButton(
                    tags$h3("Save Image"),
@@ -138,18 +127,11 @@ mod_gwas_server <- function(id){
       trait_var <- trait_var[2:length(trait_var)]
       updateSelectInput(session, "trait_info", choices = c("All", trait_var))
       updateVirtualSelect("fixed_info", choices = trait_var, session = session)
-
-      #output$passport_table <- renderDT({info_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 4)
-      #)
     })
 
     #GWAS analysis (Shufen Chen and Meng Lin pipelines)
     observeEvent(input$gwas_start, {
-
-      #pheno_file <- read.csv(input$pheno_file$datapath)
-      #geno_file <- read.csv(input$genotype_file$datapath)
       cores <- input$cores
-
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 0, title = "Uploading Data")
 
@@ -169,7 +151,6 @@ mod_gwas_server <- function(id){
       temp_pheno_file <- tempfile(fileext = ".csv")
 
       #Save new phenotype file with selected traits and fixed effects
-      #write.csv(phenotype_file, file = "phenotypes_selected_traits.csv", row.names = FALSE)
       write.csv(phenotype_file, file = temp_pheno_file, row.names = FALSE)
 
       #Remove the phenotype_file from memory
@@ -315,18 +296,12 @@ mod_gwas_server <- function(id){
         plotBICs$n.PC<-factor(plotBICs$n.PC,levels=c("0","1","2","3","4","5",
                                                      "6","7","8","9","10"))
         plotBICs_kinship <- subset(plotBICs,plotBICs$RelationshipMatrix =="w/Kinship")
-        #write.table(plotBICs_kinship,paste(colnames(GE)[i],"_model_selection_BIC.txt",sep=""),row.names=F,sep="\t",quote=F)
-
         output$bic_table <- renderDT({plotBICs_kinship}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5)
         )
-
-        #setwd("~/Desktop/Alfalfa_GWAS/GWAS by year/ModelSel") #change directory in your case
-        #pdf(paste(colnames(GE)[i],"_model_selection_BIC.pdf",sep=""),height=4,width=7)
 
         p1<-ggplot(plotBICs_kinship, aes(x=n.PC, y=BIC,group=RelationshipMatrix)) +
           geom_line(color="grey")+
           geom_point(shape=21, color="black", fill="#d95f0e", size=3)+
-          #geom_point(aes(shape=ISTL1_intro,size=2))+
           theme(text=element_text(size=15),axis.text.x = element_text(angle =0),
                 panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
                 panel.background = element_blank(), axis.line = element_line(colour = "black"))+
@@ -363,10 +338,7 @@ mod_gwas_server <- function(id){
         manhattan_plot_list <- list()
 
         #plot for six models per trait
-        #png(file=paste("Manplot_",colnames(data@pheno[i]),".png",sep=""),width=800, height=550) #change directory in your case
         manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
-        #print(p1)
-        #dev.off()
 
         #Output the manhattan plots
         output$manhattan_plot <- renderPlot({
@@ -378,7 +350,6 @@ mod_gwas_server <- function(id){
 
         #get most significant SNPs per QTL file
         qtl <- get.QTL(data=data2,traits=colnames(data@pheno[i]),bp.window=5e6)
-        #knitr::kable(qtl)
         qtl_d <- data.frame(qtl)
 
         #Save QTL info
@@ -386,7 +357,6 @@ mod_gwas_server <- function(id){
 
         output$gwas_stats <-  renderDT({qtl_d}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
-        #write.csv(qtl_d,file = paste("GWAS_by_year_SNP_",colnames(data@pheno[i]),"_SNP",".csv",sep=""))#change directory in your case
         #Updating value boxes
         output$qtls_detected <- renderValueBox({
           valueBox(
@@ -411,8 +381,6 @@ mod_gwas_server <- function(id){
         output$qq_plot <- renderPlot({
           CMplot_shiny(data_qq,plot.type="q",col=c(1:8),
                        ylab.pos=2,
-                       #threshold= 10^(-4.54042),
-                       #signal.cex=1.2,signal.col="red",signal.pch=c(1:8),
                        file.name=colnames(data@pheno[i]),
                        conf.int=FALSE,
                        box=F,multraits=TRUE,file.output=FALSE)
@@ -426,10 +394,7 @@ mod_gwas_server <- function(id){
                                        traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))
 
           data3 <- set.threshold(data.loco.scan_2,method="M.eff",level=0.05)
-          #png(file=paste("GWAS_by_year_Manplot_",colnames(data@pheno[i]),model[j],".png",sep=""),width=800, height=550)#change directory in your case
           manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
-          #print(p2)
-          #dev.off()
         }
 
         #Save manhattan plots
@@ -490,7 +455,6 @@ mod_gwas_server <- function(id){
         }
       },
       content = function(file) {
-        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
         req(input$gwas_figures)
 
         if (input$gwas_image_type == "jpeg") {
@@ -519,9 +483,6 @@ mod_gwas_server <- function(id){
           #Plot
           CMplot_shiny(gwas_vars$qq_plots,plot.type="q",col=c(1:8),
                        ylab.pos=2,
-                       #threshold= 10^(-4.54042),
-                       #signal.cex=1.2,signal.col="red",signal.pch=c(1:8),
-                       #file.name=colnames(data@pheno[i]),
                        conf.int=FALSE,
                        box=F,multraits=TRUE,file.output=FALSE)
 

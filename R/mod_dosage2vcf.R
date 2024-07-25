@@ -16,8 +16,6 @@ mod_dosage2vcf_ui <- function(id){
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
           fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
           fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
-          #checkboxInput("off-targets","Include off-target loci?"),
-          #fileInput("sample_file", "Optional: Choose Sample List (disabled)", accept = c(".csv")),
           textInput(ns("d2v_output_name"), "Output File Name"),
           numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
           downloadButton(ns("download_d2vcf"), "Download VCF File"),
@@ -33,7 +31,6 @@ mod_dosage2vcf_ui <- function(id){
           ))
         ),
         valueBoxOutput(ns("ReportSnps"))
-        #valueBox("Help","Updog Manual", icon = icon("globe"), color = "warning")
       ),
       fluidRow(
         box(title = "Status", width = 3, collapsible = TRUE, status = "info",

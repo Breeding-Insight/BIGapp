@@ -62,7 +62,6 @@ CalcBIC <- function(y, PC, K) {
    # ----- BIC with K ----- #
    # fit model by using mixed.solve function
    LL.vec <- rep(NA, n.max.pc + 1)
-  # names(LL.vec) <- paste0("PC", 0:n.max.pc)
    names(LL.vec) <- paste0(0:n.max.pc)
    for ( k in 0:n.max.pc ) {
       if ( k == 0 ) { X.matrix <- NULL }
@@ -89,7 +88,6 @@ CalcBIC <- function(y, PC, K) {
 
    # ----- BIC without K ----- #
    LL.vec.woK <- rep(NA, n.max.pc + 1)
-   #names(LL.vec.woK) <- paste0("PC", 0:n.max.pc)
    names(LL.vec.woK) <- paste0(0:n.max.pc)
    for ( k in 0:n.max.pc ) {
       if ( k == 0 ) {
