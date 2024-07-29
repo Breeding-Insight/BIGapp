@@ -8,7 +8,11 @@
 #'
 #' @import utils
 #'
+#'
+#' @importFrom bs4Dash valueBox
 #' @importFrom shiny NS tagList
+#'
+#'
 mod_GS_ui <- function(id){
   ns <- NS(id)
   tagList(
