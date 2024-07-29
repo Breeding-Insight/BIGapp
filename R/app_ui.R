@@ -3,7 +3,7 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @importFrom bs4Dash bs4Badge bs4DashSidebar bs4DashNavbar
+#' @import bs4Dash bs4Badge bs4DashSidebar bs4DashNavbar bs4DashPage sidebarMenu menuItem menuSubItem
 #' @importFrom shinydisconnect disconnectMessage
 #' @import shinyWidgets
 #'
