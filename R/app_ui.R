@@ -3,7 +3,7 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @import bs4Dash bs4Badge bs4DashSidebar bs4DashNavbar bs4DashPage sidebarMenu menuItem menuSubItem
+#' @importFrom bs4Dash bs4Badge bs4DashSidebar bs4DashNavbar bs4DashPage sidebarMenu menuItem menuSubItem dashboardBody tabItems tabItem box
 #' @importFrom shinydisconnect disconnectMessage
 #' @import shinyWidgets
 #'
@@ -17,7 +17,6 @@ app_ui <- function(request) {
       skin = "black",
       bs4DashNavbar(title = tagList(
         tags$img(src = 'www/BIG_R_logo.png', height = '40', width = '50'),
-        tags$span("Breeding Insight Genomics", style = "font-size: 12px; margin-left: 1px;")
       )
       ),
       bs4DashSidebar(

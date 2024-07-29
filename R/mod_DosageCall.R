@@ -9,6 +9,7 @@
 #' @importFrom shinyjs enable disable useShinyjs
 #' @importFrom shiny NS tagList
 #' @importFrom future availableCores
+#' @importFrom bs4Dash renderValueBox
 #'
 #'
 mod_DosageCall_ui <- function(id){

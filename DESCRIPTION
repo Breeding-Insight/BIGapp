@@ -14,7 +14,6 @@ Imports:
     vcfR (>= 1.15.0),
     DT,
     bs4Dash,
-    bs4Badge,
     golem,
     shiny,
     shinyWidgets,
