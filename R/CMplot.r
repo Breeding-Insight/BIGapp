@@ -1,3 +1,81 @@
+
+#' Describe functin
+#'
+#'@importFrom graphics curve legend mtext par polygon rect segments strheight strwidth text title
+#'
+#' @param Pmap describe documentation
+#' @param col describe documentation
+#' @param bin.size describe documentation
+#' @param bin.breaks describe documentation
+#' @param LOG10 describe documentation
+#' @param pch describe documentation
+#' @param type describe documentation
+#' @param band describe documentation
+#' @param H describe documentation
+#' @param ylim describe documentation
+#' @param axis.cex describe documentation
+#' @param axis.lwd describe documentation
+#' @param lab.cex describe documentation
+#' @param lab.font describe documentation
+#' @param plot.type describe documentation
+#' @param multracks describe documentation
+#' @param multracks.xaxis describe documentation
+#' @param multraits describe documentation
+#' @param points.alpha describe documentation
+#' @param r describe documentation
+#' @param cex describe documentation
+#' @param outward describe documentation
+#' @param ylab describe documentation
+#' @param ylab.pos describe documentation
+#' @param xticks.pos describe documentation
+#' @param mar describe documentation
+#' @param mar.between describe documentation
+#' @param threshold describe documentation
+#' @param threshold.col describe documentation
+#' @param threshold.lwd describe documentation
+#' @param threshold.lty describe documentation
+#' @param amplify describe documentation
+#' @param signal.cex describe documentation
+#' @param signal.pch describe documentation
+#' @param signal.col describe documentation
+#' @param signal.line describe documentation
+#' @param highlight describe documentation
+#' @param highlight.cex describe documentation
+#' @param highlight.pch describe documentation
+#' @param highlight.type describe documentation
+#' @param highlight.col describe documentation
+#' @param highlight.text describe documentation
+#' @param highlight.text.col describe documentation
+#' @param highlight.text.cex describe documentation
+#' @param highlight.text.font describe documentation
+#' @param chr.labels describe documentation
+#' @param chr.border describe documentation
+#' @param chr.labels.angle describe documentation
+#' @param chr.den.col describe documentation
+#' @param chr.pos.max describe documentation
+#' @param cir.band describe documentation
+#' @param cir.chr describe documentation
+#' @param cir.chr.h describe documentation
+#' @param cir.axis describe documentation
+#' @param cir.axis.col describe documentation
+#' @param cir.axis.grid describe documentation
+#' @param conf.int describe documentation
+#' @param conf.int.col describe documentation
+#' @param file.output describe documentation
+#' @param file.name describe documentation
+#' @param file describe documentation
+#' @param dpi describe documentation
+#' @param height describe documentation
+#' @param width describe documentation
+#' @param main describe documentation
+#' @param main.cex describe documentation
+#' @param main.font describe documentation
+#' @param legend.ncol describe documentation
+#' @param legend.cex describe documentation
+#' @param legend.pos describe documentation
+#' @param box describe documentation
+#' @param verbose describe documentation
+#'
 CMplot_shiny <- function(
     Pmap,
     col=c("#4197d8", "#f8c120", "#413496", "#495226", "#d60b6f", "#e66519", "#d581b7", "#83d3ad", "#7c162c", "#26755d"),
@@ -26,7 +104,7 @@ CMplot_shiny <- function(
     xticks.pos=1,
     mar=c(3,6,3,3),
     mar.between=0,
-    threshold=NULL, 
+    threshold=NULL,
     threshold.col="red",
     threshold.lwd=1,
     threshold.lty=2,
@@ -72,7 +150,7 @@ CMplot_shiny <- function(
     box=FALSE,
     verbose=TRUE
 )
-{   
+{
 
     #plot a circle with a radius of r
     circle.plot <- function(myr,type="l",x=NULL,lty=1,lwd=1,col="black",add=TRUE,n.point=1000)
@@ -121,7 +199,7 @@ CMplot_shiny <- function(
             }
             return(FALSE)
         }
-    
+
         layout <- function(x, y, words, cex=1, xlim=c(-Inf, Inf), ylim=c(-Inf, Inf), tstep = .1, rstep = .1) {
             sdx <- sd(x, na.rm=TRUE)
             sdy <- sd(y, na.rm=TRUE)
@@ -176,7 +254,7 @@ CMplot_shiny <- function(
             if(length(point.col)!=1){if(length(point.col)==length(x)){point.col=point.col[indx]}else{stop("unequal length of 'col' for highlighted points.")}}else{point.col=rep(point.col,length(x))}
             if(length(text.col)!=1){if(length(text.col)==length(x)){text.col=text.col[indx]}else{stop("unequal length of 'col' for highlighted text.")}}else{text.col=rep(text.col,length(x))}
             if(length(text.cex)!=1){if(length(text.cex)==length(x)){text.cex=text.cex[indx]}else{stop("unequal length of 'cex' for highlighted text.")}}else{text.cex=rep(text.cex,length(x))}
-            
+
             words_ety <- words[words == "" | is.na(words)]
             if(length(words_ety)){
                 logical_idx <- words == "" | is.na(words)
@@ -262,7 +340,6 @@ CMplot_shiny <- function(
                 }else if((ny - strheight(words[i],cex=text.cex[i-n])) > y1[i-n]){
                     ny=ny - 0.5 * strheight(words[i],cex=text.cex[i-n])
                 }
-                # arrows(x1[i-n], y1[i-n], nx, ny, length=.08, angle=15, code=2, col="grey", lwd=2)
                 segments(x1[i-n], y1[i-n], nx, ny, col="black", lwd=text.cex[i-n])
             }
             if(type=="h"){
@@ -270,7 +347,6 @@ CMplot_shiny <- function(
                 points(x1,y1,pch=pch,type="p",col=point.col, cex=point.cex)
             }else if(type=="l"){
                 segments(x1, ylim[1], x1, ylim[2], col=point.col, lwd=point.cex, lty=2)
-                # points(x1,y1,pch=pch,type="p",col=point.col, cex=point.cex)
             }else{
                 points(x1,y1,pch=pch,type=type,col=point.col,cex=point.cex)
             }
@@ -281,7 +357,6 @@ CMplot_shiny <- function(
                 points(x,y,pch=pch,type="p",col=point.col, cex=point.cex)
             }else if(type=="l"){
                 segments(x, ylim[1], x, ylim[2], col=point.col, lwd=point.cex, lty=2)
-                # points(x,y,pch=pch,type="p",col=point.col, cex=point.cex)
             }else{
                 points(x,y,pch=pch,type=type,col=point.col,cex=point.cex)
             }
@@ -341,7 +416,7 @@ CMplot_shiny <- function(
         main=NULL,
         main.cex=1.2,
         main.font=2,
-        chr.labels=NULL, 
+        chr.labels=NULL,
         chr.pos.max=FALSE,
         bin=1e6,
         bin.breaks=NULL,
@@ -427,8 +502,8 @@ CMplot_shiny <- function(
         col.seg=NULL
         for(i in 1 : length(chr.num)){
             if(plot){
-                polygon(c(0, 0, chr.pos.max.v[i], chr.pos.max.v[i]), 
-                c(-width/5 - band * (i - length(chr.num) - 1), width/5 - band * (i - length(chr.num) - 1), 
+                polygon(c(0, 0, chr.pos.max.v[i], chr.pos.max.v[i]),
+                c(-width/5 - band * (i - length(chr.num) - 1), width/5 - band * (i - length(chr.num) - 1),
                 width/5 - band * (i - length(chr.num) - 1), -width/5 - band * (i - length(chr.num) - 1)), col="grey95", border="grey95")
                 rect(xleft=0, ybottom = -width/5 - band * (i - length(chr.num) - 1), xright=chr.pos.max.v[i], ytop=width/5 - band * (i - length(chr.num) - 1), border="grey80")
             }
@@ -441,14 +516,14 @@ CMplot_shiny <- function(
             if(!plot)   col.seg <- c(col.seg, col[col.index[[i]] - legend.min + 1])
             if(!is.null(ht) && !is.null(wh) && !is.null(dpi)){
                 is_visable <-  filter.points(pos.x[[i]], -width/5 - band * (i - length(chr.num) - 1), wh * (max(pos.x[[i]])/chorm.maxlen), ht, dpi=dpi)
-                if(plot)    segments(pos.x[[i]][is_visable], -width/5 - band * (i - length(chr.num) - 1), pos.x[[i]][is_visable], width/5 - band * (i - length(chr.num) - 1), 
+                if(plot)    segments(pos.x[[i]][is_visable], -width/5 - band * (i - length(chr.num) - 1), pos.x[[i]][is_visable], width/5 - band * (i - length(chr.num) - 1),
                                 col=col[col.index[[i]][is_visable] - legend.min + 1], lwd=1)
             }else{
-                if(plot)    segments(pos.x[[i]], -width/5 - band * (i - length(chr.num) - 1), pos.x[[i]], width/5 - band * (i - length(chr.num) - 1), 
+                if(plot)    segments(pos.x[[i]], -width/5 - band * (i - length(chr.num) - 1), pos.x[[i]], width/5 - band * (i - length(chr.num) - 1),
                                 col=col[col.index[[i]] - legend.min + 1], lwd=1)
             }
         }
-        
+
         chr.num <- rev(chr.orig.labels)
         if(plot){
             if(!is.null(chr.labels)){
@@ -460,13 +535,13 @@ CMplot_shiny <- function(
         }
         if(plot){
             xticks=seq(0, chorm.maxlen / bp, length=10)
-            
+
             if(round(xticks[2]) <= 10){
                 xticks=seq(0, chorm.maxlen / bp, round(xticks[2], 1))
             }else{
-                xticks=seq(0, chorm.maxlen / bp, round(xticks[2]))    
+                xticks=seq(0, chorm.maxlen / bp, round(xticks[2]))
             }
-            
+
             if((chorm.maxlen/bp - max(xticks)) > 0.5*xticks[2]){
                 xticks=c(xticks, round(chorm.maxlen / bp))
             }
@@ -484,7 +559,7 @@ CMplot_shiny <- function(
         }else{
             legend.y <- bin.breaks
         }
-        
+
         if(!is.null(bin.breaks)){
             if(legend.max < Maxbin.num){
                 legend.y[length(legend.y)] <- paste(">=", maxbin.num, sep="")
@@ -516,7 +591,7 @@ CMplot_shiny <- function(
     trait <- colnames(Pmap)[-c(1:3)]
     if(length(trait) == 0)   trait <- paste("Trait", 1:(ncol(Pmap)-3), sep="")
     taxa <- paste(trait, collapse="_")
-    
+
     if(length(points.alpha) != 1L)   stop("invalid 'points.alpha': must be 'TRUE', 'FALSE' or an integer between 0 and 255")
     if(is.logical(points.alpha))   points.alpha <- ifelse(points.alpha, formals()$points.alpha, 255L)
     if(!is.integer(points.alpha)){
@@ -587,7 +662,7 @@ CMplot_shiny <- function(
         wind_snp_num <- DensityPlot(Pmap[, 1], Pmap[, 2], chr.ori, chr.pos.max=chr.pos.max, dpi=dpi, wh=wh, ht=ht, chr.labels=chr.labels, col=chr.den.col, bin=bin.size, bin.breaks=bin.breaks, main=main[1], main.cex=main.cex, main.font=main.font, legend.cex=legend.cex, xticks.pos=xticks.pos)
         if(file.output) dev.off()
     }
-    
+
     if(length(plot.type) > 1 | (!"d" %in% plot.type)){
 
         #scale and adjust the parameters
@@ -628,18 +703,18 @@ CMplot_shiny <- function(
             }else{
                 if(length(ylim)!=R) stop("length of list of ylim should equal to the number of phenotype.")
                 for(i in 1:R){
-                    if(length(ylim[[i]])!=2) stop("ylim for each phenotype should be assigned two values.") 
+                    if(length(ylim[[i]])!=2) stop("ylim for each phenotype should be assigned two values.")
                     if(ylim[[i]][2] <= ylim[[i]][1])  stop("second value should be larger than the first in ylim.")
                 }
             }
         }
-        
+
         if(!is.null(conf.int.col)) conf.int.col <- rep(conf.int.col, R)
         if(!is.null(main)) main <- rep(main, R)
         if(length(mar) != 4)    stop("length of 'mar' shoud equal to 4.")
         if(chr.labels.angle > 90 | chr.labels.angle < -90)  stop("'chr.labels.angle' should be > -90 and < 90.")
         pch=rep(pch, R)
-        
+
         if(!is.null(highlight)){
             highlight_index <- list()
             highlight_col <- list()
@@ -651,7 +726,7 @@ CMplot_shiny <- function(
                 highlight <- list(highlight)
                 for(i in 1:R){highlight[[i]] = highlight[[1]]}
             }else{
-                if(length(highlight) != R){stop("length of 'highlight' not equals to the number of traits.")}  
+                if(length(highlight) != R){stop("length of 'highlight' not equals to the number of traits.")}
             }
             length(highlight_index) <- length(highlight)
             for(i in 1:length(highlight)){
@@ -673,7 +748,7 @@ CMplot_shiny <- function(
                 highlight.text <- list(highlight.text)
                 for(i in 1:R){highlight.text[[i]] = highlight.text[[1]]}
             }else{
-                if(length(highlight.text) != R){stop("length of 'highlight.text' not equals to the number of traits.")}  
+                if(length(highlight.text) != R){stop("length of 'highlight.text' not equals to the number of traits.")}
             }
         }
 
@@ -688,7 +763,7 @@ CMplot_shiny <- function(
             band <- floor((sum(sapply(pvalue.pos.list, max)) - min(unlist(pvalue.pos.list)))/100)
         }
         if(band==0) band=100
-        
+
         if(LOG10){
             if(sum(pvalueT <= 0, na.rm=TRUE) != 0 || sum(pvalueT > 1, na.rm=TRUE) != 0) stop("p values should be at range of (0, 1).")
             pvalueT[pvalueT <= 0] <- NA
@@ -715,7 +790,7 @@ CMplot_shiny <- function(
             colx <- colx[!is.na(colx)]
             N[i] <- ceiling(Nchr/length(colx))
         }
-        
+
         #insert the space into chromosomes and return the midpoint of each chromosome
         ticks <- NULL
         chr.border.pos <- NULL
@@ -738,12 +813,10 @@ CMplot_shiny <- function(
         }else{
             for(i in 0:(Nchr-1)){
                 if (i==0){
-                    #pvalue <- append(pvalue,rep(Inf,band),after=0)
                     pvalue.posN <- pvalue.pos.list[[i+1]] + band
                     ticks[i+1] <- max_no_na(pvalue.posN)-floor(max_no_na(pvalue.pos.list[[i+1]])/2)
                     chr.border.pos[i+1] <- max_no_na(pvalue.posN) + 0.5 * band
                 }else{
-                    #pvalue <- append(pvalue,rep(Inf,band),after=sum(Num[1:i])+i*band)
                     pvalue.posN <- c(pvalue.posN, max_no_na(pvalue.posN) + band + pvalue.pos.list[[i+1]])
                     ticks[i+1] <- max_no_na(pvalue.posN)-floor(max_no_na(pvalue.pos.list[[i+1]])/2)
                     chr.border.pos[i+1] <- max_no_na(pvalue.posN) + 0.5 * band
@@ -766,7 +839,7 @@ CMplot_shiny <- function(
         }
 
         pvalue.posN.list <- tapply(pvalue.posN, Pmap[, 1], list)
-        
+
         #merge the pvalues of traits by column
         if(LOG10){
             logpvalueT <- -log10(pvalueT)
@@ -783,7 +856,7 @@ CMplot_shiny <- function(
 
         circleMin <- (min_no_na(pvalue.posN) - band - 1)
         TotalN <- max_no_na(pvalue.posN)-circleMin
-        
+
         if(length(chr.den.col) > 1){
             cir.density=TRUE
             den.fold <- 20
@@ -844,7 +917,7 @@ CMplot_shiny <- function(
             }
         }
         for(i in 1:R){
-        
+
             #get the colors for each trait
             colx <- col[i,]
             colx <- colx[!is.na(colx)]
@@ -858,9 +931,7 @@ CMplot_shiny <- function(
                     Min <- min_ylim(-log10(max_no_na(pvalue)))
                 }else{
                     Max <- max_ylim(max_no_na(pvalue))
-                    #if(abs(Max)<=1)    Max <- max_no_na(pvalue)
                     Min <- min_ylim(min_no_na(pvalue))
-                    #if(abs(Min)<=1)    Min <- min_no_na(pvalue)
                 }
             }else{
                 Max <- ylim[[i]][2]
@@ -870,7 +941,7 @@ CMplot_shiny <- function(
             ylimIndx <- logpvalue >= Min & logpvalue <= Max
             if(outward==TRUE){
                 if(cir.chr==TRUE & i == 1){
-                    
+
                     #plot the boundary which represents the chromosomes
                     polygon.num <- 1000
                     for(k in 1:length(chr)){
@@ -882,7 +953,7 @@ CMplot_shiny <- function(
                             X2chr=(RR+cir.chr.h)*sin(2*base::pi*(polygon.index)/TotalN)
                             Y2chr=(RR+cir.chr.h)*cos(2*base::pi*(polygon.index)/TotalN)
                             if(is.null(chr.den.col)){
-                                polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=rep(colx,ceiling(length(chr)/length(colx)))[k],border=rep(colx,ceiling(length(chr)/length(colx)))[k])   
+                                polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=rep(colx,ceiling(length(chr)/length(colx)))[k],border=rep(colx,ceiling(length(chr)/length(colx)))[k])
                             }else{
                                 if(cir.density){
                                         polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col="grey",border="grey")
@@ -904,10 +975,10 @@ CMplot_shiny <- function(
                                 }else{
                                         polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=chr.den.col,border=chr.den.col)
                                 }
-                            }       
+                            }
                         }
                     }
-                    
+
                     if(cir.density){
 
                         if(file.output){
@@ -931,12 +1002,9 @@ CMplot_shiny <- function(
                             x.intersp=1,
                             yjust=0.3, xjust=0, xpd=TRUE
                         )
-                        
+
                     }
-                    
-                    # XLine=(RR+cir.chr.h)*sin(2*base::pi*(1:TotalN)/TotalN)
-                    # YLine=(RR+cir.chr.h)*cos(2*base::pi*(1:TotalN)/TotalN)
-                    # lines(XLine,YLine,lwd=1.5)
+
                     if(cir.density){
                         circle.plot(myr=RR+cir.chr.h,lwd=1.5,add=TRUE,col='grey')
                         circle.plot(myr=RR,lwd=1.5,add=TRUE,col='grey')
@@ -946,7 +1014,7 @@ CMplot_shiny <- function(
                     }
 
                 }
-                
+
                 X=(Cpvalue[ylimIndx]+r+H*(i-1)+cir.band*(i-1))*sin(2*base::pi*(pvalue.posN[ylimIndx]-round(band/2)-circleMin)/TotalN)
                 Y=(Cpvalue[ylimIndx]+r+H*(i-1)+cir.band*(i-1))*cos(2*base::pi*(pvalue.posN[ylimIndx]-round(band/2)-circleMin)/TotalN)
                 if(file.output){
@@ -964,7 +1032,7 @@ CMplot_shiny <- function(
                 }
 
                 points(X[is_visable],Y[is_visable],pch=19,cex=cex[1],col=rep(rep(colx,N[i]),add[[i]])[ylimIndx][is_visable])
-                
+
                 #plot the legend for each trait
                 if(cir.axis==TRUE){
                     #try to get the number after radix point
@@ -991,15 +1059,12 @@ CMplot_shiny <- function(
                     text(-H/20,r+H*(i-0.25)+cir.band*(i-1),lab[4],adj=1,col=cir.axis.col,cex=axis.cex*0.5,font=lab.font)
                     text(-H/20,r+H*(i-0.06)+cir.band*(i-1),lab[5],adj=1,col=cir.axis.col,cex=axis.cex*0.5,font=lab.font)
                 }
-                
+
                 if(!is.null(threshold[[i]])){
                     if(sum(threshold[[i]]!=0)==length(threshold[[i]])){
                         for(thr in 1:length(threshold[[i]])){
                             significantline1=ifelse(LOG10, H*(-log10(threshold[[i]][thr])-Min)/(Max-Min), H*(threshold[[i]][thr]-Min)/(Max-Min))
-                            #s1X=(significantline1+r+H*(i-1)+cir.band*(i-1))*sin(2*base::pi*(0:TotalN)/TotalN)
-                            #s1Y=(significantline1+r+H*(i-1)+cir.band*(i-1))*cos(2*base::pi*(0:TotalN)/TotalN)
                             if(significantline1<H){
-                                #lines(s1X,s1Y,type="l",col=threshold.col,lwd=threshold.col,lty=threshold.lty)
                                 circle.plot(myr=(significantline1+r+H*(i-1)+cir.band*(i-1)),col=threshold.col[thr],lwd=threshold.lwd[thr],lty=threshold.lty[thr])
                             }else{
                                 warning(paste("No significant points for ",trait[i]," pass the threshold level using threshold=",threshold[[i]][thr],"!",sep=""))
@@ -1007,7 +1072,7 @@ CMplot_shiny <- function(
                         }
                     }
                 }
-                
+
                 if(!is.null(threshold[[i]])){
                     if(sum(threshold[[i]]!=0)==length(threshold[[i]])){
                         if(amplify==TRUE){
@@ -1018,14 +1083,14 @@ CMplot_shiny <- function(
                                 threshold[[i]] <- sort(threshold[[i]], decreasing=TRUE)
                                 significantline1=H*(min_no_na(threshold[[i]])-Min)/(Max-Min)
                             }
-                            
+
                             p_amp.index <- which(Cpvalue>=significantline1)
                             HX1=(Cpvalue[p_amp.index]+r+H*(i-1)+cir.band*(i-1))*sin(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
                             HY1=(Cpvalue[p_amp.index]+r+H*(i-1)+cir.band*(i-1))*cos(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
-                            
+
                             #cover the points that exceed the threshold with the color "white"
                             points(HX1,HY1,pch=19,cex=cex[1],col="white")
-                        
+
                             for(ll in 1:length(threshold[[i]])){
                                 if(ll == 1){
                                     if(LOG10){
@@ -1048,7 +1113,7 @@ CMplot_shiny <- function(
                                     HX1=(Cpvalue[p_amp.index]+r+H*(i-1)+cir.band*(i-1))*sin(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
                                     HY1=(Cpvalue[p_amp.index]+r+H*(i-1)+cir.band*(i-1))*cos(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
                                 }
-                            
+
                                 if(is.null(signal.col)){
                                     points(HX1,HY1,pch=signal.pch[ll],cex=signal.cex[ll],col=rep(rep(colx,N[i]),add[[i]])[p_amp.index])
                                 }else{
@@ -1094,8 +1159,6 @@ CMplot_shiny <- function(
                 }else{
                     ticks1=1.01*RR*sin(2*base::pi*(ticks-round(band/2)-circleMin)/TotalN)
                     ticks2=1.01*RR*cos(2*base::pi*(ticks-round(band/2)-circleMin)/TotalN)
-                    # ticks1=(0.9*r)*sin(2*base::pi*(ticks-round(band/2))/TotalN)
-                    # ticks2=(0.9*r)*cos(2*base::pi*(ticks-round(band/2))/TotalN)
                     if(is.null(chr.labels)){
                         for(t in 1:length(ticks)){
                         angle=360*(1-(ticks-round(band/2)-circleMin)[t]/TotalN)
@@ -1118,10 +1181,6 @@ CMplot_shiny <- function(
             }
             if(outward==FALSE){
                 if(cir.chr==TRUE & i == 1){
-                    # XLine=(2*cir.band+RR+cir.chr.h)*sin(2*base::pi*(1:TotalN)/TotalN)
-                    # YLine=(2*cir.band+RR+cir.chr.h)*cos(2*base::pi*(1:TotalN)/TotalN)
-                    # lines(XLine,YLine,lwd=1.5)
-
                     polygon.num <- 1000
                     for(k in 1:length(chr)){
                         if(k==1){
@@ -1131,7 +1190,7 @@ CMplot_shiny <- function(
                             X2chr=(RR+cir.chr.h)*sin(2*base::pi*(polygon.index)/TotalN)
                             Y2chr=(RR+cir.chr.h)*cos(2*base::pi*(polygon.index)/TotalN)
                                 if(is.null(chr.den.col)){
-                                    polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=rep(colx,ceiling(length(chr)/length(colx)))[k],border=rep(colx,ceiling(length(chr)/length(colx)))[k])   
+                                    polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=rep(colx,ceiling(length(chr)/length(colx)))[k],border=rep(colx,ceiling(length(chr)/length(colx)))[k])
                                 }else{
                                     if(cir.density){
                                         polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col="grey",border="grey")
@@ -1146,14 +1205,14 @@ CMplot_shiny <- function(
                             X2chr=(RR+cir.chr.h)*sin(2*base::pi*(polygon.index)/TotalN)
                             Y2chr=(RR+cir.chr.h)*cos(2*base::pi*(polygon.index)/TotalN)
                             if(is.null(chr.den.col)){
-                                polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=rep(colx,ceiling(length(chr)/length(colx)))[k],border=rep(colx,ceiling(length(chr)/length(colx)))[k])   
+                                polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=rep(colx,ceiling(length(chr)/length(colx)))[k],border=rep(colx,ceiling(length(chr)/length(colx)))[k])
                             }else{
                                     if(cir.density){
                                         polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col="grey",border="grey")
                                     }else{
                                         polygon(c(rev(X1chr),X2chr),c(rev(Y1chr),Y2chr),col=chr.den.col,border=chr.den.col)
                                     }
-                            }   
+                            }
                         }
                     }
                     if(cir.density){
@@ -1179,9 +1238,9 @@ CMplot_shiny <- function(
                             x.intersp=1,
                             yjust=0.3, xjust=0, xpd=TRUE
                         )
-                        
+
                     }
-                    
+
                     if(cir.density){
                         circle.plot(myr=RR+cir.chr.h,lwd=1.5,add=TRUE,col='grey')
                         circle.plot(myr=RR,lwd=1.5,add=TRUE,col='grey')
@@ -1209,9 +1268,9 @@ CMplot_shiny <- function(
                 }
 
                 points(X[is_visable],Y[is_visable],pch=19,cex=cex[1],col=rep(rep(colx,N[i]),add[[i]])[ylimIndx][is_visable])
-                
+
                 if(cir.axis==TRUE){
-                    
+
                     #try to get the number after radix point
                     if((Max-Min)<=1) {
                         if(Max == 1){
@@ -1228,7 +1287,7 @@ CMplot_shiny <- function(
                     segments(0,r+H*(i-0.5)+cir.band*(i-1),H/20,r+H*(i-0.5)+cir.band*(i-1),col=cir.axis.col,lwd=axis.lwd)
                     segments(0,r+H*(i-0.25)+cir.band*(i-1),H/20,r+H*(i-0.25)+cir.band*(i-1),col=cir.axis.col,lwd=axis.lwd)
                     segments(0,r+H*(i-0)+cir.band*(i-1),H/20,r+H*(i-0)+cir.band*(i-1),col=cir.axis.col,lwd=axis.lwd)
-                    
+
                     lab=seq(round(Min+(Max-Min)*0,round.n), round(Min+(Max-Min)*1,round.n), length=5)
                     text(-H/20,r+H*(i-0.06)+cir.band*(i-1),lab[1],adj=1,col=cir.axis.col,cex=axis.cex*0.5,font=lab.font)
                     text(-H/20,r+H*(i-0.25)+cir.band*(i-1),lab[2],adj=1,col=cir.axis.col,cex=axis.cex*0.5,font=lab.font)
@@ -1236,16 +1295,13 @@ CMplot_shiny <- function(
                     text(-H/20,r+H*(i-0.75)+cir.band*(i-1),lab[4],adj=1,col=cir.axis.col,cex=axis.cex*0.5,font=lab.font)
                     text(-H/20,r+H*(i-0.94)+cir.band*(i-1),lab[5],adj=1,col=cir.axis.col,cex=axis.cex*0.5,font=lab.font)
                 }
-                
+
                 if(!is.null(threshold[[i]])){
                     if(sum(threshold[[i]]!=0)==length(threshold[[i]])){
-                    
+
                         for(thr in 1:length(threshold[[i]])){
                             significantline1=ifelse(LOG10, H*(-log10(threshold[[i]][thr])-Min)/(Max-Min), H*(threshold[[i]][thr]-Min)/(Max-Min))
-                            #s1X=(significantline1+r+H*(i-1)+cir.band*(i-1))*sin(2*pi*(0:TotalN)/TotalN)
-                            #s1Y=(significantline1+r+H*(i-1)+cir.band*(i-1))*cos(2*pi*(0:TotalN)/TotalN)
                             if(significantline1<H){
-                                #lines(s1X,s1Y,type="l",col=threshold.col,lwd=threshold.col,lty=threshold.lty)
                                 circle.plot(myr=(-significantline1+r+H*i+cir.band*(i-1)),col=threshold.col[thr],lwd=threshold.lwd[thr],lty=threshold.lty[thr])
                             }else{
                                 warning(paste("No significant points for ",trait[i]," pass the threshold level using threshold=",threshold[[i]][thr],"!",sep=""))
@@ -1262,10 +1318,10 @@ CMplot_shiny <- function(
                             p_amp.index <- which(Cpvalue>=significantline1)
                             HX1=(-Cpvalue[p_amp.index]+r+H*i+cir.band*(i-1))*sin(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
                             HY1=(-Cpvalue[p_amp.index]+r+H*i+cir.band*(i-1))*cos(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
-                            
+
                             #cover the points that exceed the threshold with the color "white"
                             points(HX1,HY1,pch=19,cex=cex[1],col="white")
-                            
+
                                 for(ll in 1:length(threshold[[i]])){
                                     if(ll == 1){
                                         if(LOG10){
@@ -1287,9 +1343,9 @@ CMplot_shiny <- function(
                                         p_amp.index <- which(Cpvalue>=significantline1 & Cpvalue < significantline0)
                                         HX1=(-Cpvalue[p_amp.index]+r+H*i+cir.band*(i-1))*sin(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
                                         HY1=(-Cpvalue[p_amp.index]+r+H*i+cir.band*(i-1))*cos(2*base::pi*(pvalue.posN[p_amp.index]-round(band/2)-circleMin)/TotalN)
-                                    
+
                                     }
-                                
+
                                     if(is.null(signal.col)){
                                         points(HX1,HY1,pch=signal.pch[ll],cex=signal.cex[ll],col=rep(rep(colx,N[i]),add[[i]])[p_amp.index])
                                     }else{
@@ -1299,7 +1355,7 @@ CMplot_shiny <- function(
                         }
                     }
                 }
-                
+
                 if(!is.null(highlight)){
                     HX1=(-Cpvalue[highlight_index[[i]]]+r+H*i+cir.band*(i-1))*sin(2*base::pi*(pvalue.posN[highlight_index[[i]]]-round(band/2)-circleMin)/TotalN)
                     HY1=(-Cpvalue[highlight_index[[i]]]+r+H*i+cir.band*(i-1))*cos(2*base::pi*(pvalue.posN[highlight_index[[i]]]-round(band/2)-circleMin)/TotalN)
@@ -1335,11 +1391,9 @@ CMplot_shiny <- function(
                 }else{
                     ticks1=1.01*RR*sin(2*base::pi*(ticks-round(band/2)-circleMin)/TotalN)
                     ticks2=1.01*RR*cos(2*base::pi*(ticks-round(band/2)-circleMin)/TotalN)
-                    # ticks1=RR*sin(2*base::pi*(ticks-round(band/2))/TotalN)
-                    # ticks2=RR*cos(2*base::pi*(ticks-round(band/2))/TotalN)
                     if(is.null(chr.labels)){
                         for(t in 1:length(ticks)){
-                        
+
                             #adjust the angle of labels of circle plot
                             angle=360*(1-(ticks-round(band/2)-circleMin)[t]/TotalN)
                             text(ticks1[t],ticks2[t],chr.ori[t],srt=angle,font=lab.font,cex=lab.cex-0.5,adj=c(0.5, 0))
@@ -1356,12 +1410,11 @@ CMplot_shiny <- function(
                                 text(ticks1[t],ticks2[t],chr.labels[t],srt=angle,font=lab.font,cex=lab.cex-0.5,adj=c(0.5, 0))
                             }
                         }
-                    }   
+                    }
                 }
             }
         }
         if(file.output) dev.off()
-        #print("Circular-Manhattan has been finished!",quote=F)
     }
 
     if("m" %in% plot.type){
@@ -1393,7 +1446,6 @@ CMplot_shiny <- function(
                     ht=ifelse(is.null(height), 6, height)
                     wh=ifelse(is.null(width), 14, width)
                     if(is.null(dev.list())) dev.new(width=wh, height=ht)
-                    # par(xpd=TRUE)
                 }
                 for(i in 1:R){
                     # Add room for x axis, if there are multiple
@@ -1408,15 +1460,12 @@ CMplot_shiny <- function(
                     logpvalue=logpvalueT[,i]
                     if(is.null(ylim)){
                         if(!is.null(threshold[[i]])){
-                            # if(sum(threshold!=0)==length(threshold)){
                                 if(LOG10){
                                     Max=max_ylim(max_no_na(c((-log10(min_no_na(pvalue))),-log10(min_no_na(threshold[[i]])))))
                                     Min <- min_ylim(min_no_na(c((-log10(max_no_na(pvalue))),-log10(max_no_na(threshold[[i]])))))
                                 }else{
                                     Max=max_ylim(max_no_na(c((max_no_na(pvalue)),max_no_na(threshold[[i]]))))
-                                    #if(abs(Max)<=1)    Max=max_no_na(c(max_no_na(pvalue),max_no_na(threshold)))
                                     Min<-min_ylim(min_no_na(c((min_no_na(pvalue)),min_no_na(threshold[[i]]))))
-                                    #if(abs(Min)<=1)    Min=min_no_na(min_no_na(pvalue),min_no_na(threshold))
                                 }
                         }else{
                             if(LOG10){
@@ -1424,12 +1473,7 @@ CMplot_shiny <- function(
                                     Min<-min_ylim((-log10(max_no_na(pvalue))))
                             }else{
                                     Max=max_ylim((max_no_na(pvalue)))
-                                    #if(abs(Max)<=1)    Max=max_no_na(max_no_na(pvalue))
                                     Min=min_ylim((min_no_na(pvalue)))
-                                    #if(abs(Min)<=1)    Min=min_no_na(min_no_na(pvalue))
-                                    # }else{
-                                        # Max=max_no_na(ceiling(max_no_na(pvalue)))
-                                    # }
                             }
                         }
                         if((Max-Min)<=1){
@@ -1454,15 +1498,15 @@ CMplot_shiny <- function(
                         }
                     }
 
-                    #add the names of traits on plot 
+                    #add the names of traits on plot
                     if(legend.pos=="left"){
-                        text(min_no_na(pvalue.posN),Max,labels=trait[i],adj=c(-0.2, 1.2),font=4,cex=legend.cex*(R/2),xpd=TRUE) 
+                        text(min_no_na(pvalue.posN),Max,labels=trait[i],adj=c(-0.2, 1.2),font=4,cex=legend.cex*(R/2),xpd=TRUE)
                     }else if(legend.pos=="middle"){
-                        text((max_no_na(pvalue.posN)+min_no_na(pvalue.posN))/2,Max,labels=trait[i],adj=c(0.5, 1.2),font=4,cex=legend.cex*(R/2),xpd=TRUE) 
+                        text((max_no_na(pvalue.posN)+min_no_na(pvalue.posN))/2,Max,labels=trait[i],adj=c(0.5, 1.2),font=4,cex=legend.cex*(R/2),xpd=TRUE)
                     }else{
-                        text(max_no_na(pvalue.posN),Max,labels=trait[i],adj=c(1.2, 1.2),font=4,cex=legend.cex*(R/2),xpd=TRUE) 
+                        text(max_no_na(pvalue.posN),Max,labels=trait[i],adj=c(1.2, 1.2),font=4,cex=legend.cex*(R/2),xpd=TRUE)
                     }
-                
+
                     if(i == R || multracks.xaxis){
                         if(chr.labels.angle == 0){
                             if(is.null(chr.labels)){
@@ -1478,20 +1522,16 @@ CMplot_shiny <- function(
                             axis(1, mgp=c(3,xticks.pos,0), at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd*(R/2),labels=FALSE)
                             if(is.null(chr.labels)){
                                 text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex*(R/2), font=lab.font, labels=c("Chr",chr.ori), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
-                                # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd,cex.axis=axis.cex*(R/2),font=lab.font,labels=c("Chr",chr.ori),padj=1)
                             }else{
                                 if(Nchr == 1){
-                                    # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd*(R/2), cex.axis=axis.cex*(R/2),font=lab.font,labels=c(paste("Chr.", unique(Pmap[,1]), bp_lab, sep=""),chr.labels))
                                     text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex*(R/2), font=lab.font, labels=c(paste("Chr.", unique(Pmap[,1]), bp_lab, sep=""),chr.labels), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
                                 }else{
-                                    # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd*(R/2), cex.axis=axis.cex*(R/2),font=lab.font,labels=c("Chr",chr.labels))
                                     text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex*(R/2), font=lab.font, labels=c("Chr",chr.labels), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
                                 }
                             }
                         }
                         axis(1, mgp=c(3,xticks.pos,0), at=c(ticks[length(ticks)], max_no_na(pvalue.posN)), labels=c("",""), tcl=0, lwd=axis.lwd*(R/2))
                     }
-                    #if(i==1) mtext("Manhattan plot",side=3,padj=-1,font=lab.font,cex=xn)
                     if(is.null(ylim)){
                         if((Max-Min)>1){
                             axis(2, las=1,lwd=axis.lwd*(R/2),cex.axis=axis.cex*(R/2),font=lab.font)
@@ -1520,10 +1560,10 @@ CMplot_shiny <- function(
                             sgindex=which(logpvalue>=sgline1)
                             HY1=logpvalue[sgindex]
                             HX1=pvalue.posN[sgindex]
-                            
+
                             #cover the points that exceed the threshold with the color "white"
                             points(HX1,HY1,pch=pch,cex=cex[2]*R,col="white")
-                            
+
                             for(ll in 1:length(threshold[[i]])){
                                 if(ll == 1){
                                     if(LOG10){
@@ -1557,7 +1597,6 @@ CMplot_shiny <- function(
                     }
 
                     if(!is.null(highlight)){
-                        # points(x=pvalue.posN[highlight_index[[i]]],y=logpvalue[highlight_index[[i]]],pch=pch,cex=cex[2]*R,col="white")
                         if(!is.na(highlight_index[[i]][1])){
                             if(is.null(highlight.col)){
                                 highlight_text(x=pvalue.posN[highlight_index[[i]]],y=logpvalue[highlight_index[[i]]],xlim=c(min_no_na(pvalue.posN)-band,max_no_na(pvalue.posN)),ylim=c(Min,Max),words=highlight.text[[i]],point.cex=highlight.cex*R,text.cex=highlight.text.cex*R/2, pch=highlight.pch,type=highlight.type,point.col=rep(rep(colx,N[i]),add[[i]])[highlight_index[[i]]],text.col=highlight.text.col,text.font=highlight.text.font)
@@ -1568,7 +1607,6 @@ CMplot_shiny <- function(
                     }
                     if(!is.null(main) & R == 1)  title(main=main[1], cex.main=main.cex, font.main= main.font)
                     if(box) box(lwd=axis.lwd)
-                    #if(!is.null(threshold) & !is.null(signal.line))    abline(v=pvalue.posN[which(pvalueT[,i] < min_no_na(threshold))],col="grey",lty=2,lwd=signal.line)
                 }
                 if(file.output) dev.off()
             }
@@ -1589,9 +1627,8 @@ CMplot_shiny <- function(
                     ht=ifelse(is.null(height), 6, height)
                     wh=ifelse(is.null(width), 14, width)
                     if(is.null(dev.list())) dev.new(width=wh, height=ht)
-                    # par(xpd=TRUE)
                 }
-                
+
                 pvalue <- as.vector(Pmap[,3:(R+2)])
                 if(is.null(ylim)){
                     if(!is.null(threshold)){
@@ -1600,9 +1637,7 @@ CMplot_shiny <- function(
                             Min<-min_ylim(min_no_na(c((-log10(max_no_na(pvalue))),-log10(max_no_na(unlist(threshold))))))
                         }else{
                             Max=max_ylim(max_no_na(c((max_no_na(pvalue)),max_no_na(unlist(threshold)))))
-                            # if(abs(Max)<=1)   Max=max_no_na(c(max_no_na(pvalue),max_no_na(threshold)))
                             Min <- min_ylim(min_no_na(c((min_no_na(pvalue)),min_no_na(unlist(threshold)))))
-                            # if(abs(Min)<=1)   Min=min_no_na(c(min_no_na(pvalue),min_no_na(threshold)))
                         }
                     }else{
                         if(LOG10){
@@ -1610,11 +1645,7 @@ CMplot_shiny <- function(
                                 Min=min_ylim((-log10(max_no_na(pvalue))))
                         }else{
                                 Max=max_ylim((max_no_na(pvalue)))
-                                # if(abs(Max)<=1)   Max=max_no_na(max_no_na(pvalue))
                                 Min<- min_ylim((min_no_na(pvalue)))
-                                # if(abs(Min)<=1)   Min=min_no_na(min_no_na(pvalue))
-                                # }else{
-                                    # Max=max_no_na(ceiling(max_no_na(pvalue)))
                         }
                     }
                     if((Max-Min)<=1){
@@ -1648,10 +1679,6 @@ CMplot_shiny <- function(
                     mtext(side=2, text=ylab, line=ylab.pos, cex=lab.cex, font=lab.font, xpd=TRUE)
                 }
 
-                # Max1 <- Max
-                # Min1 <- Min
-                # if(abs(Max) <= 1) Max <- round(Max, ceiling(-log10(abs(Max))))
-                # if(abs(Min) <= 1) Min <- round(Min, ceiling(-log10(abs(Min))))
                 if(length(unique(col)) == 1 && is.null(signal.col)) stop("'signal.col' is NULL.")
                 if(length(unique(col)) == 1 && amplify == FALSE)    stop("'amplify' is FALSE.")
                 legend_col <- t(col)[1:R]
@@ -1684,21 +1711,17 @@ CMplot_shiny <- function(
                     axis(1, mgp=c(3,xticks.pos,0), at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd,labels=FALSE)
                     if(is.null(chr.labels)){
                         text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex, font=lab.font, labels=c("Chr",chr.ori), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
-                        # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks),lwd=axis.lwd,cex.axis=axis.cex,font=lab.font,labels=c("Chr",chr.ori)) 
                     }else{
                         if(Nchr == 1){
                             text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex, font=lab.font, labels=c(paste("Chr.", unique(Pmap[,1]), bp_lab, sep=""),chr.labels), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
-                            # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=lab.font,labels=c(paste("Chr.", unique(Pmap[,1]), bp_lab, sep=""),chr.labels))
                         }else{
                             text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex, font=lab.font, labels=c("Chr",chr.labels), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
-                            # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=lab.font,labels=c("Chr",chr.labels))
                         }
                     }
                 }
                 axis(1, mgp=c(3,xticks.pos,0), at=c(ticks[length(ticks)], max_no_na(pvalue.posN)), labels=c("",""), tcl=0, lwd=axis.lwd)
                 if(is.null(ylim)){
                     if((Max-Min)>1){
-                        #print(seq(0,(Max+1),ceiling((Max+1)/10)))
                         axis(2,las=1,lwd=axis.lwd,cex.axis=axis.cex,font=lab.font)
                         axis(2, at=c(Min, Max), labels=c("",""), tcl=0, lwd=axis.lwd)
                         legend.y <- Max
@@ -1729,9 +1752,8 @@ CMplot_shiny <- function(
                             trait_max=l
                         }
                     }
-                    
+
                     #change the sample number according to Pmap
-                    #sam.num <- ceiling(nrow(Pmap)/100)
                     sam.num <- 1000
                     cat_bar <- seq(1, 100, 1)
                     trait_n <- sapply(sam.index, length)
@@ -1809,7 +1831,7 @@ CMplot_shiny <- function(
                                     }else{
                                         points(HX1,HY1,pch=signal.pch[ll],cex=signal.cex[ll],col=rgb(t(col2rgb(signal.col[ll])), alpha=points.alpha, maxColorValue=255))
                                     }
-                                    
+
                                 }
                             }
                         }else{
@@ -1832,9 +1854,9 @@ CMplot_shiny <- function(
                 if(is.null(ylim)){ymin <- Min}else{ymin <- min_no_na(unlist(ylim))}
                 if(cir.density){
                     for(yll in 1:length(pvalue.posN.list)){
-                        polygon(c(min_no_na(pvalue.posN.list[[yll]]), min_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]])), 
-                            c(ymin-0.5*(Max-Min)/den.fold, ymin-1.5*(Max-Min)/den.fold, 
-                            ymin-1.5*(Max-Min)/den.fold, ymin-0.5*(Max-Min)/den.fold), 
+                        polygon(c(min_no_na(pvalue.posN.list[[yll]]), min_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]])),
+                            c(ymin-0.5*(Max-Min)/den.fold, ymin-1.5*(Max-Min)/den.fold,
+                            ymin-1.5*(Max-Min)/den.fold, ymin-0.5*(Max-Min)/den.fold),
                             col="grey", border="grey")
                     }
                     is_visable_den <- filter.points(pvalue.posN, ymin-0.5*(Max-Min)/den.fold, wh, ht, dpi=dpi)
@@ -1853,7 +1875,7 @@ CMplot_shiny <- function(
                         y.intersp=1,
                         x.intersp=1,
                         yjust=0.9, xjust=0, xpd=TRUE
-                    )          
+                    )
                 }
                 if(!is.null(main))  title(main=main[1], cex.main=main.cex, font.main= main.font)
                 if(box) box(lwd=axis.lwd)
@@ -1881,7 +1903,7 @@ CMplot_shiny <- function(
                         if(is.null(dev.list())) dev.new(width=wh, height=ht)
                         # par(xpd=TRUE)
                     }
-                    
+
                     pvalue=pvalueT[,i]
                     logpvalue=logpvalueT[,i]
                     if(is.null(ylim)){
@@ -1892,9 +1914,7 @@ CMplot_shiny <- function(
                                     Min <- min_ylim(min_no_na(c(-log10((max_no_na(pvalue))),-log10(max_no_na(threshold[[i]])))))
                                 }else{
                                     Max=max_ylim(max_no_na(c((max_no_na(pvalue)),max_no_na(threshold[[i]]))))
-                                    #if(abs(Max)<=1)    Max=max_no_na(c(max_no_na(pvalue),max_no_na(threshold)))
                                     Min <- min_ylim(min_no_na(c((min_no_na(pvalue)),min_no_na(threshold[[i]]))))
-                                    #if(abs(Min)<=1)    Min=min_no_na(c(min_no_na(pvalue),min_no_na(threshold)))
                                 }
                             }else{
                                 if(LOG10){
@@ -1902,12 +1922,7 @@ CMplot_shiny <- function(
                                     Min<-min_ylim(-log10(max_no_na(pvalue)))
                                 }else{
                                     Max=max_ylim(max_no_na(pvalue))
-                                    #if(abs(Max)<=1)    Max=max_no_na(c(max_no_na(pvalue)))
                                     Min<-min_ylim(min_no_na(pvalue))
-                                    #if(abs(Min)<=1)    Min=min_no_na(pvalue)
-                                    # }else{
-                                        # Max=max_no_na(ceiling(max_no_na(pvalue)))
-                                    # }
                                 }
                             }
                         }else{
@@ -1916,12 +1931,7 @@ CMplot_shiny <- function(
                                     Min<-min_ylim(-log10(max_no_na(pvalue)))
                             }else{
                                     Max=max_ylim(max_no_na(pvalue))
-                                    #if(abs(Max)<=1)    Max=max_no_na(c(max_no_na(pvalue)))
                                     Min<-min_ylim(min_no_na(pvalue))
-                                    #if(abs(Min)<=1)    Min=min_no_na(pvalue)
-                                    # }else{
-                                        # Max=max_no_na(ceiling(max_no_na(pvalue)))
-                                    # }
                             }
                         }
                         if((Max-Min)<=1){
@@ -1954,10 +1964,6 @@ CMplot_shiny <- function(
                         }
                         mtext(side=2, text=ylab, line=ylab.pos, cex=lab.cex, font=lab.font, xpd=TRUE)
                     }
-                    # Max1 <- Max
-                    # Min1 <- Min
-                    # if(abs(Max) <= 1) Max <- round(Max, ceiling(-log10(abs(Max))))
-                    # if(abs(Min) <= 1) Min <- round(Min, ceiling(-log10(abs(Min))))
                     if(chr.border){
                         for(b in 1:length(chr.border.pos)){
                             segments(chr.border.pos[b], Min, chr.border.pos[b], Max, col="grey45", lwd=axis.lwd, lty=2)
@@ -1970,11 +1976,9 @@ CMplot_shiny <- function(
                                 axis(1, mgp=c(3,xticks.pos,0), at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=lab.font,labels=c(paste("Chr.", unique(Pmap[,1]), bp_lab, sep=""),chr.labels))
                             }else{
                                 axis(1, mgp=c(3,xticks.pos,0), at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=lab.font,labels=c("Chr",chr.labels))
-                                #axis(1, at=c(ticks[length(ticks)], max_no_na(pvalue.posN)), labels=c("",""), tcl=0, lwd=axis.lwd)
                             }
                         }else{
                             axis(1, mgp=c(3,xticks.pos,0), at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=lab.font,labels=c("Chr",chr.ori))
-                            #axis(1, at=c(ticks[length(ticks)], max_no_na(pvalue.posN)), labels=c("",""), tcl=0, lwd=axis.lwd)
                         }
                     }else{
                         axis(1, mgp=c(3,xticks.pos,0), at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd,labels=FALSE)
@@ -1982,13 +1986,9 @@ CMplot_shiny <- function(
                             if(Nchr == 1){
                                 text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex, font=lab.font, labels=c(paste("Chr.", unique(Pmap[,1]), bp_lab, sep=""),chr.labels), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
                             }else{
-                                # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=2,labels=)
-                                #axis(1, at=c(ticks[length(ticks)], max_no_na(pvalue.posN)), labels=c("",""), tcl=0, lwd=axis.lwd)
                                 text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex, font=lab.font, labels=c("Chr",chr.labels), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
                             }
                         }else{
-                            # axis(1, at=c(min_no_na(pvalue.posN)-band,ticks), lwd=axis.lwd, cex.axis=axis.cex,font=2,labels=c("Chr",chr.ori))
-                            #axis(1, at=c(ticks[length(ticks)], max_no_na(pvalue.posN)), labels=c("",""), tcl=0, lwd=axis.lwd)
                             text(c(min_no_na(pvalue.posN)-band,ticks), par("usr")[3]*2-ifelse(cir.density, Min-(Max-Min)/den.fold, Min), cex=axis.cex, font=lab.font, labels=c("Chr",chr.ori), srt=chr.labels.angle, xpd=TRUE,adj=c(ifelse(chr.labels.angle < 0, 0, ifelse(chr.labels.angle == 0, 0.5, 1)), ifelse(chr.labels.angle == 0, 0.5, ifelse(abs(chr.labels.angle) > 45, 0.5, 1))))
                         }
                     }
@@ -2011,10 +2011,6 @@ CMplot_shiny <- function(
                     if(!is.null(threshold[[i]])){
                         for(thr in 1:length(threshold[[i]])){
                             h <- ifelse(LOG10, -log10(threshold[[i]][thr]), threshold[[i]][thr])
-                            # print(h)
-                            # print(threshold.col[thr])
-                            # print(threshold.lty[thr])
-                            # print(threshold.lwd[thr])
                             segments(0, h, max_no_na(pvalue.posN), h,col=threshold.col[thr],lty=threshold.lty[thr],lwd=threshold.lwd[thr])
                         }
                         if(amplify == TRUE){
@@ -2029,10 +2025,10 @@ CMplot_shiny <- function(
                             sgindex=which(logpvalue>=sgline1)
                             HY1=logpvalue[sgindex]
                             HX1=pvalue.posN[sgindex]
-                            
+
                             #cover the points that exceed the threshold with the color "white"
                             points(HX1,HY1,pch=pch,cex=cex[2],col="white")
-                            
+
                             for(ll in 1:length(threshold[[i]])){
                                 if(ll == 1){
                                     if(LOG10){
@@ -2061,14 +2057,13 @@ CMplot_shiny <- function(
                                 }else{
                                     points(HX1,HY1,pch=signal.pch[ll],cex=signal.cex[ll],col=signal.col[ll])
                                 }
-                                
+
                             }
                         }
 
                     }
 
                     if(!is.null(highlight)){
-                        # points(x=pvalue.posN[highlight_index[[i]]],y=logpvalue[highlight_index[[i]]],pch=pch,cex=cex[2],col="white")
                         if(!is.na(highlight_index[[i]][1])){
                             if(is.null(highlight.col)){
                                 highlight_text(x=pvalue.posN[highlight_index[[i]]],y=logpvalue[highlight_index[[i]]],xlim=c(min_no_na(pvalue.posN)-band,max_no_na(pvalue.posN)),ylim=c(Min,Max),words=highlight.text[[i]],point.cex=highlight.cex,text.cex=highlight.text.cex, pch=highlight.pch,type=highlight.type,point.col=rep(rep(colx,N[i]),add[[i]])[highlight_index[[i]]],text.col=highlight.text.col,text.font=highlight.text.font)
@@ -2078,14 +2073,12 @@ CMplot_shiny <- function(
                         }
                     }
 
-                    #if(!is.null(threshold) & !is.null(signal.line))    abline(v=pvalue.posN[which(pvalueT[,i] < min_no_na(threshold))],col="grey",lty=2,lwd=signal.line)
-            
                     if(is.null(ylim)){ymin <- Min}else{ymin <- min_no_na(ylim[[i]])}
                     if(cir.density){
                         for(yll in 1:length(pvalue.posN.list)){
-                            polygon(c(min_no_na(pvalue.posN.list[[yll]]), min_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]])), 
-                                c(ymin-0.5*(Max-Min)/den.fold, ymin-1.5*(Max-Min)/den.fold, 
-                                ymin-1.5*(Max-Min)/den.fold, ymin-0.5*(Max-Min)/den.fold), 
+                            polygon(c(min_no_na(pvalue.posN.list[[yll]]), min_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]]), max_no_na(pvalue.posN.list[[yll]])),
+                                c(ymin-0.5*(Max-Min)/den.fold, ymin-1.5*(Max-Min)/den.fold,
+                                ymin-1.5*(Max-Min)/den.fold, ymin-0.5*(Max-Min)/den.fold),
                                 col="grey", border="grey", xpd=TRUE)
                         }
                         is_visable_den <- filter.points(pvalue.posN, ymin-0.5*(Max-Min)/den.fold, wh, ht, dpi=dpi)
@@ -2105,7 +2098,7 @@ CMplot_shiny <- function(
                             x.intersp=1,
                             yjust=0.9, xjust=0, xpd=TRUE
                         )
-                        
+
                     }
                 if(!is.null(main))  title(main=main[i], cex.main=main.cex, font.main= main.font)
                 if(box) box(lwd=axis.lwd)
@@ -2113,7 +2106,7 @@ CMplot_shiny <- function(
             }
         }
     }
-        
+
     if("q" %in% plot.type){
 
         signal.col <- rep(signal.col,R)
@@ -2129,7 +2122,7 @@ CMplot_shiny <- function(
                     if(i == 1)  par(mar=c(mar[2], mar[2], mar[3], 0))
                     if(i == R)  par(mar=c(mar[2], 1.5, mar[3], mar[4]))
                     if(i != 1 & i != R) par(mar=c(mar[2], 1.5, mar[3], 0))
-                    if(verbose) cat(paste(" Multi-tracks Q-Q plotting ",trait[i],".\n",sep=""))        
+                    if(verbose) cat(paste(" Multi-tracks Q-Q plotting ",trait[i],".\n",sep=""))
                     P.values=as.numeric(Pmap[,i+2])
                     P.values=P.values[!is.na(P.values)]
                     if(LOG10){
@@ -2148,7 +2141,7 @@ CMplot_shiny <- function(
                     }else{
                         log.P.values <- P.values
                     }
-                    
+
                     #calculate the confidence interval of QQ-plot
                     if(conf.int){
                         N1=length(log.Quantiles)
@@ -2165,7 +2158,7 @@ CMplot_shiny <- function(
                         c05 <- 1
                         c95 <- 1
                     }
-                    
+
                     YlimMax <- max_no_na(c(floor(max_no_na(c(max_no_na(-log10(c05)), max_no_na(-log10(c95))))+1), floor(max_no_na(log.P.values)+1)))
                     if(is.null(ylim)){
                         plot(NULL, xlim=c(0,floor(max_no_na(log.Quantiles)+1)), axes=FALSE, cex.axis=axis.cex, cex.lab=lab.cex,ylim=c(0,YlimMax),xlab ="", ylab="")
@@ -2175,7 +2168,7 @@ CMplot_shiny <- function(
                     axis(1, mgp=c(3,xticks.pos,0), at=seq(0,floor(max_no_na(log.Quantiles)+1),ceiling((max_no_na(log.Quantiles)+1)/10)), lwd=axis.lwd,labels=seq(0,floor(max_no_na(log.Quantiles)+1),ceiling((max_no_na(log.Quantiles)+1)/10)), cex.axis=axis.cex)
                     axis(2, las=1, lwd=axis.lwd,cex.axis=axis.cex)
                     axis(2, at=c(0, ifelse(is.null(ylim), YlimMax, max(ylim[[i]]))), labels=c("",""), tcl=0, lwd=axis.lwd)
-                    
+
                     #plot the confidence interval of QQ-plot
                     if(conf.int){
                         if(is.null(conf.int.col)){
@@ -2187,15 +2180,13 @@ CMplot_shiny <- function(
                     if(!is.null(threshold.col)){par(xpd=FALSE); abline(a=0, b=1,lwd=threshold.lty[1], lty=threshold.lty[1], col=threshold.col[1]); par(xpd=TRUE)}
                     is_visable <- filter.points(log.Quantiles, log.P.values, wh, ht, dpi=dpi)
                     if(!is.null(threshold[[i]])){
-                        # if(sum(threshold!=0)==length(threshold)){
                             thre.line=-log10(min_no_na(threshold[[i]]))
                             if(amplify==TRUE){
                                 thre.index <- log.P.values<thre.line
                                 if(sum(!thre.index)!=0){
                                     points(log.Quantiles[thre.index & is_visable], log.P.values[thre.index & is_visable], col=t(col)[i],pch=19,cex=cex[3])
-                                
+
                                     #cover the points that exceed the threshold with the color "white"
-                                    # points(log.Quantiles[thre.index],log.P.values[thre.index], col = "white",pch=19,cex=cex[3])
                                     if(is.null(signal.col)){
                                         points(log.Quantiles[!thre.index],log.P.values[!thre.index],col=t(col)[i],pch=signal.pch[i],cex=signal.cex[i])
                                     }else{
@@ -2216,7 +2207,7 @@ CMplot_shiny <- function(
                     if(!is.null(main)) {
                         title(main=main[i], cex.main=main.cex, font.main= main.font)
                     }else{
-                        title(main=trait[i], cex.main=main.cex, font.main= main.font) 
+                        title(main=trait[i], cex.main=main.cex, font.main= main.font)
                     }
                     if(box) box(lwd=axis.lwd)
                 }
@@ -2234,7 +2225,7 @@ CMplot_shiny <- function(
                 }
                 p_value_quantiles=(1:nrow(Pmap))/(nrow(Pmap)+1)
                 log.Quantiles <- -log10(p_value_quantiles)
-                                            
+
                 # calculate the confidence interval of QQ-plot
                 if(conf.int){
                     N1=length(log.Quantiles)
@@ -2248,9 +2239,9 @@ CMplot_shiny <- function(
                     }
                     index=length(c95):1
                 }
-                
+
                 if(!conf.int){c05 <- 1; c95 <- 1}
-                
+
                 if(is.null(ylim)){
                     Pmap.min_no_na <- Pmap[,3:(R+2)]
                     YlimMax <- max_no_na(c(floor(max_no_na(c(max_no_na(-log10(c05)), max_no_na(-log10(c95))))+1), -log10(min_no_na(Pmap.min_no_na[Pmap.min_no_na > 0]))))
@@ -2265,7 +2256,7 @@ CMplot_shiny <- function(
 
                 mtext(side=1, text=expression(Expected~~-log[10](italic(p))), line=ylab.pos+1, cex=lab.cex, font=lab.font, xpd=TRUE)
                 mtext(side=2, text=expression(Observed~~-log[10](italic(p))), line=ylab.pos, cex=lab.cex, font=lab.font, xpd=TRUE)
-                
+
                 for(i in 1:R){
                     if(verbose) cat(paste(" Multi-traits Q-Q plotting ",trait[i],".\n",sep=""))
                     P.values=as.numeric(Pmap[,i+2])
@@ -2303,7 +2294,7 @@ CMplot_shiny <- function(
                         c05 <- 1
                         c95 <- 1
                     }
-    
+
                     # plot the confidence interval of QQ-plot
                     if(conf.int){
                         if(is.null(conf.int.col)){
@@ -2312,20 +2303,15 @@ CMplot_shiny <- function(
                             polygon(c(log.Quantiles[index],log.Quantiles),c(-log10(c05)[index],-log10(c95)),col=rgb(t(col2rgb(conf.int.col[i])), alpha=points.alpha, maxColorValue=255),border=rgb(t(col2rgb(conf.int.col[i])), alpha=points.alpha, maxColorValue=255))
                         }
                     }
-                       
+
                     if((i == R) & !is.null(threshold.col)){par(xpd=FALSE); abline(a=0, b=1,lwd=threshold.lty[1], lty=threshold.lty[1], col=threshold.col[1]); par(xpd=TRUE)}
-                    # points(log.Quantiles, log.P.values, col=t(col)[i],pch=19,cex=cex[3])
                     is_visable <- filter.points(log.Quantiles, log.P.values, wh, ht, dpi=dpi)
                     if(!is.null(threshold[[i]])){
-                        # if(sum(threshold!=0)==length(threshold)){
                             thre.line=-log10(min_no_na(threshold[[i]]))
                             if(amplify==TRUE){
                                 thre.index <- log.P.values<thre.line
                                 if(sum(!thre.index)!=0){
                                     points(log.Quantiles[thre.index & is_visable], log.P.values[thre.index & is_visable], col=rgb(t(col2rgb(t(col)[i])), alpha=points.alpha, maxColorValue=255),pch=19,cex=cex[3])
-                            
-                                    # cover the points that exceed the threshold with the color "white"
-                                    # points(log.Quantiles[thre.index],log.P.values[thre.index], col = "white",pch=19,cex=cex[3])
                                     if(is.null(signal.col)){
                                         points(log.Quantiles[!thre.index],log.P.values[!thre.index],col=rgb(t(col2rgb(t(col)[i])), alpha=points.alpha, maxColorValue=255),pch=signal.pch[i],cex=signal.cex[i])
                                     }else{
@@ -2384,7 +2370,7 @@ CMplot_shiny <- function(
                 }else{
                     log.P.values <- P.values
                 }
-                
+
                 #calculate the confidence interval of QQ-plot
                 if(conf.int){
                     N1=length(log.Quantiles)
@@ -2405,7 +2391,7 @@ CMplot_shiny <- function(
                     YlimMax <- max_no_na(c(floor(max_no_na(c(max_no_na(-log10(c05)), max_no_na(-log10(c95))))+1), floor(max_no_na(log.P.values)+1)))
                     plot(NULL, xlim=c(0,floor(max_no_na(log.Quantiles)+1)), axes=FALSE, cex.axis=axis.cex, cex.lab=lab.cex,ylim=c(0,YlimMax),xlab="",ylab="")
                 }else{
-                    plot(NULL, xlim=c(0,floor(max_no_na(log.Quantiles)+1)), axes=FALSE, cex.axis=axis.cex, cex.lab=lab.cex,ylim=c(0,max(ylim[[i]])),xlab="",ylab="")      
+                    plot(NULL, xlim=c(0,floor(max_no_na(log.Quantiles)+1)), axes=FALSE, cex.axis=axis.cex, cex.lab=lab.cex,ylim=c(0,max(ylim[[i]])),xlab="",ylab="")
                 }
                 axis(1, mgp=c(3,xticks.pos,0),at=seq(0,floor(max_no_na(log.Quantiles)+1),ceiling((max_no_na(log.Quantiles)+1)/10)), lwd=axis.lwd,labels=seq(0,floor(max_no_na(log.Quantiles)+1),ceiling((max_no_na(log.Quantiles)+1)/10)), cex.axis=axis.cex)
                 axis(2, las=1,lwd=axis.lwd,cex.axis=axis.cex)
@@ -2413,7 +2399,7 @@ CMplot_shiny <- function(
 
                 mtext(side=1, text=expression(Expected~~-log[10](italic(p))), line=ylab.pos+1, cex=lab.cex, font=lab.font, xpd=TRUE)
                 mtext(side=2, text=expression(Observed~~-log[10](italic(p))), line=ylab.pos, cex=lab.cex, font=lab.font, xpd=TRUE)
-                
+
                 #plot the confidence interval of QQ-plot
                 if(conf.int){
                     if(is.null(conf.int.col)){
@@ -2424,21 +2410,14 @@ CMplot_shiny <- function(
                 }
 
                 if(!is.null(threshold.col)){par(xpd=FALSE); abline(a=0, b=1,lwd=threshold.lty[1], lty=threshold.lty[1], col=threshold.col[1]); par(xpd=TRUE)}
-                # points(log.Quantiles, log.P.values, col=t(col)[i],pch=19,cex=cex[3])
                 is_visable <- filter.points(log.Quantiles, log.P.values, wh, ht, dpi=dpi)
                 if(!is.null(threshold[[i]])){
-                    # if(sum(threshold!=0)==length(threshold)){
                         thre.line=-log10(min_no_na(threshold[[i]]))
                         if(amplify==TRUE){
                             thre.index <- log.P.values<thre.line
                             if(sum(!thre.index)!=0){
                                 points(log.Quantiles[thre.index & is_visable], log.P.values[thre.index & is_visable], col=t(col)[i],pch=19,cex=cex[3])
-                            
-                                #cover the points that exceed the threshold with the color "white"
-                                # points(log.Quantiles[thre.index],log.P.values[thre.index], col = "white",pch=19,cex=cex[3])
-                                # print(signal.col)
-                                # print(signal.pch)
-                                # print(signal.cex)
+
                                 if(is.null(signal.col)){
                                     points(log.Quantiles[!thre.index],log.P.values[!thre.index],col=t(col)[i],pch=signal.pch[i],cex=signal.cex[i])
                                 }else{
@@ -2457,7 +2436,7 @@ CMplot_shiny <- function(
                 if(!is.null(main)) {
                     title(main=main[i], cex.main=main.cex, font.main= main.font)
                 }else{
-                    title(main=trait[i], cex.main=main.cex, font.main= main.font) 
+                    title(main=trait[i], cex.main=main.cex, font.main= main.font)
                 }
                 if(box) box(lwd=axis.lwd)
                 if(file.output) dev.off()
