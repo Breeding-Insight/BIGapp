@@ -1,10 +1,29 @@
 Package: BIGapp
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Breeding Insight Genomics Shiny Application
+Version: 0.5.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    c(
+              person(c("Alexander", "M."), "Sandercock",
+                    role = c("aut","cre"),
+                    email = "ams866@cornell.edu"),
+              person("Cristiane", "Taniguti",
+                    role = "aut"),
+              person("Josue", "Chinchilla-Vargas",
+                    role = "aut"),
+              person("Shufen", "Chen",
+                    role = "aut"),
+              person("Manoj", "Sapkota",
+                    role = "aut"),
+              person("Meng", "Lin",
+                    role = "aut"),
+              person("Dongyan", "Zhao",
+                    role = "aut"),
+              person("Breeding Insight Team",
+                    role = "aut"))
+Description: This R shiny app provides a web-based user friendly way for our internal and 
+             external collaborators to analyze genomic data without needing to use command-line tools.
+             Initial supported analyses will include the mature genomics/bioinformatics pipelines developed 
+             within Breeding Insight, with additional analyses continuing to be added.
 License: Apache License (== 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
