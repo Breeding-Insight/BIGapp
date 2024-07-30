@@ -37,6 +37,7 @@ Imports:
     shiny,
     shinyWidgets,
     shinydisconnect,
+    shinyalert,
     shinyjs,
     updog,
     BIGr,
