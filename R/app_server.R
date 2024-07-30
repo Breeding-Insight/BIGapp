@@ -19,5 +19,6 @@ app_server <- function(input, output, session) {
   mod_gwas_server("gwas_1")
   mod_diversity_server("diversity_1")
   mod_GS_server("GS_1")
+  mod_GSAcc_server("GSAcc_1")
   mod_slurm_server("slurm_1")
 }
