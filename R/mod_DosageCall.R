@@ -77,6 +77,7 @@ mod_DosageCall_ui <- function(id){
 #' @import vcfR
 #' @import updog
 #' @importFrom BIGr updog2vcf
+#' @importFrom shinyjs enable disable
 #'
 #' @noRd
 mod_DosageCall_server <- function(id){
@@ -212,7 +213,7 @@ mod_DosageCall_server <- function(id){
         )
 
         # Move the file to the path specified by 'file'
-        file.copy(temp, file, overwrite = TRUE)
+        file.copy(paste0(temp, ".vcf"), file)
 
         # Delete the temporary file
         unlink(temp)

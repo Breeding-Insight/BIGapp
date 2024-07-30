@@ -2,6 +2,9 @@ context("Dosage Calling")
 
 test_that("Dosage Calling",{
 
+  # Imports
+  library(vcfR)
+
   # Convert MADC to VCF - Couldn't find a example file to test it (ask Alex)
   # TODO
 
