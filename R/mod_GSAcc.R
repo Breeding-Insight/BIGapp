@@ -75,9 +75,7 @@ mod_GSAcc_ui <- function(id){
              box(title = "Status", width = 12, collapsible = TRUE, status = "info",
                  progressBar(id = ns("pb_prediction"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
              ),
-             #valueBox("0","QTLs Detected", icon = icon("dna"), width = NULL, color = "info"), #https://rstudio.github.io/shinydashboard/structure.html#tabbox
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
-                 #sliderInput("hist_bins","Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                  selectInput(ns("pred_color_select"), label = "Color Selection", choices = c("red","orange","yellow","green","blue","violet", "grey", "white")),
                  div(style="display:inline-block; float:left",dropdownButton(
                    tags$h3("Save Image"),
@@ -687,6 +685,171 @@ mod_GSAcc_server <- function(id){
       #End the event
       continue_prediction(NULL)
     })
+    
+    observe({
+      req(pred_outputs$corr_output)
+      
+      df <- pred_outputs$corr_output
+      df <- df %>% dplyr::select(-Fold, -Iter)
+      
+      #Probably want to add the ability for the user to select which trait(s) to display here
+      
+      #Convert to long format for ggplot
+      df_long <- pivot_longer(
+        df,
+        cols = colnames(df),  # Exclude the Cycle column from transformation
+        names_to = "Trait",  # New column for trait names
+        values_to = "Correlation"  # New column for correlation values
+      )
+      
+      #This can be adapted if we start comparing more than one GP model
+      #Also consider a violin plot to show each cor value
+      #plot <- ggplot(df_long, aes(x = factor(Trait), y = Correlation, fill = "red"), fill = "red") +
+      plot <- ggplot(df_long, aes(x = "rrBLUP", y = Correlation, fill = "red"), fill = "red") +
+        #geom_boxplot(position = position_dodge(width = 0.8), color = "black", width = 0.7, outlier.size = 0.2) +
+        geom_boxplot() +
+        facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
+        labs(title = "Prediction Accuracy by Trait",
+             x = " ",
+             y = "Pearson Correlation") +
+        #theme_minimal() +                      # Using a minimal theme
+        theme(legend.position = "none",
+              strip.text = element_text(size = 12),
+              axis.text = element_text(size = 12),
+              axis.title = element_text(size = 14),
+              axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2), 
+              strip.text.x = element_text(face = "bold"))
+      
+      plot_violin <- ggplot(df_long, aes(x = "rrBLUP", y = Correlation, fill = "red")) +
+        geom_violin(trim = TRUE) +  # Add violin plot
+        geom_point(position = position_jitter(width = 0.1), color = "black", size = 1.5) +  # Add jittered points
+        facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
+        labs(title = "Prediction Accuracy by Trait",
+             x = " ",  # x-label is blank because it's not relevant per facet
+             y = "Pearson Correlation") +
+        theme(legend.position = "none",
+              strip.text = element_text(size = 12),
+              axis.text = element_text(size = 12),
+              axis.title = element_text(size = 14),
+              axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2), 
+              strip.text.x = element_text(face = "bold"))
+      
+      pred_outputs$box_plot <- plot
+      pred_outputs$violin_plot <- plot_violin
+      
+    })
+    
+    #Output the genomic prediction correlation box plots
+    output$pred_box_plot <- renderPlot({
+      req(pred_outputs$box_plot)
+      pred_outputs$box_plot  + scale_fill_manual(values = pred_outputs$colors)
+    })
+    
+    #Output the genomic prediction correlation box plots
+    output$pred_violin_plot <- renderPlot({
+      req(pred_outputs$violin_plot)
+      #pred_outputs$violin_plot
+      pred_outputs$violin_plot + scale_fill_manual(values = pred_outputs$colors)
+    })
+    
+    #Output the prediction tables
+    observe({
+      #GEBVs from all iterations/folds
+      req(pred_outputs$all_GEBVs)
+      
+      output$pred_all_table <- renderDT({pred_outputs$all_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+      
+    })
+    observe({
+      #Accuracy (pearson corr) and Heritability for each trait/iteration
+      req(pred_outputs$comb_output)
+      
+      output$pred_acc_table <- renderDT({pred_outputs$comb_output}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+      
+    })
+    observe({
+      #Avg GEBVs for each sample/trait
+      req(pred_outputs$avg_GEBVs)
+      
+      output$pred_gebvs_table <- renderDT({pred_outputs$avg_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+      
+    })
+    
+    #Download files for GP
+    output$download_pred_file <- downloadHandler(
+      filename = function() {
+        paste0("GS-results-", Sys.Date(), ".zip")
+      },
+      content = function(file) {
+        # Temporary files list
+        temp_dir <- tempdir()
+        temp_files <- c()
+        
+        if (!is.null(pred_outputs$avg_GEBVs)) {
+          # Create a temporary file for assignments
+          gebv_file <- file.path(temp_dir, paste0("GEBVs-", Sys.Date(), ".csv"))
+          write.csv(pred_outputs$avg_GEBVs, gebv_file, row.names = FALSE)
+          temp_files <- c(temp_files, gebv_file)
+        }
+        
+        if (!is.null(pred_outputs$comb_output)) {
+          # Create a temporary file for BIC data frame
+          acc_file <- file.path(temp_dir, paste0("GS-accuracy-statistics-", Sys.Date(), ".csv"))
+          write.csv(pred_outputs$comb_output, acc_file, row.names = FALSE)
+          temp_files <- c(temp_files, acc_file)
+        }
+        
+        # Zip files only if there's something to zip
+        if (length(temp_files) > 0) {
+          zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
+        }
+        
+        # Optionally clean up
+        file.remove(temp_files)
+      }
+    )
+    
+    #Download GP Figures
+    output$download_pred_figure <- downloadHandler(
+      
+      filename = function() {
+        if (input$pred_image_type == "jpeg") {
+          paste("GS-", Sys.Date(), ".jpg", sep="")
+        } else if (input$pred_image_type == "png") {
+          paste("GS-", Sys.Date(), ".png", sep="")
+        } else {
+          paste("GS-", Sys.Date(), ".tiff", sep="")
+        }
+      },
+      content = function(file) {
+        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+        req(input$pred_figures)
+        
+        if (input$pred_image_type == "jpeg") {
+          jpeg(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+        } else if (input$pred_image_type == "png") {
+          png(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+        } else {
+          tiff(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+        }
+        
+        # Conditional plotting based on input selection
+        if (input$pred_figures == "Violin Plot") {
+          req(pred_outputs$violin_plot)
+          
+          print(pred_outputs$violin_plot + scale_fill_manual(values = pred_outputs$colors))
+          
+        } else if (input$pred_figures == "Box Plot") {
+          req(pred_outputs$box_plot)
+          #Plot
+          print(pred_outputs$box_plot  + scale_fill_manual(values = pred_outputs$colors))
+          
+        }
+        
+        dev.off()
+      }
+      
+    )
   })
 }
 
