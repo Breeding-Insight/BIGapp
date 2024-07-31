@@ -56,9 +56,9 @@ mod_GS_ui <- function(id){
       
       column(width = 6,
              box(title = "Results", status = "info", solidHeader = FALSE, width = 12, height = 600,
-                 tabsetPanel(
-                   tabPanel("Predicted Trait Table", DTOutput("pred_trait_table"), style = "overflow-y: auto; height: 500px"),
-                   tabPanel("GEBVs Table", DTOutput("pred_gebvs_table2"),style = "overflow-y: auto; height: 500px")
+                 bs4Dash::tabsetPanel(
+                   tabPanel("Predicted Trait Table", DTOutput(ns("pred_trait_table")), style = "overflow-y: auto; height: 500px"),
+                   tabPanel("GEBVs Table", DTOutput(ns("pred_gebvs_table2")),style = "overflow-y: auto; height: 500px")
                    
                  )
              )
@@ -438,17 +438,6 @@ mod_GS_server <- function(id){
       #train_perc <- as.numeric(input$pred_folds)
       fixed_traits <- input$pred_fixed_info2
       cores <- input$pred_cores
-      
-      #Assign colors
-      if (input$pred_color_select == "red"){
-        pred_outputs$colors <- "#F8766D"
-      } else if (input$pred_color_select == "blue") {
-        pred_outputs$colors <- "#00BFC4"
-      } else if (input$pred_color_select == "green") {
-        pred_outputs$colors <- "#00BA38"
-      } else{
-        pred_outputs$colors <- input$pred_color_select
-      }
       
       ##Need to add ability for the use of parallelism for the for cross-validation
       ##Example at this tutorial also: https://www.youtube.com/watch?v=ARWjdQU6ays
