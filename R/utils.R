@@ -77,3 +77,16 @@ extract_info_ids <- function(info_string) {
   info_ids <- gsub("=.*", "", info_parts)
   return(info_ids)
 }
+
+convert_to_dosage <- function(gt) {
+  # Split the genotype string
+  alleles <- strsplit(gt, "[|/]")
+  # Sum the alleles, treating NA values appropriately
+  sapply(alleles, function(x) {
+    if (any(is.na(x))) {
+      return(NA)
+    } else {
+      return(sum(as.numeric(x), na.rm = TRUE))
+    }
+  })
+}

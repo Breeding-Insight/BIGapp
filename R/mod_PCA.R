@@ -9,6 +9,7 @@
 #' @importFrom AGHmatrix Gmatrix
 #' @importFrom shinycssloaders withSpinner
 #' @importFrom shiny NS tagList
+#' @importFrom shinyWidgets materialSwitch
 #'
 mod_PCA_ui <- function(id){
   ns <- NS(id)
@@ -98,6 +99,8 @@ mod_PCA_ui <- function(id){
 #' @importFrom factoextra get_eigenvalue
 #' @import grDevices
 #' @importFrom plotly layout plotlyOutput renderPlotly
+#' @importFrom shinyWidgets updateVirtualSelect
+#' @importFrom RColorBrewer brewer.pal
 #'
 #' @noRd
 mod_PCA_server <- function(id){
