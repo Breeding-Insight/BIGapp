@@ -35,9 +35,10 @@ app_ui <- function(request) {
           menuItem("GWAS", tabName = "gwas", icon = icon("think-peaks")),
           #menuItem("QTL Analysis", tabName = "qtl", icon = icon("chart-area")),
           menuItem(
-            span("Genomic Prediction", bs4Badge("beta", position = "right", color = "success")),
-            tabName = "prediction",
-            icon = icon("right-left")),
+            span("GS/GP", bs4Badge("beta", position = "right", color = "success")), 
+            icon = icon("right-left"),
+                  menuSubItem("Prediction Accuracy", tabName = "prediction_accuracy"),
+                  menuSubItem("Genomic Prediction", tabName = "prediction")),
           menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
           menuItem(
             span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
@@ -84,6 +85,9 @@ app_ui <- function(request) {
           ),
           tabItem(
             tabName = "diversity", mod_diversity_ui("diversity_1")
+          ),
+          tabItem(
+            tabName = "prediction_accuracy", mod_GSAcc_ui("GSAcc_1")
           ),
           tabItem(
             tabName = "prediction", mod_GS_ui("GS_1")

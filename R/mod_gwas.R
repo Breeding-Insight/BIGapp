@@ -10,6 +10,7 @@
 #' @import GWASpoly
 #' @importFrom future availableCores
 #' @importFrom shinycssloaders withSpinner
+#' @importFrom shinyWidgets virtualSelectInput
 #'
 mod_gwas_ui <- function(id){
   ns <- NS(id)
@@ -24,7 +25,7 @@ mod_gwas_ui <- function(id){
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
                  selectInput(ns('trait_info'), label = 'Select Trait (eg, Color):', choices = NULL),
                  virtualSelectInput(
-                   inputId = "fixed_info",
+                   inputId = ns("fixed_info"),
                    label = "Select Fixed Effects (optional):",
                    choices = NULL,
                    showValueAsTags = TRUE,

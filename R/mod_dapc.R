@@ -102,6 +102,10 @@ mod_dapc_ui <- function(id){
 #' @importFrom methods new
 #' @import stats
 #' @importFrom graphics axis
+#' @importClassesFrom adegenet genlight
+#' @importFrom adegenet find.clusters dapc optim.a.score pop<- nInd scatter.dapc
+#' @importFrom methods new
+#' @importFrom vcfR read.vcfR extract.gt
 #'
 #' @noRd
 mod_dapc_server <- function(id){
@@ -343,7 +347,7 @@ mod_dapc_server <- function(id){
       palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
       my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
 
-      sc1 <- scatter(dapc_items$dapc,
+      sc1 <- scatter.dapc(dapc_items$dapc,
                      bg = "white", solid = 1, cex = 1, # cex circle size
                      col = my_palette,
                      pch = 20, # shapes
@@ -393,7 +397,7 @@ mod_dapc_server <- function(id){
           palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
           my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
 
-          sc1 <- scatter(dapc_items$dapc,
+          sc1 <- scatter.dapc(dapc_items$dapc,
                          bg = "white", solid = 1, cex = 1, # cex circle size
                          col = my_palette,
                          pch = 20, # shapes
