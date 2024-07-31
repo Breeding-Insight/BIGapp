@@ -27,7 +27,6 @@ Supported:
 **Local computer**
 1. Install R
 2. Open Terminal (on mac)
-
 3. To install and run development version of package:
 (in terminal)
 ```
