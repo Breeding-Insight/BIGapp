@@ -25,15 +25,17 @@ Supported:
 ### Running the BIG app
 
 **Local computer**
+1. Install R
+2. Open Terminal (on mac)
 
-To install and run development version of package:
+3. To install and run development version of package:
 (in terminal)
 ```
 install.packages("devtools") #If not already installed
 devtools::install_github("Breeding-Insight/BIGapp", ref = "development")
 BIGapp::run_app()
 ```
-8. View shiny app in browser
+4. View shiny app in browser
 
 **Online (in progress)**
 
