@@ -8,6 +8,7 @@
 #'
 #' @importFrom AGHmatrix Gmatrix
 #' @importFrom shinycssloaders withSpinner
+#' @importFrom shinyWidgets virtualSelectInput progressBar
 #' @importFrom shiny NS tagList
 #'
 mod_PCA_ui <- function(id){
@@ -42,7 +43,7 @@ mod_PCA_ui <- function(id){
                conditionalPanel(condition = "input.use_cat",
                                 ns = ns,
                                 virtualSelectInput(
-                                  inputId = "cat_color",
+                                  inputId = ns("cat_color"),
                                   label = "Select Category To Color:",
                                   choices = NULL,
                                   showValueAsTags = TRUE,
@@ -97,7 +98,8 @@ mod_PCA_ui <- function(id){
 #'
 #' @importFrom factoextra get_eigenvalue
 #' @import grDevices
-#' @importFrom plotly layout plotlyOutput renderPlotly
+#' @importFrom plotly layout plotlyOutput renderPlotly add_markers plot_ly
+#' @importFrom RColorBrewer brewer.pal
 #'
 #' @noRd
 mod_PCA_server <- function(id){
