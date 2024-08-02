@@ -18,11 +18,7 @@ test_that("",{
   input$color_choice <- "Paired"
   input$pc_X <- "PC1"
   input$pc_Y <- "PC2"
-  input$pca_figure
-  input$pca_image_type
-  input$pca_image_res
-  input$pca_image_width
-  input$pca_image_height
+  input$grey_choice <- "Grey"
 
   all_plots <- pca_data <- data <- list()
 
@@ -125,8 +121,6 @@ test_that("",{
   pca_data$variance_explained <- variance_explained
   pca_data$my_palette <- my_palette
 
-
-
   ##2D PCA plotting
   # Generate colors
   unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
@@ -134,7 +128,6 @@ test_that("",{
   my_palette <- colorRampPalette(palette)(length(unique_countries))
 
 
-  input$grey_choice <- "Grey"
 
   # Define a named vector to map input labels to grey values
   label_to_value <- c("Light Grey" = "grey80",
