@@ -61,10 +61,10 @@ mod_PCA_ui <- function(id){
                selectInput(ns("color_choice"), "Color Palette", choices = list("Standard Palettes" = c("Set1","Set3","Pastel2",
                                                                                                       "Pastel1","Accent","Spectral",
                                                                                                       "RdYlGn","RdGy"),
-                                                                            "Colorblind Friendly" = c("YlOrRd","YlOrBr","YlGnBu","YlGn",
+                                                                            "Colorblind Friendly" = c("Set2","Paired","Dark2","YlOrRd","YlOrBr","YlGnBu","YlGn",
                                                                                                        "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
                                                                                                        "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
-                                                                                                       "BuGn","Blues","Set2","Paired","Dark2", "RdYlBu",
+                                                                                                       "BuGn","Blues","RdYlBu",
                                                                                                        "RdBu", "PuOr","PRGn","PiYG","BrBG"
                                                                             )), 
                                                                             selected = "Set1"),
