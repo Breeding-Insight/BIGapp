@@ -31,13 +31,14 @@ test_that("Dosage Calling from MADC file",{
   expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
 
   # Convert updog to VCF
-  BIGr::updog2vcf(
+  updog2vcf(
     multidog.object = mout,
-    ploidy = ploidy,
-    output.file = output_name
+    output.file = output_name,
+    updog_version = packageVersion("updog"),
+    compress = TRUE
   )
 
-  vcf_result <- read.vcfR(paste0(output_name,".vcf"))
+  vcf_result <- read.vcfR(paste0(output_name,".vcf.gz"))
 
   DP <- sum(as.numeric(extract.gt(vcf_result, "DP")))
 

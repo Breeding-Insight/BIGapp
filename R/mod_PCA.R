@@ -11,7 +11,7 @@
 #' @importFrom shinyWidgets virtualSelectInput progressBar
 #' @importFrom shiny NS tagList
 #' @importFrom shinyWidgets materialSwitch
-#' @importFrom shinyjs inlineCSS
+#' @importFrom shinyjs inlineCSS toggleClass
 #'
 mod_PCA_ui <- function(id){
   ns <- NS(id)
@@ -107,6 +107,7 @@ mod_PCA_ui <- function(id){
 #' @importFrom shinyWidgets updateVirtualSelect
 #' @importFrom plotly layout plotlyOutput renderPlotly add_markers plot_ly
 #' @importFrom RColorBrewer brewer.pal
+#' @importFrom shinyjs toggleClass
 #'
 #' @noRd
 mod_PCA_server <- function(id){
