@@ -7,6 +7,8 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @importFrom shinyjs enable disable useShinyjs
+#'
 mod_dosage2vcf_ui <- function(id){
   ns <- NS(id)
   tagList(
@@ -18,7 +20,9 @@ mod_dosage2vcf_ui <- function(id){
           fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
           textInput(ns("d2v_output_name"), "Output File Name"),
           numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
-          downloadButton(ns("download_d2vcf"), "Download VCF File"),
+          actionButton(ns("run_analysis"), "Run Analysis"),
+          useShinyjs(),
+          downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
           div(style="display:inline-block; float:right",dropdownButton(
 
             tags$h3("DArT File Converstion"),
@@ -44,6 +48,7 @@ mod_dosage2vcf_ui <- function(id){
 #' dosage2vcf Server Functions
 #'
 #' @import BIGr
+#' @importFrom shinyjs enable disable
 #'
 #' @noRd
 mod_dosage2vcf_server <- function(id){
@@ -51,10 +56,45 @@ mod_dosage2vcf_server <- function(id){
     ns <- session$ns
 
     snp_number <- reactiveVal(0)
+    disable("download_d2vcf")
 
     #SNP counts value box
     output$ReportSnps <- renderValueBox({
-      valueBox(snp_number(), "Markers in VCF File", icon = icon("dna"), color = "info")
+      valueBox(snp_number(), "Number of Markers", icon = icon("dna"), color = "info")
+    })
+
+    observeEvent(input$run_analysis, {
+      # Missing input with red border and alerts
+      toggleClass(id = "d2v_output_name", class = "borderred", condition = (is.na(input$d2v_output_name) | is.null(input$d2v_output_name) | input$d2v_output_name == ""))
+      toggleClass(id = "dosage2vcf_ploidy", class = "borderred", condition = (is.na(input$dosage2vcf_ploidy) | is.null(input$dosage2vcf_ploidy) | input$dosage2vcf_ploidy == ""))
+
+      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload Dose Report and Counts Files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+
+      dosage_file_df <- read.csv(input$report_file$datapath)
+      snp_number <- length(dosage_file_df$X.[-c(1:7)])
+
+      #SNP counts value box
+      output$ReportSnps <- renderValueBox({
+        valueBox(snp_number, "Number of Markers", icon = icon("dna"), color = "info")
+      })
+
+      enable("download_d2vcf")
     })
 
     ##This is for the DArT files conversion to VCF

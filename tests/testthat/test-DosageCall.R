@@ -1,7 +1,7 @@
 context("Dosage Calling")
 
 # Imports
-library(vcfR)
+#library(vcfR)
 
 test_that("Dosage Calling from MADC file",{
 
