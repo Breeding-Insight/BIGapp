@@ -58,13 +58,16 @@ mod_PCA_ui <- function(id){
                                 ),
                                 selectInput(ns("grey_choice"), "Select Grey", choices = c("Light Grey", "Grey", "Dark Grey", "Black"), selected = "Grey")
                ),
-               selectInput(ns("color_choice"), "Color Palette", choices = c("YlOrRd","YlOrBr","YlGnBu","YlGn",
-                                                                            "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
-                                                                            "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
-                                                                            "BuGn","Blues","Set3","Set2","Set1","Pastel2",
-                                                                            "Pastel1","Paired","Dark2","Accent","Spectral",
-                                                                            "RdYlGn","RdYlBu","RdGy","RdBu","PuOr","PRGn",
-                                                                            "PiYG","BrBG"), selected = "Paired"),
+               selectInput(ns("color_choice"), "Color Palette", choices = list("Standard Palettes" = c("Set1","Set3","Pastel2",
+                                                                                                      "Pastel1","Accent","Spectral",
+                                                                                                      "RdYlGn","RdGy"),
+                                                                            "Colorblind Friendly" = c("Set2","Paired","Dark2","YlOrRd","YlOrBr","YlGnBu","YlGn",
+                                                                                                       "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
+                                                                                                       "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
+                                                                                                       "BuGn","Blues","RdYlBu",
+                                                                                                       "RdBu", "PuOr","PRGn","PiYG","BrBG"
+                                                                            )), 
+                                                                            selected = "Set1"),
                selectInput(ns("pc_X"), "X-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC1"),
                selectInput(ns("pc_Y"), "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
                div(style="display:inline-block; float:right",dropdownButton(

@@ -91,6 +91,8 @@ mod_gwas_ui <- function(id){
 #'
 #' @importFrom DT renderDT
 #' @importFrom vcfR read.vcfR
+#' @importFrom matrixcalc is.positive.definite
+#' @importFrom Matrix nearPD
 #' @importFrom stats BIC as.formula lm logLik median model.matrix na.omit prcomp qbeta quantile runif sd setNames
 #' @noRd
 mod_gwas_server <- function(id){
@@ -263,7 +265,7 @@ mod_gwas_server <- function(id){
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 20, title = "Formatting Complete: Now Calculating BIC")
 
-      source("FUN/MyFun_BIC_Meng.R") #change directory in your case
+      source("R/MyFun_BIC_Meng.R") #change directory in your case
 
       PC<-as.matrix(PCs)
       K=as.matrix(Kin)
@@ -374,7 +376,7 @@ mod_gwas_server <- function(id){
         #get qqplot
         data_qq <- cbind.data.frame(SNP=data.loco.scan@map$Marker,Chr=data.loco.scan@map$Chrom, Pos=data.loco.scan@map$Position,10^(-data.loco.scan@scores[[colnames(data@pheno[i])]]))
 
-        source("FUN/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
+        source("R/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
 
         #Save qq_plot info
         gwas_vars$qq_plots <- data_qq
@@ -479,7 +481,7 @@ mod_gwas_server <- function(id){
         } else if (input$gwas_figures == "QQ Plot") {
           req(gwas_vars$qq_plots)
 
-          source("FUN/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
+          source("R/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
 
           #Plot
           CMplot_shiny(gwas_vars$qq_plots,plot.type="q",col=c(1:8),
