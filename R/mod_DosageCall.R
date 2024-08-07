@@ -77,6 +77,7 @@ mod_DosageCall_ui <- function(id){
 #' @import vcfR
 #' @import updog
 #' @importFrom BIGr updog2vcf
+#' @importFrom shinyjs enable disable
 #'
 #' @noRd
 mod_DosageCall_server <- function(id){
@@ -200,19 +201,20 @@ mod_DosageCall_server <- function(id){
 
     output$download_updog_vcf <- downloadHandler(
       filename = function() {
-        paste0(input$output_name, ".vcf")
+        paste0(input$output_name, ".vcf.gz")
       },
       content = function(file) {
         #Save Updog output as VCF file
         temp <- tempfile()
         updog2vcf(
           multidog.object = updog_out(),
-          ploidy = input$ploidy,
-          output.file = temp
+          output.file = temp,
+          updog_version = packageVersion("updog"),
+          compress = TRUE
         )
 
         # Move the file to the path specified by 'file'
-        file.copy(temp, file, overwrite = TRUE)
+        file.copy(paste0(temp, ".vcf.gz"), file)
 
         # Delete the temporary file
         unlink(temp)
