@@ -12,7 +12,6 @@
 #' @importFrom bs4Dash valueBox
 #' @importFrom shiny NS tagList
 #' @importFrom shinyWidgets virtualSelectInput
-#' @import shinyalert
 #'
 mod_GSAcc_ui <- function(id){
   ns <- NS(id)
@@ -107,7 +106,7 @@ mod_GSAcc_ui <- function(id){
 #' @importFrom vcfR read.vcfR extract.gt
 #' @importFrom rrBLUP mixed.solve A.mat
 #' @importFrom stats cor
-#' @import shinyalert
+#' @importFrom shinyalert shinyalert
 #' @import dplyr
 #' @import ggplot2
 #' @import tidyr

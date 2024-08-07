@@ -4,7 +4,7 @@ test_that("",{
 
   # inputs
   input <- list()
-  input$dosage_file$datapath <- system.file("iris_DArT_VCF.vcf", package = "BIGapp")
+  input$dosage_file$datapath <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
   input$passport_file$datapath <- system.file("iris_passport_file.csv", package = "BIGapp")
   input$pca_ploidy <- 2
 

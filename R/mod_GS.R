@@ -12,7 +12,6 @@
 #' @importFrom bs4Dash valueBox
 #' @importFrom shiny NS tagList
 #' @importFrom shinyWidgets virtualSelectInput progressBar
-#' @import shinyalert
 #'
 #'
 mod_GS_ui <- function(id){
@@ -97,7 +96,7 @@ mod_GS_ui <- function(id){
 #' @import dplyr
 #' @import ggplot2
 #' @import tidyr
-#' @import DT
+#' @importFrom DT renderDT
 #' @noRd
 mod_GS_server <- function(id){
   moduleServer( id, function(input, output, session){

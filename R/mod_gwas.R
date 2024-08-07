@@ -91,9 +91,9 @@ mod_gwas_ui <- function(id){
 #'
 #' @importFrom DT renderDT
 #' @importFrom vcfR read.vcfR
-#' @import stats
 #' @importFrom matrixcalc is.positive.definite
 #' @importFrom Matrix nearPD
+#' @importFrom stats BIC as.formula lm logLik median model.matrix na.omit prcomp qbeta quantile runif sd setNames
 #' @noRd
 mod_gwas_server <- function(id){
   moduleServer( id, function(input, output, session){
