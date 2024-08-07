@@ -48,7 +48,8 @@
 #' @param K describe documentation
 #'
 #' @import rrBLUP
-#' @import MASS
+#' @importFrom MASS ginv
+#'
 CalcBIC <- function(y, PC, K) {
    # number of max. PC
    n.max.pc <- ncol(PC)

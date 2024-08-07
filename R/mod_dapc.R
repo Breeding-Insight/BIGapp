@@ -100,13 +100,12 @@ mod_dapc_ui <- function(id){
 #' dapc Server Functions
 #' @import grDevices
 #' @importFrom methods new
-#' @import stats
 #' @importFrom graphics axis
 #' @importClassesFrom adegenet genlight
 #' @importFrom adegenet find.clusters dapc optim.a.score pop<- nInd scatter.dapc
 #' @importFrom methods new
 #' @importFrom vcfR read.vcfR extract.gt
-#'
+#' @importFrom stats BIC as.formula lm logLik median model.matrix na.omit prcomp qbeta quantile runif sd setNames
 #' @noRd
 mod_dapc_server <- function(id){
   moduleServer( id, function(input, output, session){
