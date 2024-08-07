@@ -28,7 +28,7 @@ mod_PCA_ui <- function(id){
                fileInput(ns("dosage_file"), "Choose Genotypes File*", accept = c(".csv",".vcf",".gz")),
                fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
                #Dropdown will update after passport upload
-               numericInput(ns("pca_ploidy"), "Species Ploidy*", min = 1, value = NULL),
+               numericInput(ns("pca_ploidy"), "Species Ploidy*", min = 2, value = NULL),
                actionButton(ns("pca_start"), "Run Analysis"),
                div(style="display:inline-block; float:right",
                    dropdownButton(
@@ -342,9 +342,12 @@ mod_PCA_server <- function(id){
       # Similar plotting logic here
 
       cat_colors <- c(input$cat_color, "grey")
-      plot <- ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
-                                             y = pca_data$pc_df_pop[[input$pc_Y]],
-                                             color = factor(pca_data$pc_df_pop[[input$group_info]]))) +
+      plot <- {if(!is.null(input$group_info) & input$group_info != "")
+        ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
+                                       y = pca_data$pc_df_pop[[input$pc_Y]],
+                                       color = factor(pca_data$pc_df_pop[[input$group_info]]))) else
+                                         ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
+                                                                        y = pca_data$pc_df_pop[[input$pc_Y]]))} +
         geom_point(size = 2, alpha = 0.8) +
         {if(input$use_cat) scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) else
           if(!is.null(my_palette)) scale_color_manual(values = my_palette)} +
