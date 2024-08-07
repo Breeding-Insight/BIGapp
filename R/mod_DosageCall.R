@@ -95,97 +95,114 @@ mod_DosageCall_server <- function(id){
 
     ##This is for performing Updog Dosage Calling
     updog_out <- eventReactive(input$run_analysis,{
-      if(!is.null(input$ploidy) & !is.null(input$output_name)){
-        # Get inputs
-        madc_file <- input$madc_file$datapath
-        output_name <- input$output_name
-        ploidy <- input$ploidy
-        cores <- input$cores
-        model_select <- input$updog_model
 
-        # Status
-        updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
-        #Import genotype info if genotype matrix format
-        if (grepl("\\.csv$", madc_file)) {
-          # Call the get_counts function with the specified MADC file path and output file path
-          #Status
-          result_df <- get_counts(madc_file, output_name)
+      # Missing input with red border and alerts
+      toggleClass(id = "ploidy", class = "borderred", condition = (is.na(input$ploidy) | is.null(input$ploidy)))
+      toggleClass(id = "output_name", class = "borderred", condition = (is.na(input$output_name) | is.null(input$output_name) | input$output_name == ""))
 
-          #Call the get_matrices function
-          matrices <- get_matrices(result_df)
+      if (is.null(input$madc_file$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF File",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$madc_file$datapath, input$output_name, input$ploidy)
 
-          #Number of SNPs
-          snp_number <- (nrow(result_df) / 2)
+      # Get inputs
+      madc_file <- input$madc_file$datapath
+      output_name <- input$output_name
+      ploidy <- input$ploidy
+      cores <- input$cores
+      model_select <- input$updog_model
+
+      # Status
+      updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
+      #Import genotype info if genotype matrix format
+      if (grepl("\\.csv$", madc_file)) {
+        # Call the get_counts function with the specified MADC file path and output file path
+        #Status
+        result_df <- get_counts(madc_file, output_name)
+
+        #Call the get_matrices function
+        matrices <- get_matrices(result_df)
+
+        #Number of SNPs
+        snp_number <- (nrow(result_df) / 2)
+
+        #SNP counts value box
+        output$MADCsnps <- renderValueBox({
+          valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+        })
+
+      } else {
+
+        #Initialize matrices list
+        matrices <- list()
+
+        #Import genotype information if in VCF format
+        vcf <- read.vcfR(madc_file, verbose = FALSE)
+
+        #Get items in FORMAT column
+        info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+        chrom <- vcf@fix[,1]
+        pos <- vcf@fix[,2]
+
+        info_ids <- extract_info_ids(info[1])
+
+        if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
+          #Extract DP and RA and convert to matrices
+          matrices$size_matrix <- extract.gt(vcf, element = "DP")
+          if("RA" %in% info_ids){
+            matrices$ref_matrix <- extract.gt(vcf, element = "RA")
+          } else {
+            ad_matrix <- extract.gt(vcf, element = "AD")
+            matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
+            colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
+            rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
+          }
+
+          class(matrices$size_matrix) <- "numeric"
+          class(matrices$ref_matrix) <- "numeric"
+          rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
+
+          rm(vcf) #Remove VCF
+
+          snp_number <- (nrow(matrices$size_matrix))
 
           #SNP counts value box
           output$MADCsnps <- renderValueBox({
-            valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+            valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
           })
 
-        } else {
-
-          #Initialize matrices list
-          matrices <- list()
-
-          #Import genotype information if in VCF format
-          vcf <- read.vcfR(madc_file, verbose = FALSE)
-
-          #Get items in FORMAT column
-          info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-          chrom <- vcf@fix[,1]
-          pos <- vcf@fix[,2]
-
-          info_ids <- extract_info_ids(info[1])
-
-          if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
-            #Extract DP and RA and convert to matrices
-            matrices$size_matrix <- extract.gt(vcf, element = "DP")
-            if("RA" %in% info_ids){
-              matrices$ref_matrix <- extract.gt(vcf, element = "RA")
-            } else {
-              ad_matrix <- extract.gt(vcf, element = "AD")
-              matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
-              colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
-              rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
-            }
-
-            class(matrices$size_matrix) <- "numeric"
-            class(matrices$ref_matrix) <- "numeric"
-            rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
-
-            rm(vcf) #Remove VCF
-
-            snp_number <- (nrow(matrices$size_matrix))
-
-            #SNP counts value box
-            output$MADCsnps <- renderValueBox({
-              valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
-            })
-
-          }else{
-            ##Add user warning about read depth and allele read depth not found
-            stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
-          }
+        }else{
+          ##Add user warning about read depth and allele read depth not found
+          stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
         }
-
-        #Run Updog
-        #I initially used the "norm" model
-        #I am also taking the ploidy from the max value in the
-        updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
-        print('Performing Updog dosage calling')
-        mout <- multidog(refmat = matrices$ref_matrix,
-                         sizemat = matrices$size_matrix,
-                         ploidy = as.numeric(ploidy),
-                         model = model_select,
-                         nc = cores)
-        #Status
-        updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
-        mout
-      } else {
-        if(is.null(input$ploidy)) stop(safeError("Define the samples ploidy."))
-        if(is.null(input$output_name)) stop(safeError("Define output VCF file name."))
-        NULL
       }
+
+      #Run Updog
+      #I initially used the "norm" model
+      #I am also taking the ploidy from the max value in the
+      updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
+      print('Performing Updog dosage calling')
+      mout <- multidog(refmat = matrices$ref_matrix,
+                       sizemat = matrices$size_matrix,
+                       ploidy = as.numeric(ploidy),
+                       model = model_select,
+                       nc = cores)
+      #Status
+      updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
+      mout
     })
 
     # Only make available the download button when analysis is finished
