@@ -122,8 +122,6 @@ test_that("",{
   palette <- RColorBrewer::brewer.pal(length(unique_countries), input$color_choice)
   my_palette <- colorRampPalette(palette)(length(unique_countries))
 
-
-
   # Define a named vector to map input labels to grey values
   label_to_value <- c("Light Grey" = "grey80",
                       "Grey" = "grey60",
@@ -168,8 +166,6 @@ test_that("",{
       color = input$group_info
     )
 
-  plot  # Assign the plot to your reactiveValues
-
   #3D PCA plotting
   #Generate colors
   unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
@@ -187,8 +183,6 @@ test_that("",{
       title = tit,
       scene = list(bgcolor = "white")
     )
-
-  fig # Return the Plotly object here
 
   #PCA scree plot
   var_explained <- pca_data$variance_explained
@@ -214,5 +208,4 @@ test_that("",{
       legend.title = element_text(size = 16)
     )
 
-  plot
 })

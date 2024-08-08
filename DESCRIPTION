@@ -58,7 +58,9 @@ Imports:
     plotly,
     rrBLUP,
     MASS,
-    config
+    config,
+    Matrix,
+    matrixcalc
 Remotes:
     github::jendelman/GWASpoly,
     github::Breeding-Insight/BIGr
