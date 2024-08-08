@@ -10,6 +10,8 @@
 #' @importFrom shiny NS tagList
 #' @importFrom purrr map set_names
 #' @importFrom stringr str_split
+#' @importFrom shinyjs enable disable useShinyjs
+#'
 #' @import dplyr
 #'
 #'
@@ -38,7 +40,9 @@ mod_Filtering_ui <- function(id){
                      numericInput(ns("maxpostprob_filter"), "Minimum maxpostprob (Updog filter)", min = 0, value = 0.5, step = 0.1)
                    )
                  ),
-                 downloadButton(ns("start_updog_filter"), "Download Filtered VCF", icon = icon("download")),
+                 actionButton(ns("run_filters"), "Apply filters"),
+                 useShinyjs(),
+                 downloadButton(ns("start_updog_filter"), "Download Filtered VCF", icon = icon("download"), class = "butt"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Updog Filter Parameters"),
                    "Add description of each filter. Presently, all filtering parameters that are typically used for processing
@@ -96,6 +100,7 @@ mod_Filtering_ui <- function(id){
 #'
 #' @import vcfR
 #' @import BIGr
+#' @importFrom shinyjs enable disable useShinyjs
 #' @importFrom graphics abline axis hist
 #'
 #' @noRd
@@ -130,87 +135,148 @@ mod_Filtering_server <- function(id){
       )
     })
 
+    disable("start_updog_filter")
+
+    vcf <- eventReactive(input$run_filters, {
+
+      # Ensure the files are uploaded
+      # Missing input with red border and alerts
+      toggleClass(id = "filter_ploidy", class = "borderred", condition = (is.na(input$filter_ploidy) | is.null(input$filter_ploidy) | input$filter_ploidy == ""))
+      toggleClass(id = "filter_output_name", class = "borderred", condition = (is.na(input$filter_output_name) | is.null(input$filter_output_name) | input$filter_output_name == ""))
+
+      if (is.null(input$updog_rdata$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload Dose Report and Counts Files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+
+      req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
+
+      if (input$use_updog) {
+        # Use Updog filtering parameters
+        OD_filter <- as.numeric(input$OD_filter)
+        Prop_mis <- as.numeric(input$Prop_mis)
+        Bias_min <- as.numeric(input$Bias[1])
+        Bias_max <- as.numeric(input$Bias[2])
+        max_post <- as.numeric(input$maxpostprob_filter)
+
+        # Perform filtering with Updog parameters
+        # (insert your filtering code here)
+      } else {
+        # Do not use Updog filtering parameters
+        OD_filter = NULL
+        Prop_mis = NULL
+        Bias_min = NULL
+        Bias_max = NULL
+        max_post = NULL
+      }
+
+      #Variables
+      size_depth <- input$size_depth
+      output_name <- input$filter_output_name
+      snp_miss <- input$snp_miss / 100
+      sample_miss <- input$sample_miss / 100
+      ploidy <- as.numeric(input$filter_ploidy)
+      maf_filter <- input$filter_maf
+
+      updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
+      #Input file
+      vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
+      #Starting SNPs
+      starting_snps <- nrow(vcf)
+      output$snp_removed_box <- renderValueBox({
+        valueBox(
+          value = round(((starting_snps - final_snps)/starting_snps*100),1),
+          subtitle = "Percent SNPs Removed",
+          icon = icon("dna"),
+          color = "info"
+        )
+      })
+
+      #export INFO dataframe
+      filtering_files$raw_vcf_df <- data.frame(vcf@fix)
+
+      #Pb
+      updateProgressBar(session = session, id = "pb_filter", value = 40, title = "Filtering VCF file")
+
+      #Filtering
+      vcf <- filterVCF(vcf.file = vcf,
+                       ploidy=ploidy,
+                       output.file=NULL,
+                       filter.OD = OD_filter,
+                       filter.BIAS.min = Bias_min,
+                       filter.BIAS.max = Bias_max,
+                       filter.DP = as.numeric(size_depth),
+                       filter.PMC = Prop_mis,
+                       filter.SAMPLE.miss = as.numeric(sample_miss),
+                       filter.SNP.miss = as.numeric(snp_miss),
+                       filter.MAF = as.numeric(maf_filter),
+                       filter.MPP = max_post)
+
+      #Getting missing data information
+      #Add support for genotype matrix filtering?
+      #Pb
+      updateProgressBar(session = session, id = "pb_filter", value = 50, title = "Calculating Missing Data")
+
+      gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
+      filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
+      filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
+      rm(gt_matrix) #Remove gt matrix
+
+      #Pb
+      updateProgressBar(session = session, id = "pb_filter", value = 80, title = "Exporting Filtered VCF")
+
+      #Get final_snps
+      final_snps <- nrow(vcf)
+      #Updating value boxes
+      output$snp_retained_box <- renderValueBox({
+        valueBox(
+          value = final_snps,
+          subtitle = "SNPs Retained",
+          icon = icon("dna"),
+          color = "info"
+        )
+      })
+
+      # Status
+      updateProgressBar(session = session, id = "pb_filter", value = 100, title = "Finished!")
+
+      vcf
+    })
+
+    # Only make available the download button when analysis is finished
+    observe({
+      if (!is.null(vcf())) {
+        Sys.sleep(1)
+        # enable the download button
+        enable("start_updog_filter")
+      } else {
+        disable("start_updog_filter")
+      }
+    })
+
+
     #Updog filtering
     output$start_updog_filter <- downloadHandler(
       filename = function() {
         paste0(input$filter_output_name, ".vcf.gz")
       },
       content = function(file) {
-        # Ensure the files are uploaded
-        req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
-
-        if (input$use_updog) {
-          # Use Updog filtering parameters
-          OD_filter <- as.numeric(input$OD_filter)
-          Prop_mis <- as.numeric(input$Prop_mis)
-          Bias_min <- as.numeric(input$Bias[1])
-          Bias_max <- as.numeric(input$Bias[2])
-          max_post <- as.numeric(input$maxpostprob_filter)
-
-          # Perform filtering with Updog parameters
-          # (insert your filtering code here)
-        } else {
-          # Do not use Updog filtering parameters
-          OD_filter = NULL
-          Prop_mis = NULL
-          Bias_min = NULL
-          Bias_max = NULL
-          max_post = NULL
-        }
-
-        #Variables
-        size_depth <- input$size_depth
-        output_name <- input$filter_output_name
-        snp_miss <- input$snp_miss / 100
-        sample_miss <- input$sample_miss / 100
-        ploidy <- as.numeric(input$filter_ploidy)
-        maf_filter <- input$filter_maf
-
-        temp_file <- tempfile(fileext = ".vcf.gz")
-
-        updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
-        #Input file
-        vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
-        #Starting SNPs
-        starting_snps <- nrow(vcf)
-        #export INFO dataframe
-        filtering_files$raw_vcf_df <- data.frame(vcf@fix)
-
-        #Pb
-        updateProgressBar(session = session, id = "pb_filter", value = 40, title = "Filtering VCF file")
-
-        #Filtering
-        vcf <- filterVCF(vcf.file = vcf,
-                         ploidy=ploidy,
-                         output.file=NULL,
-                         filter.OD = OD_filter,
-                         filter.BIAS.min = Bias_min,
-                         filter.BIAS.max = Bias_max,
-                         filter.DP = as.numeric(size_depth),
-                         filter.PMC = Prop_mis,
-                         filter.SAMPLE.miss = as.numeric(sample_miss),
-                         filter.SNP.miss = as.numeric(snp_miss),
-                         filter.MAF = as.numeric(maf_filter),
-                         filter.MPP = max_post)
-
-        #Getting missing data information
-        #Add support for genotype matrix filtering?
-        #Pb
-        updateProgressBar(session = session, id = "pb_filter", value = 50, title = "Calculating Missing Data")
-
-        gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
-        filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
-        filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
-        rm(gt_matrix) #Remove gt matrix
-
-        #Pb
-        updateProgressBar(session = session, id = "pb_filter", value = 80, title = "Exporting Filtered VCF")
 
         #Writing file
-        write.vcf(vcf, file = temp_file)
-
-        #Get final_snps
-        final_snps <- nrow(vcf)
+        temp_file <- tempfile(fileext = ".vcf.gz")
+        write.vcf(vcf(), file = temp_file)
 
         # Check if the VCF file was created
         if (file.exists(temp_file)) {
@@ -225,29 +291,6 @@ mod_Filtering_server <- function(id){
           stop("Error: Failed to create the VCF file.")
         }
 
-        # Status
-        updateProgressBar(session = session, id = "pb_filter", value = 100, title = "Finished!")
-
-        #Updating value boxes
-        output$snp_retained_box <- renderValueBox({
-          valueBox(
-            value = final_snps,
-            subtitle = "SNPs Retained",
-            icon = icon("dna"),
-            color = "info"
-          )
-        })
-        output$snp_removed_box <- renderValueBox({
-          valueBox(
-            value = round(((starting_snps - final_snps)/starting_snps*100),1),
-            subtitle = "Percent SNPs Removed",
-            icon = icon("dna"),
-            color = "info"
-          )
-        })
-
-        #Unload vcf
-        rm(vcf)
       }
     )
 

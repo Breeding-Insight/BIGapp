@@ -1,4 +1,4 @@
-context("Dosage Calling")
+context("Convert DArT files to VCF")
 
 # Imports
 #library(vcfR)
