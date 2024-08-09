@@ -33,7 +33,9 @@ mod_PCA_ui <- function(id){
                div(style="display:inline-block; float:right",
                    dropdownButton(
                      tags$h3("PCA Inputs"),
-                     "PCA Input file and analysis info",
+                     "You can download examples of the expected files here: \n",
+                     downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                     downloadButton(ns('download_pheno'), "Download Passport Example File"),
                      circle = FALSE,
                      status = "warning",
                      icon = icon("info"), width = "300px",
@@ -66,7 +68,7 @@ mod_PCA_ui <- function(id){
                                                                                                        "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
                                                                                                        "BuGn","Blues","RdYlBu",
                                                                                                        "RdBu", "PuOr","PRGn","PiYG","BrBG"
-                                                                            )), 
+                                                                            )),
                                                                             selected = "Set1"),
                selectInput(ns("pc_X"), "X-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC1"),
                selectInput(ns("pc_Y"), "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
@@ -478,6 +480,25 @@ mod_PCA_server <- function(id){
         dev.off()
       }
     )
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
+
+    output$download_pheno <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_passport_Example_file.csv")
+      },
+      content = function(file) {
+        ex <- system.file("iris_passport_file.csv", package = "BIGapp")
+        file.copy(ex, file)
+      })
+
   })
 }
 

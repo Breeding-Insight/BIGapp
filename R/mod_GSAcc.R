@@ -43,7 +43,10 @@ mod_GSAcc_ui <- function(id){
                  actionButton(ns("prediction_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("GP Parameters"),
-                   "GP uses the rrBLUP package: It can impute missing data, adapt to different ploidy, perform 5-fold cross validations with different number of iterations, run multiple traits, and accept multiple fixed effects.",
+                   "You can download examples of the expected input input files here: \n",
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                   downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                   #"GP uses the rrBLUP package: It can impute missing data, adapt to different ploidy, perform 5-fold cross validations with different number of iterations, run multiple traits, and accept multiple fixed effects.",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -79,7 +82,7 @@ mod_GSAcc_ui <- function(id){
                  div(style="display:inline-block; float:left",dropdownButton(
                    tags$h3("Save Image"),
                    selectInput(inputId = ns('pred_figures'), label = 'Figure', choices = c("Violin Plot",
-                                                                                       "Box Plot")),
+                                                                                           "Box Plot")),
                    selectInput(inputId = ns('pred_image_type'), label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                    sliderInput(inputId = ns('pred_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('pred_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
@@ -94,11 +97,11 @@ mod_GSAcc_ui <- function(id){
                  ))
              )
 
-          )
+      )
 
-        )
+    )
 
-     )
+  )
 }
 
 #' GS Server Functions
@@ -180,7 +183,26 @@ mod_GSAcc_server <- function(id){
     })
 
     observeEvent(input$prediction_start, {
-      #req(pred_inputs$pheno_input, pred_inputs$geno_input)
+
+      toggleClass(id = "pred_ploidy", class = "borderred", condition = (is.na(input$pred_ploidy) | is.null(input$pred_ploidy)))
+
+      if (is.null(input$pred_file$datapath) | is.null(input$trait_file$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF and phenotype files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$pred_file$datapath,  input$pred_ploidy, input$trait_file$datapath)
 
       #Status
       updateProgressBar(session = session, id = "pb_prediction", value = 5, title = "Checking input files")
@@ -192,8 +214,6 @@ mod_GSAcc_server <- function(id){
       row.names(pheno) <- pheno[,1]
       traits <- input$pred_trait_info
       CVs <- as.numeric(input$pred_cv)
-      train_perc <- as.numeric(input$pred_folds)
-
 
       #Make sure at least one trait was input
       if (length(traits) == 0) {
@@ -442,7 +462,6 @@ mod_GSAcc_server <- function(id){
       pheno <- pred_inputs$pheno_input
       traits <- input$pred_trait_info
       CVs <- as.numeric(input$pred_cv)
-      train_perc <- as.numeric(input$pred_folds)
       fixed_traits <- input$pred_fixed_info
       cores <- input$pred_cores
 
@@ -685,8 +704,10 @@ mod_GSAcc_server <- function(id){
       continue_prediction(NULL)
     })
 
-    observe({
-      req(pred_outputs$corr_output)
+    plots <- reactive({
+      validate(
+        need(!is.null(pred_outputs$corr_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      )
 
       df <- pred_outputs$corr_output
       df <- df %>% dplyr::select(-Fold, -Iter)
@@ -733,46 +754,46 @@ mod_GSAcc_server <- function(id){
               axis.text.x = element_text(angle = 90, hjust = 0.95, vjust = 0.2),
               strip.text.x = element_text(face = "bold"))
 
-      pred_outputs$box_plot <- plot
-      pred_outputs$violin_plot <- plot_violin
-
+      list(plot, plot_violin)
     })
 
     #Output the genomic prediction correlation box plots
     output$pred_box_plot <- renderPlot({
-      req(pred_outputs$box_plot)
-      pred_outputs$box_plot  + scale_fill_manual(values = pred_outputs$colors)
+      plots()[[1]]  + scale_fill_manual(values = pred_outputs$colors)
     })
 
     #Output the genomic prediction correlation box plots
     output$pred_violin_plot <- renderPlot({
-      req(pred_outputs$violin_plot)
-      #pred_outputs$violin_plot
-      pred_outputs$violin_plot + scale_fill_manual(values = pred_outputs$colors)
+      plots()[[2]] + scale_fill_manual(values = pred_outputs$colors)
     })
 
     #Output the prediction tables
-    observe({
-      #GEBVs from all iterations/folds
-      req(pred_outputs$all_GEBVs)
 
-      output$pred_all_table <- renderDT({pred_outputs$all_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
+    all_GEBVs <- reactive({
+      validate(
+        need(!is.null(pred_outputs$all_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      )
+      pred_outputs$comb_output
     })
-    observe({
-      #Accuracy (pearson corr) and Heritability for each trait/iteration
-      req(pred_outputs$comb_output)
 
-      output$pred_acc_table <- renderDT({pred_outputs$comb_output}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+    output$pred_all_table <- renderDT({all_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
+    comb_output <- reactive({
+      validate(
+        need(!is.null(pred_outputs$comb_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      )
+      pred_outputs$comb_output
     })
-    observe({
-      #Avg GEBVs for each sample/trait
-      req(pred_outputs$avg_GEBVs)
 
-      output$pred_gebvs_table <- renderDT({pred_outputs$avg_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+    output$pred_acc_table <- renderDT({comb_output()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
+    avg_GEBVs <- reactive({
+      validate(
+        need(!is.null(pred_outputs$avg_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      )
     })
+
+    output$pred_gebvs_table <- renderDT({avg_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
     #Download files for GP
     output$download_pred_file <- downloadHandler(
@@ -849,6 +870,24 @@ mod_GSAcc_server <- function(id){
       }
 
     )
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
+
+    output$download_pheno <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_passport_Example_file.csv")
+      },
+      content = function(file) {
+        ex <- system.file("iris_passport_file.csv", package = "BIGapp")
+        file.copy(ex, file)
+      })
   })
 }
 
