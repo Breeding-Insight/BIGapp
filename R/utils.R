@@ -90,3 +90,91 @@ convert_to_dosage <- function(gt) {
     }
   })
 }
+
+
+#' Internal function
+#'
+#' @param genotypeMatrix fill description
+#' @param maxK fill description
+#' @param ploidy fill description
+#'
+#' @importFrom adegenet pop
+#'
+findK <- function(genotypeMatrix, maxK, ploidy) {
+  # Convert the genotype matrix to a genlight object
+  genlight_new <- new("genlight", t(genotypeMatrix),
+                      ind.names = row.names(t(genotypeMatrix)),
+                      loc.names = colnames(t(genotypeMatrix)),
+                      ploidy = ploidy,
+                      NA.char = NA)
+
+  #Assign the populations as the sample names since there is no assumed populations
+  pop(genlight_new) <- genlight_new@ind.names
+
+  #Estimate number of clusters
+  #Retain all pca for the find.clusters step. Retain as few as possible while maximizing variance captured for DAPC step.
+  #Choose is the option to allow adegenet to select the best cluster number based on the BIC minimum
+  #The default criterion is "diffNgroup, which is not necessarily the minimum BIC, but based on the sharp decrease of the BIC value.
+  #Either way, this is a suggestion, and the number of clusters to use should be made with biology considerations.
+  graphics.off() #Prevent plot from automatically displaying
+  grp <- find.clusters(genlight_new, max.n.clust = maxK,
+                       n.pca = nInd(genlight_new),
+                       stat = "BIC",
+                       criterion = "diffNgroup",
+                       parallel = FALSE,
+                       choose = FALSE)
+
+  # Identify the best K based on lowest BIC
+  bestK <- length(grp$size)
+
+  # Create a BIC dataframe
+  bicDF <- data.frame(K = 1:maxK, BIC = as.data.frame(grp$Kstat)$`grp$Kstat`)
+
+  return(list(bestK = as.numeric(bestK), grp = grp, BIC = bicDF))
+
+}
+
+performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
+
+  #Convert matrix to genlight
+  genlight_new <- new("genlight", t(genotypeMatrix),
+                      ind.names = row.names(t(genotypeMatrix)),
+                      loc.names = colnames(t(genotypeMatrix)),
+                      ploidy = ploidy,
+                      NA.char = NA)
+
+  #Get groups based on specified cluster number (K)
+  graphics.off() #Prevent plot from automatically displaying
+  grp <- find.clusters(genlight_new, n.clust = selected_K,
+                       n.pca = nInd(genlight_new),
+                       stat = "BIC",
+                       criterion = "diffNgroup",
+                       parallel = FALSE,
+                       choose = FALSE)
+
+  # Find the optimal number of principal components
+  #NOTE: The default n.da is K-1, but I have read previously to use #Samples - 1?
+  dapc1 <- dapc(genlight_new, grp$grp,
+                n.pca = nInd(genlight_new),
+                n.da = nInd(genlight_new)-1,
+                parallel = FALSE)
+
+  a.score <- optim.a.score(dapc1, plot = FALSE)
+  n.pca <- a.score$best
+
+  # Perform DAPC with the best K
+  finalDapc <- dapc(genlight_new, grp$grp, n.pca = n.pca, n.da = selected_K-1, parallel= FALSE)
+
+  # Extract the membership probabilities
+  Q <- as.data.frame(finalDapc$posterior)
+
+  # Add cluster assignments to Q dataframe
+  Q$Cluster_Assignment <- finalDapc$assign
+
+  #a data.frame giving the contributions of original variables (alleles in the case of genetic data) to the principal components of DAPC.
+  #dapc$var.contr
+
+  # Return list containing BIC dataframe, Q dataframe w/ dapc assignments
+  return(list(Q = Q, dapc = finalDapc))
+}
+

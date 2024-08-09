@@ -1,6 +1,6 @@
 context("PCA")
 
-test_that("",{
+test_that("test PCA",{
 
   # inputs
   input <- list()
