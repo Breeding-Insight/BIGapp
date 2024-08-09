@@ -24,7 +24,9 @@ mod_dapc_ui <- function(id){
                           actionButton(ns("K_start"), "Run Step 1"),
                           div(style="display:inline-block; float:right",dropdownButton(
                             tags$h3("DAPC Inputs"),
-                            "DAPC Input file and analysis info. The DAPC analysis is broken down into two steps. The first step (Step 1), uses Kmeans clustering to estimate the most likely number of clusters within the dataset. This is visualized in the BIC plot and is typically the minimum BIC value. Step 2 is the DAPC analysis where the most likely value for K (number of clusters) is input and the cluster memberships are determined in the DAPC results",
+                            "You can download an examples of the expected input file here: \n",
+                            downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                            #"DAPC Input file and analysis info. The DAPC analysis is broken down into two steps. The first step (Step 1), uses Kmeans clustering to estimate the most likely number of clusters within the dataset. This is visualized in the BIC plot and is typically the minimum BIC value. Step 2 is the DAPC analysis where the most likely value for K (number of clusters) is input and the cluster memberships are determined in the DAPC results",
                             circle = FALSE,
                             status = "warning",
                             icon = icon("info"), width = "300px",
@@ -38,7 +40,8 @@ mod_dapc_ui <- function(id){
                           actionButton(ns("dapc_start"), "Run Step 2"),
                           div(style="display:inline-block; float:right",dropdownButton(
                             tags$h3("DAPC Inputs"),
-                            "DAPC Input file and analysis info",
+                            "You can download an examples of the expected input file here: \n",
+                            downloadButton(ns('download_vcf'), "Download VCF Example File"),
                             circle = FALSE,
                             status = "warning",
                             icon = icon("info"), width = "300px",
@@ -415,6 +418,15 @@ mod_dapc_server <- function(id){
         file.remove(temp_files)
       }
     )
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
   })
 }
 

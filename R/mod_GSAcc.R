@@ -43,7 +43,10 @@ mod_GSAcc_ui <- function(id){
                  actionButton(ns("prediction_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("GP Parameters"),
-                   "GP uses the rrBLUP package: It can impute missing data, adapt to different ploidy, perform 5-fold cross validations with different number of iterations, run multiple traits, and accept multiple fixed effects.",
+                   "You can download examples of the expected input input files here: \n",
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                   downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                   #"GP uses the rrBLUP package: It can impute missing data, adapt to different ploidy, perform 5-fold cross validations with different number of iterations, run multiple traits, and accept multiple fixed effects.",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -867,6 +870,24 @@ mod_GSAcc_server <- function(id){
       }
 
     )
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
+
+    output$download_pheno <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_passport_Example_file.csv")
+      },
+      content = function(file) {
+        ex <- system.file("iris_passport_file.csv", package = "BIGapp")
+        file.copy(ex, file)
+      })
   })
 }
 
