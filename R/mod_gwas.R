@@ -63,7 +63,7 @@ mod_gwas_ui <- function(id){
                  progressBar(id = ns("pb_gwas"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
              ),
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE, width = 12,
-                 selectInput(ns("model_select"), label = "Model Selection", choices = c("all","1-dom","2-dom","additive","general","diplo-general","diplo-additive")),
+                 selectInput(ns('model_select'), label = 'Model Selection', choices = NULL),
                  div(style="display:inline-block; float:left",dropdownButton(
                    tags$h3("Save Image"),
                    selectInput(inputId = ns('gwas_figures'), label = 'Figure', choices = c("BIC Plot",
@@ -327,11 +327,18 @@ mod_gwas_server <- function(id){
 
         ##GWAS based on model selection
         N <- nrow(data@pheno) #Population size
-        model <- c("additive","1-dom","2-dom","general","diplo-general","diplo-additive")
-
+        #Select models depending on ploidy
+        if (ploidy > 2) {
+          model <- c("additive","1-dom","2-dom","general","diplo-general","diplo-additive")
+          updateSelectInput(session, "model_select", choices = c("all", model))
+        }else{
+          model <- c("additive", "1-dom")
+          updateSelectInput(session, "model_select", choices = c("all", model))
+        }
+          
         BIC_min <- plotBICs_kinship[which.min(plotBICs_kinship$BIC),]
         if(BIC_min$n.PC == 0){params <- set.params(geno.freq = 1 - 5/N)}else{params <- set.params(geno.freq = 1 - 5/N,n.PC = as.numeric(levels(BIC_min$n.PC))[BIC_min$n.PC])}
-        data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core=9)
+        data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core=as.numeric(cores))
         #Consider adding options for different thresholds
         data2 <- set.threshold(data.loco.scan,method=input$gwas_threshold,level=0.05)
 
@@ -341,7 +348,7 @@ mod_gwas_server <- function(id){
         manhattan_plot_list <- list()
 
         #plot for six models per trait
-        manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
+        manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]), models = model)+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
 
         #Output the manhattan plots
         output$manhattan_plot <- renderPlot({
@@ -390,7 +397,7 @@ mod_gwas_server <- function(id){
         })
 
         #plot for each model per trait
-        for (j in 1:6) {
+        for (j in 1:length(model)) {
           print(j)
 
           data.loco.scan_2 <- GWASpoly(data=data.loco,models=model[j],
