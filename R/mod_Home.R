@@ -85,7 +85,7 @@ mod_Home_ui <- function(id){
                style = "text-decoration: none; color: inherit;"  # Optional: removes underline and retains original color
              ),
              a(
-               #href = "https://www.breedinginsight.org",  # Replace with your desired URL
+               href = "https://scribehow.com/page/BIGapp_Tutorials__FdLsY9ZxQsi6kgT9p-U2Zg",  # Replace with your desired URL
                target = "_blank",  # Optional: opens the link in a new tab
                valueBox(
                  value = NULL, 
