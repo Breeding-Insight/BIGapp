@@ -147,7 +147,7 @@ mod_diversity_server <- function(id){
 
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
-      
+
       #Save position information
       diversity_items$pos_df <- data.frame(vcf@fix[, 1:2])
 
@@ -293,54 +293,57 @@ mod_diversity_server <- function(id){
       hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
            ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
-    
+
     #Marker plot
-    output$marker_plot <- renderPlot({
-      req(diversity_items$pos_df)
-      
+    marker_plot <- reactive({
+      validate(
+        need(!is.null(diversity_items$pos_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
       #Order the Chr column
       diversity_items$pos_df$POS <- as.numeric(diversity_items$pos_df$POS)
       # Sort the dataframe
       diversity_items$pos_df <- diversity_items$pos_df[order(diversity_items$pos_df$CHROM), ]
-      
+
       #Plot
-      
+
       # Create custom breaks for the x-axis labels (every 13Mb)
       x_breaks <- seq(0, max(diversity_items$pos_df$POS), by = (max(diversity_items$pos_df$POS)/5))
       x_breaks <- c(x_breaks, max(diversity_items$pos_df$POS))  # Add 114Mb as a custom break
-      
+
       # Create custom labels for the x-axis using the 'Mb' suffix
       x_labels <- comma_format()(x_breaks / 1000000)
       x_labels <- paste0(x_labels, "Mb")
-      
+
       suppressWarnings({
-      markerPlot <- ggplot(diversity_items$pos_df, aes(x = as.numeric(POS), y = CHROM, group = as.factor(CHROM))) + 
-        geom_point(aes(color = as.factor(CHROM)), shape = 108, size = 5, show.legend = FALSE) +
-        xlab("Position") + 
-        #ylab("Markers\n") +
-        theme(axis.text = element_text(size = 11, color = "black"),
-              axis.text.x.top = element_text(size = 11, color = "black"),
-              axis.title = element_blank(),
-              panel.grid = element_blank(),
-              axis.ticks.length.x = unit(-0.15, "cm"),
-              axis.ticks.margin = unit(0.1, "cm"),
-              axis.ticks.y = element_blank(),
-              axis.line.x.top = element_line(color="black"),
-              panel.background = element_rect(fill="white"),
-              plot.margin = margin(10, 25, 10, 10)
-        ) +
-        scale_x_continuous(
-          breaks = x_breaks,     # Set custom breaks for x-axis labels
-          labels = x_labels,     # Set custom labels with "Mb" suffixes
-          position = "top",       # Move x-axis labels and ticks to the top
-          expand = c(0,0),
-          limits = c(0,max(diversity_items$pos_df$POS))
-        )
+        markerPlot <- ggplot(diversity_items$pos_df, aes(x = as.numeric(POS), y = CHROM, group = as.factor(CHROM))) +
+          geom_point(aes(color = as.factor(CHROM)), shape = 108, size = 5, show.legend = FALSE) +
+          xlab("Position") +
+          #ylab("Markers\n") +
+          theme(axis.text = element_text(size = 11, color = "black"),
+                axis.text.x.top = element_text(size = 11, color = "black"),
+                axis.title = element_blank(),
+                panel.grid = element_blank(),
+                axis.ticks.length.x = unit(-0.15, "cm"),
+                axis.ticks.margin = unit(0.1, "cm"),
+                axis.ticks.y = element_blank(),
+                axis.line.x.top = element_line(color="black"),
+                panel.background = element_rect(fill="white"),
+                plot.margin = margin(10, 25, 10, 10)
+          ) +
+          scale_x_continuous(
+            breaks = x_breaks,     # Set custom breaks for x-axis labels
+            labels = x_labels,     # Set custom labels with "Mb" suffixes
+            position = "top",       # Move x-axis labels and ticks to the top
+            expand = c(0,0),
+            limits = c(0,max(diversity_items$pos_df$POS))
+          )
       })
       #Display plot
-      diversity_items$markerPlot <- markerPlot
       markerPlot
-      
+    })
+
+    output$marker_plot <- renderPlot({
+      marker_plot()
     })
 
     output$maf_plot <- renderPlot({
@@ -390,28 +393,15 @@ mod_diversity_server <- function(id){
 
         # Conditional plotting based on input selection
         if (input$div_figure == "Dosage Plot") {
-          box_plot()
-
+          print(box_plot())
         } else if (input$div_figure == "AF Histogram") {
-          req(diversity_items$maf_df, input$hist_bins)
-
           af_plot()
-
         } else if (input$div_figure == "MAF Histogram") {
-          req(diversity_items$maf_df, input$hist_bins)
-
           maf_plot()
-
         } else if (input$div_figure == "OHet Histogram") {
-          req(diversity_items$het_df, input$hist_bins)
-
           het_plot()
-
         } else if (input$div_figure == "Marker Plot") {
-          req(diversity_items$markerPlot)
-          
-          print(diversity_items$markerPlot)
-          
+          print(marker_plot())
         }
 
         dev.off()
