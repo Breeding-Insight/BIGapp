@@ -3,7 +3,7 @@
 #' @param request Internal parameter for `{shiny}`.
 #'     DO NOT REMOVE.
 #' @import shiny
-#' @importFrom bs4Dash bs4Badge bs4DashSidebar bs4DashNavbar bs4DashPage sidebarMenu menuItem menuSubItem dashboardBody tabItems tabItem box
+#' @importFrom bs4Dash bs4Badge bs4DashSidebar bs4DashNavbar bs4DashPage sidebarMenu menuItem menuSubItem dashboardBody tabItems tabItem box dashboardFooter
 #' @importFrom shinydisconnect disconnectMessage
 #' @import shinyWidgets
 #'
@@ -54,8 +54,44 @@ app_ui <- function(request) {
           menuItem("Help", tabName = "help", icon = icon("circle-question"))
         )
       ),
+      footer = dashboardFooter(
+        right = div(
+          style = "display: flex; align-items: center;",  # Align text and images horizontally
+          div(
+            style = "display: flex; flex-direction: column; margin-right: 15px; text-align: right;",
+            div("© 2024 Breeding Insight"),
+            div("Funded by USDA through Cornell University")
+          ),
+          div(
+            a(
+              img(src = "www/usda-logo-color.png", height = "45px"),
+              style = "margin-right: 15px;"
+            ),
+            a(
+              img(src = "www/cornell_seal_simple_web_b31b1b.png", height = "45px")
+            )
+          )
+        ),
+        left = div(
+          style = "display: flex; align-items: center; height: 100%;",  # Center the version text vertically
+          "v0.5.0")
+      ),
       dashboardBody(
         disconnectMessage(), #Adds generic error message for any error if not already accounted for
+        tags$style(
+          HTML(
+            ".main-footer {
+            background-color: white;
+            color: grey;
+            height: 65px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+          }
+          .main-footer a {
+            color: grey;
+          }"
+          )
+        ),
         tabItems(
           tabItem(tabName = "welcome",
                   # Add welcome content here
