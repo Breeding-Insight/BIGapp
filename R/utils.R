@@ -264,3 +264,19 @@ convert_genotype_counts <- function(df, ploidy, is_reference = TRUE) {
   }
 }
 
+#' Internal function
+#'
+#' @param mat fill description
+#'
+#' @importFrom matrixcalc is.positive.definite
+#'
+posdefmat <- function(mat) {
+  if (is.positive.definite(round(mat, 18))) {
+    g = mat
+  }
+  else {
+    g <-nearPD(mat)$mat
+    warning("The matrix was adjusted for the nearest positive definite matrix")
+  }
+  return(g)
+}
