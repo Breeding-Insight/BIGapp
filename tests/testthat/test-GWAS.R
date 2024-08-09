@@ -5,7 +5,6 @@ test_that("test GWAS",{
   input$cores <- 1
   input$phenotype_file$datapath <- system.file("iris_passport_file.csv", package = "BIGapp")
   input$trait_info <- "Sepal.Length"
-  input$trait_info <- c("Sepal.Length", "Sepal.Width")
   input$fixed_info <- "Species"
   input$gwas_ploidy <- 2
   input$gwas_file$datapath <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")

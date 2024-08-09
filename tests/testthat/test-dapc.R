@@ -9,8 +9,6 @@ test_that("test DAPC",{
   input$dosage_file1$datapath <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
   input$color_choice <- "YlOrRd"
 
-  input$plot_BICX <- TRUE
-
   # Step 1
   ploidy <- as.numeric(input$dapc_ploidy)
   maxK <- as.numeric(input$dapc_kmax)
@@ -53,6 +51,7 @@ test_that("test DAPC",{
   input$dapc_ploidy <- 2
   input$dapc_k <- 5
   input$dosage_file2$datapath <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+  input$color_choice <- "YlOrRd"
 
   geno <- input$dosage_file2$datapath
   ploidy <- as.numeric(input$dapc_ploidy)
@@ -93,6 +92,7 @@ test_that("test DAPC",{
   plot(BIC, type = "o", xaxt = 'n')
   axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
 
+  input$plot_BICX <- TRUE
   if (input$plot_BICX) {
     p <- plot(BIC, type = "o", xaxt = 'n')
     axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
@@ -101,7 +101,6 @@ test_that("test DAPC",{
     plot(BIC, type = "o", xaxt = 'n')
     axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
   }
-
 
   palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
   my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
