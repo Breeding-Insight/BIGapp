@@ -34,7 +34,8 @@ mod_diversity_ui <- function(id){
                    selectInput(inputId = ns('div_figure'), label = 'Figure', choices = c("Dosage Plot",
                                                                                          "AF Histogram",
                                                                                          "MAF Histogram",
-                                                                                         "OHet Histogram")),
+                                                                                         "OHet Histogram",
+                                                                                         "Marker Plot")),
                    selectInput(inputId = ns('div_image_type'), label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
                    sliderInput(inputId = ns('div_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('div_image_width'), label = 'Width', value = 8, min = 1, max = 20, step=0.5),
@@ -57,6 +58,7 @@ mod_diversity_ui <- function(id){
                  tabPanel("AF Plot", plotOutput(ns('af_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("MAF Plot", plotOutput(ns('maf_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("OHet Plot", plotOutput(ns('het_plot')),style = "overflow-y: auto; height: 500px"),
+                 tabPanel("Marker Plot", plotOutput(ns('marker_plot')),style = "overflow-y: auto; height: 500px"), #Can this be an interactive plotly?
                  tabPanel("Sample Table", DTOutput(ns('sample_table')),style = "overflow-y: auto; height: 470px"),
                  tabPanel("SNP Table", DTOutput(ns('snp_table')),style = "overflow-y: auto; height: 470px")
                )
@@ -76,6 +78,8 @@ mod_diversity_ui <- function(id){
 #' diversity Server Functions
 #'
 #' @importFrom graphics axis hist points
+#' @import ggplot2
+#' @importFrom scales comma_format
 #'
 #' @noRd
 mod_diversity_server <- function(id){
@@ -88,7 +92,9 @@ mod_diversity_server <- function(id){
       diversity_df = NULL,
       dosage_df = NULL,
       het_df = NULL,
-      maf_df = NULL
+      maf_df = NULL,
+      pos_df = NULL,
+      markerPlot = NULL
     )
 
     #Reactive boxes
@@ -141,6 +147,9 @@ mod_diversity_server <- function(id){
 
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
+      
+      #Save position information
+      diversity_items$pos_df <- data.frame(vcf@fix[, 1:2])
 
       #Get items in FORMAT column
       info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
@@ -284,6 +293,55 @@ mod_diversity_server <- function(id){
       hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
            ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
+    
+    #Marker plot
+    output$marker_plot <- renderPlot({
+      req(diversity_items$pos_df)
+      
+      #Order the Chr column
+      diversity_items$pos_df$POS <- as.numeric(diversity_items$pos_df$POS)
+      # Sort the dataframe
+      diversity_items$pos_df <- diversity_items$pos_df[order(diversity_items$pos_df$CHROM), ]
+      
+      #Plot
+      
+      # Create custom breaks for the x-axis labels (every 13Mb)
+      x_breaks <- seq(0, max(diversity_items$pos_df$POS), by = (max(diversity_items$pos_df$POS)/5))
+      x_breaks <- c(x_breaks, max(diversity_items$pos_df$POS))  # Add 114Mb as a custom break
+      
+      # Create custom labels for the x-axis using the 'Mb' suffix
+      x_labels <- comma_format()(x_breaks / 1000000)
+      x_labels <- paste0(x_labels, "Mb")
+      
+      suppressWarnings({
+      markerPlot <- ggplot(diversity_items$pos_df, aes(x = as.numeric(POS), y = CHROM, group = as.factor(CHROM))) + 
+        geom_point(aes(color = as.factor(CHROM)), shape = 108, size = 5, show.legend = FALSE) +
+        xlab("Position") + 
+        #ylab("Markers\n") +
+        theme(axis.text = element_text(size = 11, color = "black"),
+              axis.text.x.top = element_text(size = 11, color = "black"),
+              axis.title = element_blank(),
+              panel.grid = element_blank(),
+              axis.ticks.length.x = unit(-0.15, "cm"),
+              axis.ticks.margin = unit(0.1, "cm"),
+              axis.ticks.y = element_blank(),
+              axis.line.x.top = element_line(color="black"),
+              panel.background = element_rect(fill="white"),
+              plot.margin = margin(10, 25, 10, 10)
+        ) +
+        scale_x_continuous(
+          breaks = x_breaks,     # Set custom breaks for x-axis labels
+          labels = x_labels,     # Set custom labels with "Mb" suffixes
+          position = "top",       # Move x-axis labels and ticks to the top
+          expand = c(0,0),
+          limits = c(0,max(diversity_items$pos_df$POS))
+        )
+      })
+      #Display plot
+      diversity_items$markerPlot <- markerPlot
+      markerPlot
+      
+    })
 
     output$maf_plot <- renderPlot({
       maf_plot()
@@ -348,6 +406,12 @@ mod_diversity_server <- function(id){
           req(diversity_items$het_df, input$hist_bins)
 
           het_plot()
+
+        } else if (input$div_figure == "Marker Plot") {
+          req(diversity_items$markerPlot)
+          
+          print(diversity_items$markerPlot)
+          
         }
 
         dev.off()
