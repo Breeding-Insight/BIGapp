@@ -33,7 +33,7 @@ mod_Home_ui <- function(id){
                 <li>GS</li>
               </ul>"
             ),
-            style = "overflow-y: auto; height:run_app() 500px"
+            style = "overflow-y: auto; height: 500px"
         
           )
         ),
