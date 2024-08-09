@@ -36,7 +36,9 @@ mod_gwas_ui <- function(id){
                  actionButton(ns("gwas_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("GWAS Parameters"),
-                   "Add description of each filter",
+                   "You can download examples of the expected input input files here: \n",
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                   downloadButton(ns('download_pheno'), "Download Passport Example File"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -513,6 +515,24 @@ mod_gwas_server <- function(id){
         dev.off()
       }
     )
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
+
+    output$download_pheno <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_passport_Example_file.csv")
+      },
+      content = function(file) {
+        ex <- system.file("iris_passport_file.csv", package = "BIGapp")
+        file.copy(ex, file)
+      })
   })
 }
 

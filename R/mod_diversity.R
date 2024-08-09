@@ -20,7 +20,8 @@ mod_diversity_ui <- function(id){
                  actionButton(ns("diversity_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Diversity Parameters"),
-                   "Add description of each filter",
+                   "You can download an examples of the expected input file here: \n",
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -442,6 +443,15 @@ mod_diversity_server <- function(id){
         file.remove(temp_files)
       }
     )
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
   })
 }
 

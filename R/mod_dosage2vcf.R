@@ -25,12 +25,14 @@ mod_dosage2vcf_ui <- function(id){
           downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
           div(style="display:inline-block; float:right",dropdownButton(
 
-            tags$h3("DArT File Converstion"),
-            "Converting DArT report files to VCF format. The VCF file will automatically
-                    download when complete.",
+            tags$h3("DArT File Conversion"),
+            "Converting DArT report files to VCF format. \n",
+            "You can download examples of the expected files here: \n",
+            downloadButton(ns('download_dose'), "Download Dose Report Example File"),
+            downloadButton(ns('download_counts'), "Download Counts Example File"),
             circle = FALSE,
             status = "warning",
-            icon = icon("info"), width = "300px",
+            icon = icon("info"), width = "500px",
             tooltip = tooltipOptions(title = "Click to see info!")
           ))
         ),
@@ -96,6 +98,24 @@ mod_dosage2vcf_server <- function(id){
 
       enable("download_d2vcf")
     })
+
+    output$download_dose <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_Dose_Report_Example_file.csv")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_Allele_Dose_Report.csv", package = "BIGapp")
+        file.copy(ex, file)
+      })
+
+    output$download_counts <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_Counts_Example_file.csv")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_Counts.csv", package = "BIGapp")
+        file.copy(ex, file)
+      })
 
     ##This is for the DArT files conversion to VCF
     output$download_d2vcf <- downloadHandler(

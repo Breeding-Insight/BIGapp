@@ -45,9 +45,11 @@ mod_Filtering_ui <- function(id){
                  downloadButton(ns("start_updog_filter"), "Download Filtered VCF", icon = icon("download"), class = "butt"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Updog Filter Parameters"),
-                   "Add description of each filter. Presently, all filtering parameters that are typically used for processing
-                    a VCF file from Updog dosage calling are included. If a VCF file does not contain these values, it will only be
-                    filtered for read depth, missing data, and maf.",
+                   "You can download examples of the expected file here: \n",
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                   # "Add description of each filter. Presently, all filtering parameters that are typically used for processing
+                   #  a VCF file from Updog dosage calling are included. If a VCF file does not contain these values, it will only be
+                   #  filtered for read depth, missing data, and maf.",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -554,6 +556,15 @@ mod_Filtering_server <- function(id){
       ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
       quantile(as.numeric(new_df$DP), 0.95)
     })
+
+    output$download_vcf <- downloadHandler(
+      filename = function() {
+        paste0("BIGapp_VCF_Example_file.vcf.gz")
+      },
+      content = function(file) {
+        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+        file.copy(ex, file)
+      })
   })
 }
 
