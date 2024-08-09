@@ -19,8 +19,8 @@ mod_gwas_ui <- function(id){
     fluidRow(
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-                 fileInput(ns("gwas_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("phenotype_file"), "Choose Phenotype File", accept = ".csv"),
+                 fileInput(ns("gwas_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
+                 fileInput(ns("phenotype_file"), "Choose Passport File", accept = ".csv"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
                  selectInput(ns('trait_info'), label = 'Select Trait (eg, Color):', choices = NULL),

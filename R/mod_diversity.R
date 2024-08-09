@@ -14,7 +14,7 @@ mod_diversity_ui <- function(id){
     fluidRow(
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-                 fileInput(ns("diversity_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
+                 fileInput(ns("diversity_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                  numericInput(ns("diversity_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  selectInput(ns("zero_value"), "What are the Dosage Calls?", choices = c("Reference Allele Counts", "Alternate Allele Counts"), selected = NULL),
                  actionButton(ns("diversity_start"), "Run Analysis"),

@@ -18,7 +18,7 @@ mod_dapc_ui <- function(id){
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
                bs4Dash::tabsetPanel(
                  tabPanel("Step 1:(K)", width = 12,
-                          fileInput(ns("dosage_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".gz")),
+                          fileInput(ns("dosage_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                           numericInput(ns("dapc_kmax"), "Maximum K", min = 1, value = 5),
                           numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = 2),
                           actionButton(ns("K_start"), "Run Analysis"),
@@ -32,7 +32,7 @@ mod_dapc_ui <- function(id){
                           )),
                  ),
                  tabPanel("Step 2:(DAPC)", width = 12,
-                          fileInput(ns("dosage_file"), "Choose Genotypes File", accept = c(".csv",".vcf",".vcf.gz")),
+                          fileInput(ns("dosage_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                           numericInput(ns("dapc_k"), "Number of Clusters (K)", min = 1, value = NULL),
                           numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = 2),
                           actionButton(ns("dapc_start"), "Run Analysis"),
