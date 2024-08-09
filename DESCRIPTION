@@ -38,6 +38,7 @@ Imports:
     golem,
     ggplot2,
     purrr,
+    scales,
     shiny,
     shinyWidgets,
     shinydisconnect,
