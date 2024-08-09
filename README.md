@@ -19,22 +19,22 @@ Supported:
   - DAPC
 - GWAS
 - GS
+  - Estimate Model Prediction Accuracy
+  - Predict Trait Values for New Genotypes
 
 ### Running the BIG app
 
 **Local computer**
-
 1. Install R
-2. Download this folder from GitHub
-3. Open Terminal (mac)
-4. Initialize R in Terminal and enter the below commands
+2. Open Terminal (on mac)
+3. To install and run development version of package:
+(in terminal)
 ```
-install.packages("shiny") #This is only needed for the first time running shiny
-library("shiny") #Starting the shiny package
-setwd("path_to_shiny_app/Genomics_Shiny_App") #Direct R to the downloaded app folder
-runApp("BIG_app") #Start the app
+install.packages("devtools") #If not already installed
+devtools::install_github("Breeding-Insight/BIGapp", ref = "development")
+BIGapp::run_app()
 ```
-8. View shiny app in browser
+4. View shiny app in browser
 
 **Online (in progress)**
 
