@@ -25,7 +25,7 @@ mod_PCA_ui <- function(id){
              box(
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
                p("* Required"),
-               fileInput(ns("dosage_file"), "Choose Genotypes File*", accept = c(".csv",".vcf",".gz")),
+               fileInput(ns("dosage_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
                fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
                #Dropdown will update after passport upload
                numericInput(ns("pca_ploidy"), "Species Ploidy*", min = 2, value = NULL),
