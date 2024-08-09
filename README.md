@@ -31,7 +31,7 @@ Supported:
 (in terminal)
 ```
 install.packages("devtools") #If not already installed
-devtools::install_github("Breeding-Insight/BIGapp", ref = "development")
+devtools::install_github("Breeding-Insight/BIGapp")
 BIGapp::run_app()
 ```
 4. View shiny app in browser
