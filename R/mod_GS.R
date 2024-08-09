@@ -156,6 +156,26 @@ mod_GS_server <- function(id){
     observeEvent(input$prediction_est_start, {
       #req(pred_inputs$pheno_input, pred_inputs$geno_input)
 
+      toggleClass(id = "pred_est_ploidy", class = "borderred", condition = (is.na(input$pred_est_ploidy) | is.null(input$pred_est_ploidy)))
+
+      if (is.null(input$pred_known_file$datapath) | is.null(input$pred_est_file$datapath) | is.null(input$pred_trait_file$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF and phenotype files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$pred_known_file$datapath,  input$pred_est_file$datapath, input$pred_trait_file$datapath, input$pred_est_ploidy)
+
       #Status
       updateProgressBar(session = session, id = "pb_gp", value = 5, title = "Checking input files")
 
@@ -649,21 +669,25 @@ mod_GS_server <- function(id){
     })
 
     #Output the prediction tables
-    observe({
-      #GEBVs from all iterations/folds
-      req(pred_outputs2$all_GEBVs)
-
-      output$pred_gebvs_table2 <- renderDT({pred_outputs2$all_GEBVs}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
+    all_GEBVs <- reactive({
+      validate(
+        need(!is.null(pred_outputs2$all_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      )
+      pred_outputs2$all_GEBVs
     })
 
-    observe({
-      #GEBVs from all iterations/folds
-      req(pred_outputs2$trait_output)
+    #GEBVs from all iterations/folds
+    output$pred_gebvs_table2 <- renderDT({all_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
-      output$pred_trait_table <- renderDT({pred_outputs2$trait_output}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
+    trait_output <- reactive({
+      validate(
+        need(!is.null(pred_outputs2$trait_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      )
+      pred_outputs2$trait_output
     })
+
+    #GEBVs from all iterations/folds
+    output$pred_trait_table <- renderDT({trait_output()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
   })
 }
 

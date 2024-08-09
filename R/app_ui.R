@@ -59,7 +59,7 @@ app_ui <- function(request) {
           style = "display: flex; align-items: center;",  # Align text and images horizontally
           div(
             style = "display: flex; flex-direction: column; margin-right: 15px; text-align: right;",
-            div("© 2024 Breeding Insight"),
+            div("2024 Breeding Insight"),
             div("Funded by USDA through Cornell University")
           ),
           div(
