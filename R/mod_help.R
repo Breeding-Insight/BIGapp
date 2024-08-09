@@ -14,7 +14,7 @@ mod_help_ui <- function(id){
       column(width=12),
       column(width=12,
              box(title="Dosage Calling", width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
-                 tabsetPanel(
+                 bs4Dash::tabsetPanel(
                    tabPanel("DArT Report2VCF",
                             "**Draft**This tab is designed to convert the DArT Dose Report and Counts files to a VCF file. **DArT Website**"
                    ),
@@ -26,7 +26,7 @@ mod_help_ui <- function(id){
                    ))
              ),
              box(title="Population Structure", width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
-                 tabsetPanel(
+                 bs4Dash::tabsetPanel(
                    tabPanel("PCA",
                             "**Draft**This tab focuses on analyzing the population structure using Discriminant Analysis of Principal Components (DAPC) and Principal Component Analysis (PCA). These methods are used to identify and visualize genetic diversity and structure within the population. The app provides options to perform PCA to reduce the dimensionality of the genomic data and visualize principal components. DAPC is used to find clusters within the data and visualize these clusters, helping users understand the genetic relationships and structure in their dataset."
                    ),
