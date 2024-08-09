@@ -20,8 +20,8 @@ mod_dapc_ui <- function(id){
                  tabPanel("Step 1:(K)", width = 12,
                           fileInput(ns("dosage_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                           numericInput(ns("dapc_kmax"), "Maximum K", min = 1, value = 5),
-                          numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = 2),
-                          actionButton(ns("K_start"), "Run Analysis"),
+                          numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = NULL),
+                          actionButton(ns("K_start"), "Run Step 1"),
                           div(style="display:inline-block; float:right",dropdownButton(
                             tags$h3("DAPC Inputs"),
                             "DAPC Input file and analysis info. The DAPC analysis is broken down into two steps. The first step (Step 1), uses Kmeans clustering to estimate the most likely number of clusters within the dataset. This is visualized in the BIC plot and is typically the minimum BIC value. Step 2 is the DAPC analysis where the most likely value for K (number of clusters) is input and the cluster memberships are determined in the DAPC results",
@@ -34,8 +34,8 @@ mod_dapc_ui <- function(id){
                  tabPanel("Step 2:(DAPC)", width = 12,
                           fileInput(ns("dosage_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                           numericInput(ns("dapc_k"), "Number of Clusters (K)", min = 1, value = NULL),
-                          numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = 2),
-                          actionButton(ns("dapc_start"), "Run Analysis"),
+                          numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = NULL),
+                          actionButton(ns("dapc_start"), "Run Step 2"),
                           div(style="display:inline-block; float:right",dropdownButton(
                             tags$h3("DAPC Inputs"),
                             "DAPC Input file and analysis info",
@@ -83,7 +83,8 @@ mod_dapc_ui <- function(id){
              bs4Dash::box(title = "DAPC Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Values",DTOutput(ns('BIC_table'))),
-                            tabPanel("DAPC Values", DTOutput(ns('DAPC_table'))) # Placeholder for plot outputs
+                            tabPanel("DAPC Values", DTOutput(ns('DAPC_table'))), # Placeholder for plot outputs
+                            br(), br()
                           )),
              bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                           bs4Dash::tabsetPanel(
@@ -111,51 +112,49 @@ mod_dapc_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    ##DAPC analysis
-    #Make it a two step process 1) estimate K, and 2) perform DAPC
 
     dapc_items <- reactiveValues(
       grp = NULL,
       bestK = NULL,
-      bicDF = NULL,
+      BIC = NULL,
       assignments = NULL,
       dapc = NULL
-
     )
 
+    ##DAPC analysis
+    #Make it a two step process 1) estimate K, and 2) perform DAPC
     observeEvent(input$K_start, {
+
+      toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
+      if (is.null(input$dosage_file1$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF File",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$dosage_file1$datapath, input$dapc_ploidy)
 
       ploidy <- as.numeric(input$dapc_ploidy)
       maxK <- as.numeric(input$dapc_kmax)
-      geno <- input$dosage_file$datapath
+      geno <- input$dosage_file1$datapath
 
       ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
 
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
 
-      convert_to_dosage <- function(gt) {
-        # Split the genotype string
-        alleles <- strsplit(gt, "[|/]")
-        # Sum the alleles, treating NA values appropriately
-        sapply(alleles, function(x) {
-          if (any(is.na(x))) {
-            return(NA)
-          } else {
-            return(sum(as.numeric(x), na.rm = TRUE))
-          }
-        })
-      }
-
       #Get items in FORMAT column
       info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-      extract_info_ids <- function(info_string) {
-        # Split the INFO string by ';'
-        info_parts <- strsplit(info_string, ":")[[1]]
-        # Extract the part before the '=' in each segment
-        info_ids <- gsub("=.*", "", info_parts)
-        return(info_ids)
-      }
 
       # Apply the function to the first INFO string
       info_ids <- extract_info_ids(info[1])
@@ -172,83 +171,48 @@ mod_dapc_server <- function(id){
         rm(vcf) #Remove VCF
       }
 
-      findK <- function(genotypeMatrix, maxK, ploidy) {
-        # Convert the genotype matrix to a genlight object
-        genlight_new <- new("genlight", t(genotypeMatrix),
-                            ind.names = row.names(t(genotypeMatrix)),
-                            loc.names = colnames(t(genotypeMatrix)),
-                            ploidy = ploidy,
-                            NA.char = NA)
-
-        #Assign the populations as the sample names since there is no assumed populations
-        pop(genlight_new) <- genlight_new@ind.names
-
-        #Estimate number of clusters
-        #Retain all pca for the find.clusters step. Retain as few as possible while maximizing variance captured for DAPC step.
-        #Choose is the option to allow adegenet to select the best cluster number based on the BIC minimum
-        #The default criterion is "diffNgroup, which is not necessarily the minimum BIC, but based on the sharp decrease of the BIC value.
-        #Either way, this is a suggestion, and the number of clusters to use should be made with biology considerations.
-        graphics.off() #Prevent plot from automatically displaying
-        grp <- find.clusters(genlight_new, max.n.clust = maxK,
-                             n.pca = nInd(genlight_new),
-                             stat = "BIC",
-                             criterion = "diffNgroup",
-                             parallel = FALSE,
-                             choose = FALSE)
-
-        # Identify the best K based on lowest BIC
-        bestK <- length(grp$size)
-
-        # Create a BIC dataframe
-        bicDF <- data.frame(K = 1:maxK, BIC = as.data.frame(grp$Kstat)$`grp$Kstat`)
-
-        return(list(bestK = as.numeric(bestK), grp = grp, BIC = bicDF))
-
-      }
-
       #Perform analysis
       get_k <- findK(genotypeMatrix, maxK, ploidy)
-
 
       #Assign results to reactive values
       dapc_items$grp <- get_k$grp
       dapc_items$bestK <- get_k$bestK
-      dapc_items$bicDF <- get_k$BIC
-
+      dapc_items$BIC <- get_k$BIC
     })
 
     observeEvent(input$dapc_start, {
 
-      #req()
-      geno <- input$dosage_file$datapath
+      if(is.null(input$dosage_file2)) dosage_file2 <- input$dosage_file1$datapath
+      toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
+      toggleClass(id = "dapc_k", class = "borderred", condition = (is.na(input$dapc_k) | is.null(input$dapc_k)))
+
+      if (is.null(dosage_file2)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF File",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(dosage_file2, input$dapc_ploidy, input$dapc_k)
+
+      geno <- dosage_file2
       ploidy <- as.numeric(input$dapc_ploidy)
       selected_K <- as.numeric(input$dapc_k)
 
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
 
-      convert_to_dosage <- function(gt) {
-        # Split the genotype string
-        alleles <- strsplit(gt, "[|/]")
-        # Sum the alleles, treating NA values appropriately
-        sapply(alleles, function(x) {
-          if (any(is.na(x))) {
-            return(NA)
-          } else {
-            return(sum(as.numeric(x), na.rm = TRUE))
-          }
-        })
-      }
-
       #Get items in FORMAT column
       info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-      extract_info_ids <- function(info_string) {
-        # Split the INFO string by ';'
-        info_parts <- strsplit(info_string, ":")[[1]]
-        # Extract the part before the '=' in each segment
-        info_ids <- gsub("=.*", "", info_parts)
-        return(info_ids)
-      }
 
       # Apply the function to the first INFO string
       info_ids <- extract_info_ids(info[1])
@@ -263,50 +227,6 @@ mod_dapc_server <- function(id){
         genotypeMatrix <- extract.gt(vcf, element = "GT")
         genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
         rm(vcf) #Remove VCF
-      }
-
-      performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
-
-        #Convert matrix to genlight
-        genlight_new <- new("genlight", t(genotypeMatrix),
-                            ind.names = row.names(t(genotypeMatrix)),
-                            loc.names = colnames(t(genotypeMatrix)),
-                            ploidy = ploidy,
-                            NA.char = NA)
-
-        #Get groups based on specified cluster number (K)
-        graphics.off() #Prevent plot from automatically displaying
-        grp <- find.clusters(genlight_new, n.clust = selected_K,
-                             n.pca = nInd(genlight_new),
-                             stat = "BIC",
-                             criterion = "diffNgroup",
-                             parallel = FALSE,
-                             choose = FALSE)
-
-        # Find the optimal number of principal components
-        #NOTE: The default n.da is K-1, but I have read previously to use #Samples - 1?
-        dapc1 <- dapc(genlight_new, grp$grp,
-                      n.pca = nInd(genlight_new),
-                      n.da = nInd(genlight_new)-1,
-                      parallel = FALSE)
-
-        a.score <- optim.a.score(dapc1, plot = FALSE)
-        n.pca <- a.score$best
-
-        # Perform DAPC with the best K
-        finalDapc <- dapc(genlight_new, grp$grp, n.pca = n.pca, n.da = selected_K-1, parallel= FALSE)
-
-        # Extract the membership probabilities
-        Q <- as.data.frame(finalDapc$posterior)
-
-        # Add cluster assignments to Q dataframe
-        Q$Cluster_Assignment <- finalDapc$assign
-
-        #a data.frame giving the contributions of original variables (alleles in the case of genetic data) to the principal components of DAPC.
-        #dapc$var.contr
-
-        # Return list containing BIC dataframe, Q dataframe w/ dapc assignments
-        return(list(Q = Q, dapc = finalDapc))
       }
 
       #Perform analysis
@@ -319,10 +239,12 @@ mod_dapc_server <- function(id){
 
     ###Outputs from DAPC
     #Output the BIC plot
-    output$BIC_plot <- renderPlot({
-      req(dapc_items$bicDF, dapc_items$bestK)
+    BIC_plot <- reactive({
+      validate(
+        need(!is.null(dapc_items$BIC), "Input VCF, define parameters and click `run analysis` in Step 1:(K) to access results in this session.")
+      )
 
-      BIC <- dapc_items$bicDF
+      BIC <- dapc_items$BIC
       selected_K <- as.numeric(dapc_items$bestK)
       plot(BIC, type = "o", xaxt = 'n')
       axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
@@ -335,34 +257,63 @@ mod_dapc_server <- function(id){
         plot(BIC, type = "o", xaxt = 'n')
         axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
       }
-
     })
 
-    #Output the DAPC scatter plot
-    output$DAPC_plot <- renderPlot({
-      req(dapc_items$dapc, input$dapc_k)
+    output$BIC_plot <- renderPlot({
+      BIC_plot()
+    })
+
+    # #Output the DAPC scatter plot
+    DAPC_plot <- reactive({
+      validate(
+        need(!is.null(dapc_items$dapc), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
+      )
 
       #Get colors
       palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
       my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
 
       sc1 <- scatter.dapc(dapc_items$dapc,
-                     bg = "white", solid = 1, cex = 1, # cex circle size
-                     col = my_palette,
-                     pch = 20, # shapes
-                     cstar = 1, # 0 or 1, arrows from center of cluster
-                     cell = 2, # size of elipse
-                     scree.da = T, # plot da
-                     scree.pca = T, # plot pca
-                     posi.da = "topright",
-                     posi.pca="bottomright",
-                     mstree = F, # lines connecting clusters
-                     lwd = 1, lty = 2,
-                     leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+                          bg = "white", solid = 1, cex = 1, # cex circle size
+                          col = my_palette,
+                          pch = 20, # shapes
+                          cstar = 1, # 0 or 1, arrows from center of cluster
+                          cell = 2, # size of elipse
+                          scree.da = T, # plot da
+                          scree.pca = T, # plot pca
+                          posi.da = "topright",
+                          posi.pca="bottomright",
+                          mstree = F, # lines connecting clusters
+                          lwd = 1, lty = 2,
+                          leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
     })
-    #Output datatables
-    output$BIC_table <- renderDT({dapc_items$bicDF}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-    output$DAPC_table <- renderDT({dapc_items$assignments}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+    output$DAPC_plot <- renderPlot({
+      DAPC_plot()
+    })
+
+    # #Output datatables
+
+    BIC_table <-   reactive({
+      validate(
+        need(!is.null(dapc_items$BIC), "Input VCF, define parameters and click `run analysis` in Step 1:(K) to access results in this session.")
+      )
+      dapc_items$BIC
+    })
+
+    output$BIC_table <- renderDT({
+      BIC_table()
+    }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+    assignments_table <- reactive({
+      validate(
+        need(!is.null(dapc_items$assignments), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
+      )
+    })
+
+    output$DAPC_table <- renderDT({
+      assignments_table()
+    }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
     #Download figures for DAPC (change this so that the figures were already saved as reactive values to then print() here)
     output$download_dapc_image <- downloadHandler(
@@ -397,23 +348,23 @@ mod_dapc_server <- function(id){
           my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
 
           sc1 <- scatter.dapc(dapc_items$dapc,
-                         bg = "white", solid = 1, cex = 1, # cex circle size
-                         col = my_palette,
-                         pch = 20, # shapes
-                         cstar = 1, # 0 or 1, arrows from center of cluster
-                         cell = 2, # size of elipse
-                         scree.da = T, # plot da
-                         scree.pca = T, # plot pca
-                         posi.da = "topright",
-                         posi.pca="bottomright",
-                         mstree = F, # lines connecting clusters
-                         lwd = 1, lty = 2,
-                         leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+                              bg = "white", solid = 1, cex = 1, # cex circle size
+                              col = my_palette,
+                              pch = 20, # shapes
+                              cstar = 1, # 0 or 1, arrows from center of cluster
+                              cell = 2, # size of elipse
+                              scree.da = T, # plot da
+                              scree.pca = T, # plot pca
+                              posi.da = "topright",
+                              posi.pca="bottomright",
+                              mstree = F, # lines connecting clusters
+                              lwd = 1, lty = 2,
+                              leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
 
         } else if (input$dapc_figure == "BIC Plot") {
-          req(dapc_items$bicDF, dapc_items$bestK)
+          req(dapc_items$BIC, dapc_items$bestK)
 
-          BIC <- dapc_items$bicDF
+          BIC <- dapc_items$BIC
           selected_K <- as.numeric(dapc_items$bestK)
           plot(BIC, type = "o", xaxt = 'n')
           axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
@@ -448,10 +399,10 @@ mod_dapc_server <- function(id){
           temp_files <- c(temp_files, assignments_file)
         }
 
-        if (!is.null(dapc_items$bicDF)) {
+        if (!is.null(dapc_items$BIC)) {
           # Create a temporary file for BIC data frame
           bicDF_file <- file.path(temp_dir, paste0("BIC-values-", Sys.Date(), ".csv"))
-          write.csv(dapc_items$bicDF, bicDF_file, row.names = FALSE)
+          write.csv(dapc_items$BIC, bicDF_file, row.names = FALSE)
           temp_files <- c(temp_files, bicDF_file)
         }
 

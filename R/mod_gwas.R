@@ -91,7 +91,6 @@ mod_gwas_ui <- function(id){
 #'
 #' @importFrom DT renderDT
 #' @importFrom vcfR read.vcfR
-#' @importFrom matrixcalc is.positive.definite
 #' @importFrom Matrix nearPD
 #' @importFrom stats BIC as.formula lm logLik median model.matrix na.omit prcomp qbeta quantile runif sd setNames
 #' @noRd
@@ -128,12 +127,34 @@ mod_gwas_server <- function(id){
       info_df <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
       trait_var <- colnames(info_df)
       trait_var <- trait_var[2:length(trait_var)]
-      updateSelectInput(session, "trait_info", choices = c("All", trait_var))
+      updateSelectInput(session, "trait_info", choices = c(trait_var))
       updateVirtualSelect("fixed_info", choices = trait_var, session = session)
     })
 
     #GWAS analysis (Shufen Chen and Meng Lin pipelines)
     observeEvent(input$gwas_start, {
+
+      toggleClass(id = "gwas_ploidy", class = "borderred", condition = (is.na(input$gwas_ploidy) | is.null(input$gwas_ploidy)))
+      toggleClass(id = "trait_info", class = "borderred", condition = (all(is.na(input$trait_info)) | all(is.null(input$trait_info))))
+
+      if (is.null(input$phenotype_file$datapath) | is.null(input$gwas_file$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF and phenotype files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$phenotype_file$datapath, input$gwas_file$datapath, input$gwas_ploidy, input$trait_info)
+
       cores <- input$cores
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 0, title = "Uploading Data")
@@ -147,6 +168,31 @@ mod_gwas_server <- function(id){
       fixed <- input$fixed_info
       included_var <- c(ids, traits, fixed)
       ploidy <- as.numeric(input$gwas_ploidy)
+
+      # Check if traits are numerical
+      n_traits <- as.matrix(phenotype_file[,traits])
+      n_traits <- apply(n_traits, 2, function(x) all(is.na(as.numeric(x))))
+
+      if(any(n_traits)){
+        shinyalert(
+          title = "Input not supported",
+          text = paste("All selected traits must be numerical. Categorial traits found:",if(length(n_traits) > 1) names(which(n_traits)) else input$trait_info),
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+
+      validate(
+        need(!any(n_traits), "The selected traits must be numerical.")
+      )
 
       phenotype_file <- phenotype_file[,included_var]
 
@@ -173,20 +219,6 @@ mod_gwas_server <- function(id){
       } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
         # Create a temporary file for the selected phenotype data
         temp_geno_file <- tempfile(fileext = ".csv")
-
-        #Function to convert GT to dosage calls (add to BIGr)
-        convert_to_dosage <- function(gt) {
-          # Split the genotype string
-          alleles <- strsplit(gt, "[|/]")
-          # Sum the alleles, treating NA values appropriately
-          sapply(alleles, function(x) {
-            if (any(is.na(x))) {
-              return(NA)
-            } else {
-              return(sum(as.numeric(x), na.rm = TRUE))
-            }
-          })
-        }
 
         #Convert VCF file if submitted
         vcf <- read.vcfR(input$gwas_file$datapath)
@@ -235,7 +267,6 @@ mod_gwas_server <- function(id){
 
       ####Pheno, kinship, PCs from results of GWASpoly
       GE<- data@pheno
-      names(GE)
       colnames(GE)[1]<-"Genotype"
 
       ## kinship
@@ -258,32 +289,15 @@ mod_gwas_server <- function(id){
       Kin<-Kin[which(rownames(Kin) %in% taxa),which(rownames(Kin) %in% taxa)] # need check the matrix after this step
       Kin<-Kin[order(rownames(Kin)),order(colnames(Kin))]
 
-      which(rownames(Kin)!=rownames(PCs))
-      which(rownames(Kin)!=GE$Genotype)
-
       #### calculate BIC
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 20, title = "Formatting Complete: Now Calculating BIC")
 
-      source("R/MyFun_BIC_Meng.R") #change directory in your case
-
       PC<-as.matrix(PCs)
       K=as.matrix(Kin)
 
-      posdefmat <- function(mat) {
-        if (is.positive.definite(round(mat, 18))) {
-          g = mat
-        }
-        else {
-          g <-nearPD(mat)$mat
-          warning("The matrix was adjusted for the nearest positive definite matrix")
-        }
-        return(g)
-      }
-
       kin.adj<-posdefmat(K)
       kin.test<-as.matrix(kin.adj)
-
 
       for (i in 2:ncol(GE)){
 
@@ -335,7 +349,7 @@ mod_gwas_server <- function(id){
           model <- c("additive", "1-dom")
           updateSelectInput(session, "model_select", choices = c("all", model))
         }
-          
+
         BIC_min <- plotBICs_kinship[which.min(plotBICs_kinship$BIC),]
         if(BIC_min$n.PC == 0){params <- set.params(geno.freq = 1 - 5/N)}else{params <- set.params(geno.freq = 1 - 5/N,n.PC = as.numeric(levels(BIC_min$n.PC))[BIC_min$n.PC])}
         data.loco.scan <- GWASpoly(data=data.loco,models=model,traits=colnames(data@pheno[i]),params=params,n.core=as.numeric(cores))
@@ -382,8 +396,6 @@ mod_gwas_server <- function(id){
 
         #get qqplot
         data_qq <- cbind.data.frame(SNP=data.loco.scan@map$Marker,Chr=data.loco.scan@map$Chrom, Pos=data.loco.scan@map$Position,10^(-data.loco.scan@scores[[colnames(data@pheno[i])]]))
-
-        source("R/CMplot.r") #Obtained the CMplot code from GitHub and made edits to allow inline plotting for shiny app
 
         #Save qq_plot info
         gwas_vars$qq_plots <- data_qq
