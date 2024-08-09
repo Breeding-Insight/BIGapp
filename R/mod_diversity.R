@@ -75,7 +75,6 @@ mod_diversity_ui <- function(id){
 
 #' diversity Server Functions
 #'
-#' @importFrom tibble rownames_to_column
 #' @importFrom graphics axis hist points
 #'
 #' @noRd
@@ -88,7 +87,6 @@ mod_diversity_server <- function(id){
     diversity_items <- reactiveValues(
       diversity_df = NULL,
       dosage_df = NULL,
-      box_plot = NULL,
       het_df = NULL,
       maf_df = NULL
     )
@@ -113,6 +111,25 @@ mod_diversity_server <- function(id){
     })
 
     observeEvent(input$diversity_start, {
+      toggleClass(id = "diversity_ploidy", class = "borderred", condition = (is.na(input$diversity_ploidy) | is.null(input$diversity_ploidy)))
+      toggleClass(id = "zero_value", class = "borderred", condition = (is.na(input$zero_value) | is.null(input$zero_value)))
+
+      if (is.null(input$diversity_file$datapath)) {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload VCF File",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
       req(input$diversity_file, input$diversity_ploidy, input$zero_value)
 
       #Input variables (need to add support for VCF file)
@@ -125,28 +142,8 @@ mod_diversity_server <- function(id){
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno)
 
-      convert_to_dosage <- function(gt) {
-        # Split the genotype string
-        alleles <- strsplit(gt, "[|/]")
-        # Sum the alleles, treating NA values appropriately
-        sapply(alleles, function(x) {
-          if (any(is.na(x))) {
-            return(NA)
-          } else {
-            return(sum(as.numeric(x), na.rm = TRUE))
-          }
-        })
-      }
-
       #Get items in FORMAT column
       info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-      extract_info_ids <- function(info_string) {
-        # Split the INFO string by ';'
-        info_parts <- strsplit(info_string, ":")[[1]]
-        # Extract the part before the '=' in each segment
-        info_ids <- gsub("=.*", "", info_parts)
-        return(info_ids)
-      }
 
       # Apply the function to the first INFO string
       info_ids <- extract_info_ids(info[1])
@@ -170,60 +167,10 @@ mod_diversity_server <- function(id){
       #Convert genotypes to alternate counts if they are the reference allele counts
       #Importantly, the dosage plot is based on the input format NOT the converted genotypes
       is_reference <- (input$zero_value == "Reference Allele Counts")
-      convert_genotype_counts <- function(df, ploidy, is_reference = TRUE) {
-        if (is_reference) {
-          # Convert from reference to alternate alleles
-          return(abs(df - ploidy))
-        } else {
-          # Data already represents alternate alleles
-          return(df)
-        }
-      }
 
       print("Genotype file successfully imported")
       ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate)
 
-      #Updated MAF function
-      calculateMAF <- function(df, ploidy) {
-        if (is.matrix(df)) {
-          df <- as.data.frame(df)
-        }
-
-        #Convert the elements to numeric if they are characters
-        df[] <- lapply(df, function(x) if(is.character(x)) as.numeric(as.character(x)) else x)
-
-        allele_frequencies <- apply(df, 1, function(row) {
-          non_na_count <- sum(!is.na(row))
-          allele_sum <- sum(row, na.rm = TRUE)
-          if (non_na_count > 0) {
-            allele_sum / (ploidy * non_na_count)
-          } else {
-            NA
-          }
-        })
-
-        maf <- ifelse(allele_frequencies <= 0.5, allele_frequencies, 1 - allele_frequencies)
-
-        df$AF <- allele_frequencies
-        df$MAF <- maf
-
-        maf_df <- df[,c("AF", "MAF"), drop = FALSE]
-
-        #Make the row names (SNP ID) the first column
-        maf_df <- maf_df %>%
-          rownames_to_column(var = "SNP_ID")
-
-        return(maf_df)
-      }
-
-      # Function to calculate percentages for each genotype in each sample
-      calculate_percentages <- function(matrix_data, ploidy) {
-        apply(matrix_data, 2, function(col) {
-          counts <- table(col)
-          prop <- prop.table(counts) * 100
-          prop[as.character(0:ploidy)]  # Adjust the range based on the max value (consider entering the ploidy value explicitly for max_val)
-        })
-      }
       print("Starting percentage calc")
       #Status
       updateProgressBar(session = session, id = "pb_diversity", value = 70, title = "Calculating...")
@@ -240,34 +187,6 @@ mod_diversity_server <- function(id){
       diversity_items$dosage_df <- melted_data
 
       print("Dosage calculations worked")
-
-      #Heterozygosity function
-      calculate_heterozygosity <- function(genotype_matrix, ploidy = 2) {
-        # Determine the heterozygous values based on ploidy
-        heterozygous_values <- seq(1, ploidy - 1)
-
-        # Create a logical matrix where TRUE represents heterozygous loci
-        is_heterozygous <- sapply(genotype_matrix, function(x) x %in% heterozygous_values)
-
-        # Count the number of heterozygous loci per sample, ignoring NAs
-        heterozygosity_counts <- colSums(is_heterozygous, na.rm = TRUE)
-
-        # Calculate the total number of non-NA loci per sample
-        total_non_na_loci <- colSums(!is.na(genotype_matrix))
-
-        # Compute the proportion of heterozygous loci
-        heterozygosity_proportion <- heterozygosity_counts / total_non_na_loci
-
-        # Create a dataframe with Sample ID and Observed Heterozygosity
-        result_df <- data.frame(
-          SampleID = colnames(genotype_matrix),
-          ObservedHeterozygosity = heterozygosity_proportion,
-          row.names = NULL,
-          check.names = FALSE
-        )
-
-        return(result_df)
-      }
 
       #Convert the genotype calls prior to het,af, and maf calculation
       geno_mat <- data.frame(convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference),
@@ -303,8 +222,10 @@ mod_diversity_server <- function(id){
       updateProgressBar(session = session, id = "pb_diversity", value = 100, title = "Complete!")
     })
 
-    observe({
-      req(diversity_items$dosage_df)
+    box_plot <- reactive({
+      validate(
+        need(!is.null(diversity_items$dosage_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
 
       #Plotting
       box <- ggplot(diversity_items$dosage_df, aes(x=Dosage, y=Percentage, fill=Data)) +
@@ -317,56 +238,75 @@ mod_diversity_server <- function(id){
           axis.title = element_text(size = 14)
         )
 
-      diversity_items$box_plot <- box
+      box
     })
 
     output$dosage_plot <- renderPlot({
-      req(diversity_items$box_plot)
-      diversity_items$box_plot
+      box_plot()
     })
 
     #Het plot
-    output$het_plot <- renderPlot({
-      req(diversity_items$het_df, input$hist_bins)
-
-      #Plot
+    het_plot <- reactive({
+      validate(
+        need(!is.null(diversity_items$het_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
       hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
            xlab = "Observed Heterozygosity",
            ylab = "Number of Samples",
            main = "Sample Observed Heterozygosity")
 
       axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
+    })
 
+    output$het_plot <- renderPlot({
+      het_plot()
     })
 
     #AF Plot
-    output$af_plot <- renderPlot({
-      req(diversity_items$maf_df, input$hist_bins)
-      #Plot
+    af_plot <- reactive({
+      validate(
+        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
       hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
            ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
     })
 
-    #MAF plot
-    output$maf_plot <- renderPlot({
-      req(diversity_items$maf_df, input$hist_bins)
+    output$af_plot <- renderPlot({
+      af_plot()
+    })
 
-      #Plot
+    #MAF plot
+    maf_plot <- reactive({
+      validate(
+        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
+
       hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
            ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
 
-    observe({
-      req(diversity_items$het_df)
-      output$sample_table <- renderDT({diversity_items$het_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+    output$maf_plot <- renderPlot({
+      maf_plot()
     })
 
-    observe({
-      req(diversity_items$maf_df)
-      output$snp_table <- renderDT({diversity_items$maf_df}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
-      #Plot
+    sample_table <- reactive({
+      validate(
+        need(!is.null(diversity_items$het_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
+      diversity_items$het_df
     })
+
+    output$sample_table <- renderDT({sample_table()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+    snp_table <- reactive({
+      validate(
+        need(!is.null(diversity_items$maf_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
+      diversity_items$maf_df
+    })
+
+    output$snp_table <- renderDT({snp_table()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
     #Download Figures for Diversity Tab (Need to convert figures to ggplot)
     output$download_div_figure <- downloadHandler(
 
@@ -392,33 +332,22 @@ mod_diversity_server <- function(id){
 
         # Conditional plotting based on input selection
         if (input$div_figure == "Dosage Plot") {
-          req(diversity_items$box_plot)
-          print(diversity_items$box_plot)
+          box_plot()
 
         } else if (input$div_figure == "AF Histogram") {
           req(diversity_items$maf_df, input$hist_bins)
 
-          #Plot
-          hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
-               ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
+          af_plot()
 
         } else if (input$div_figure == "MAF Histogram") {
           req(diversity_items$maf_df, input$hist_bins)
 
-          #Plot
-          hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
-               ylab = "Frequency", main = "Minor Allele Frequency Distribution")
+          maf_plot()
 
         } else if (input$div_figure == "OHet Histogram") {
           req(diversity_items$het_df, input$hist_bins)
 
-          hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
-               xlab = "Observed Heterozygosity",
-               ylab = "Number of Samples",
-               main = "Sample Observed Heterozygosity")
-
-          axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
-
+          het_plot()
         }
 
         dev.off()

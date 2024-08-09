@@ -178,3 +178,89 @@ performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
   return(list(Q = Q, dapc = finalDapc))
 }
 
+#Heterozygosity function
+calculate_heterozygosity <- function(genotype_matrix, ploidy = 2) {
+  # Determine the heterozygous values based on ploidy
+  heterozygous_values <- seq(1, ploidy - 1)
+
+  # Create a logical matrix where TRUE represents heterozygous loci
+  is_heterozygous <- sapply(genotype_matrix, function(x) x %in% heterozygous_values)
+
+  # Count the number of heterozygous loci per sample, ignoring NAs
+  heterozygosity_counts <- colSums(is_heterozygous, na.rm = TRUE)
+
+  # Calculate the total number of non-NA loci per sample
+  total_non_na_loci <- colSums(!is.na(genotype_matrix))
+
+  # Compute the proportion of heterozygous loci
+  heterozygosity_proportion <- heterozygosity_counts / total_non_na_loci
+
+  # Create a dataframe with Sample ID and Observed Heterozygosity
+  result_df <- data.frame(
+    SampleID = colnames(genotype_matrix),
+    ObservedHeterozygosity = heterozygosity_proportion,
+    row.names = NULL,
+    check.names = FALSE
+  )
+
+  return(result_df)
+}
+
+#' Updated MAF function
+#'
+#' @param df fill description
+#' @param ploidy fill description
+#'
+#' @importFrom tibble rownames_to_column
+#'
+calculateMAF <- function(df, ploidy) {
+  if (is.matrix(df)) {
+    df <- as.data.frame(df)
+  }
+
+  #Convert the elements to numeric if they are characters
+  df[] <- lapply(df, function(x) if(is.character(x)) as.numeric(as.character(x)) else x)
+
+  allele_frequencies <- apply(df, 1, function(row) {
+    non_na_count <- sum(!is.na(row))
+    allele_sum <- sum(row, na.rm = TRUE)
+    if (non_na_count > 0) {
+      allele_sum / (ploidy * non_na_count)
+    } else {
+      NA
+    }
+  })
+
+  maf <- ifelse(allele_frequencies <= 0.5, allele_frequencies, 1 - allele_frequencies)
+
+  df$AF <- allele_frequencies
+  df$MAF <- maf
+
+  maf_df <- df[,c("AF", "MAF"), drop = FALSE]
+
+  #Make the row names (SNP ID) the first column
+  maf_df <- maf_df %>%
+    rownames_to_column(var = "SNP_ID")
+
+  return(maf_df)
+}
+
+# Function to calculate percentages for each genotype in each sample
+calculate_percentages <- function(matrix_data, ploidy) {
+  apply(matrix_data, 2, function(col) {
+    counts <- table(col)
+    prop <- prop.table(counts) * 100
+    prop[as.character(0:ploidy)]  # Adjust the range based on the max value (consider entering the ploidy value explicitly for max_val)
+  })
+}
+
+convert_genotype_counts <- function(df, ploidy, is_reference = TRUE) {
+  if (is_reference) {
+    # Convert from reference to alternate alleles
+    return(abs(df - ploidy))
+  } else {
+    # Data already represents alternate alleles
+    return(df)
+  }
+}
+
