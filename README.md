@@ -3,7 +3,7 @@
 [![Development](https://img.shields.io/badge/development-active-blue.svg)](https://img.shields.io/badge/development-active-blue.svg)
   <!-- badges: end -->
 
-# (B)reeding (I)nsight (G)enomics app <img src="https://github.com/user-attachments/assets/60955106-fa99-4495-9c8a-c6a7d0b5ed48" align="right" width="260"/>
+# (B)reeding (I)nsight (G)enomics app <img src="https://github.com/user-attachments/assets/60955106-fa99-4495-9c8a-c6a7d0b5ed48" align="right" width="250"/>
 
 Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app will provide a web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
 
@@ -50,7 +50,7 @@ The BIG app relies on both custom scripts and previously developed R packages ci
 
 * [R](): version 4.2.2
 
-## R packages
+#### R packages
 
 * Shiny tools: [shiny](https://cran.r-project.org/web/packages/shiny/index.html), [shinyWidgets](https://cran.r-project.org/web/packages/shinyWidgets/index.html), [shinyalert](https://cran.r-project.org/web/packages/shinyalert/index.html), [shinyjs](https://cran.r-project.org/web/packages/shinyjs/index.html), [shinydisconnect](https://cran.r-project.org/web/packages/shinydisconnect/index.html), [shinycssloaders](https://cran.r-project.org/web/packages/shinycssloaders/index.html), [bs4Dash](https://cran.r-project.org/web/packages/bs4Dash/index.html),  [DT](https://cran.r-project.org/web/packages/DT/index.html), [config](https://cran.r-project.org/web/packages/config/index.html)
 
