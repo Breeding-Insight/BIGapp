@@ -127,7 +127,7 @@ mod_dapc_server <- function(id){
     observeEvent(input$K_start, {
 
       toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
-      if (is.null(input$dosage_file1$datapath)) {
+      if (is.null(input$dosage_file$datapath)) {
         shinyalert(
           title = "Missing input!",
           text = "Upload VCF File",
@@ -143,11 +143,11 @@ mod_dapc_server <- function(id){
           animation = TRUE
         )
       }
-      req(input$dosage_file1$datapath, input$dapc_ploidy)
+      req(input$dosage_file$datapath, input$dapc_ploidy)
 
       ploidy <- as.numeric(input$dapc_ploidy)
       maxK <- as.numeric(input$dapc_kmax)
-      geno <- input$dosage_file1$datapath
+      geno <- input$dosage_file$datapath
 
       ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
 
@@ -183,11 +183,10 @@ mod_dapc_server <- function(id){
 
     observeEvent(input$dapc_start, {
 
-      if(is.null(input$dosage_file2)) dosage_file2 <- input$dosage_file1$datapath
       toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
       toggleClass(id = "dapc_k", class = "borderred", condition = (is.na(input$dapc_k) | is.null(input$dapc_k)))
 
-      if (is.null(dosage_file2)) {
+      if (is.null(input$dosage_file$datapath)) {
         shinyalert(
           title = "Missing input!",
           text = "Upload VCF File",
@@ -203,9 +202,9 @@ mod_dapc_server <- function(id){
           animation = TRUE
         )
       }
-      req(dosage_file2, input$dapc_ploidy, input$dapc_k)
+      req(input$dosage_file$datapath, input$dapc_ploidy, input$dapc_k)
 
-      geno <- dosage_file2
+      geno <- input$dosage_file$datapath
       ploidy <- as.numeric(input$dapc_ploidy)
       selected_K <- as.numeric(input$dapc_k)
 
