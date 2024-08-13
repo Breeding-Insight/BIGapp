@@ -3,9 +3,7 @@
 [![Development](https://img.shields.io/badge/development-active-blue.svg)](https://img.shields.io/badge/development-active-blue.svg)
   <!-- badges: end -->
 
-# BIGapp <img src="https://github.com/user-attachments/assets/60955106-fa99-4495-9c8a-c6a7d0b5ed48" align="right" width="200"/>
-
-# (B)reeding (I)nsight (G)enomics app
+# (B)reeding (I)nsight (G)enomics app <img src="https://github.com/user-attachments/assets/60955106-fa99-4495-9c8a-c6a7d0b5ed48" align="right" width="200"/>
 
 Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This ßR shiny app will provide a web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
 
