@@ -24,6 +24,9 @@ Supported:
 
 ### Running the BIG app
 
+Tutorial available: 
+https://scribehow.com/page/BIGapp_Tutorials__FdLsY9ZxQsi6kgT9p-U2Zg
+
 **Local computer**
 1. Install R
 2. Open Terminal (on mac)
