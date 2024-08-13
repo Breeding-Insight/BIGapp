@@ -52,7 +52,6 @@ Imports:
     AGHmatrix,
     factoextra,
     future,
-    methods,
     shinycssloaders,
     RColorBrewer,
     tibble,
