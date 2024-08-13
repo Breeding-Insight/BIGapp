@@ -309,6 +309,7 @@ mod_dapc_server <- function(id){
       validate(
         need(!is.null(dapc_items$assignments), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
       )
+      dapc_items$assignments
     })
 
     output$DAPC_table <- renderDT({
