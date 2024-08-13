@@ -93,20 +93,8 @@ app_ui <- function(request) {
           )
         ),
         tabItems(
-          tabItem(tabName = "welcome",
-                  # Add welcome content here
-                  fluidRow(
-                    box(
-                      title = "General Info", width = 4,
-                      "The app is currently under development",
-                      style = "overflow-y: auto; height: 400px"
-                    ),
-
-                    box(
-                      title = "Logo", width = 8,
-                      img(src="www/BreedingInsight_Primary_RGBColor_400px.png"),
-                      style = "overflow-y: auto; height: 400px")
-                  )
+          tabItem(
+            tabName = "welcome", mod_Home_ui("Home_1")
           ),
           tabItem(
             tabName = "filtering", mod_Filtering_ui("Filtering_1")

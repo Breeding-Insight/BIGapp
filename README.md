@@ -30,6 +30,9 @@ Supported:
 
 ### Running the BIG app
 
+Tutorial available: 
+https://scribehow.com/page/BIGapp_Tutorials__FdLsY9ZxQsi6kgT9p-U2Zg
+
 **Local computer**
 1. Install R
 2. Open Terminal (on mac)
@@ -37,7 +40,7 @@ Supported:
 (in terminal)
 ```
 install.packages("devtools") #If not already installed
-devtools::install_github("Breeding-Insight/BIGapp", ref = "development")
+devtools::install_github("Breeding-Insight/BIGapp")
 BIGapp::run_app()
 ```
 4. View shiny app in browser

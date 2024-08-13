@@ -41,7 +41,7 @@ mod_PCA_ui <- function(id){
                      icon = icon("info"), width = "300px",
                      tooltip = tooltipOptions(title = "Click to see info!")
                    )),
-               style = "overflow-y: auto; height: 420px"
+               style = "overflow-y: auto; height: 480px"
              ),
              box(
                title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
@@ -90,7 +90,7 @@ mod_PCA_ui <- function(id){
       column(width = 8,
              box(title = "Passport Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
                  DTOutput(ns('passport_table')),
-                 style = "overflow-y: auto; height: 420px"
+                 style = "overflow-y: auto; height: 480px"
              ),
              box(
                title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
