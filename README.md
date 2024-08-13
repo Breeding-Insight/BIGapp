@@ -1,8 +1,14 @@
-# (B)reeding (I)nsight (G)enomics app
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/Breeding-Insight/BIGapp/workflows/R-CMD-check/badge.svg)](https://github.com/Breeding-Insight/BIGapp/actions)
+[![Development](https://img.shields.io/badge/development-active-blue.svg)](https://img.shields.io/badge/development-active-blue.svg)
+  <!-- badges: end -->
+
+# (B)reeding (I)nsight (G)enomics app <img src="https://github.com/user-attachments/assets/60955106-fa99-4495-9c8a-c6a7d0b5ed48" align="right" width="250"/>
 
 Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app will provide a web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
 
 ### Supported Analyses
+
 Initial supported analyses will include the mature genomics/bioinformatics pipelines developed within Breeding Insight, with additional analyses continuing to be added.
 
 Supported:
@@ -41,25 +47,23 @@ BIGapp::run_app()
 
 **Online (in progress)**
 
-## References
+## Third-party software
+
 The BIG app relies on both custom scripts and previously developed R packages cited below:
 
-R: version 4.2.2
+* [R](): version 4.2.2
 
-required_cran_packages <- c("updog", "ggplot2","devtools","GWASpoly","SNPRelate",
-                       "adegenet", "future", "scales", "AGHmatrix", "stats", 
-                       "factoextra", "readxl", "ggrepel", "dplyr", "shiny",
-                       "shinydashboard","randomcoloR","plotly", "DT","RColorBrewer",
-                       "dichromat", "bs4Dash", "shinyWidgets","data.table",
-                       "matrixcalc","Matrix", "shinyalert","rrBLUP", "tidyverse",
-                       "foreach", "doParallel","VariantAnnotation", "vcfR")
+#### R packages
 
-required_bio_packages <- c("SNPRelate","VariantAnnotation")
+* Shiny tools: [shiny](https://cran.r-project.org/web/packages/shiny/index.html), [shinyWidgets](https://cran.r-project.org/web/packages/shinyWidgets/index.html), [shinyalert](https://cran.r-project.org/web/packages/shinyalert/index.html), [shinyjs](https://cran.r-project.org/web/packages/shinyjs/index.html), [shinydisconnect](https://cran.r-project.org/web/packages/shinydisconnect/index.html), [shinycssloaders](https://cran.r-project.org/web/packages/shinycssloaders/index.html), [bs4Dash](https://cran.r-project.org/web/packages/bs4Dash/index.html),  [DT](https://cran.r-project.org/web/packages/DT/index.html), [config](https://cran.r-project.org/web/packages/config/index.html)
 
-Dev_tools_packages <- c("GWASpoly")
+* Genetic analysis: [updog](https://cran.r-project.org/web/packages/updog/index.html), [GWASpoly](https://github.com/jendelman/GWASpoly), [AGHmatrix](https://cran.r-project.org/web/packages/AGHmatrix/index.html), [rrBLUP](https://cran.r-project.org/web/packages/rrBLUP/index.html), [BIGr](https://github.com/Breeding-Insight/BIGr), [adegenet](https://cran.r-project.org/web/packages/adegenet/index.html), [vcfR](https://cran.r-project.org/web/packages/vcfR/index.html)
 
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+* Data manipulation optimization: [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html), [tidyr](https://cran.r-project.org/web/packages/tidyr/index.html), [purrr](https://cran.r-project.org/web/packages/purrr/index.html), [stringr](https://cran.r-project.org/web/packages/stringr/index.html), [future](https://cran.r-project.org/web/packages/future/index.html), [tibble](https://cran.r-project.org/web/packages/tibble/vignettes/tibble.html)
+
+* Statistical analysis: [factoextra](https://cran.r-project.org/web/packages/factoextra/index.html), [MASS](https://cran.r-project.org/web/packages/MASS/index.html), [Matrix](https://cran.r-project.org/web/packages/Matrix/index.html), [matrixcalc](https://cran.r-project.org/web/packages/matrixcalc/index.html)
+
+* Generate pretty graphics: [ggplot2](https://cran.r-project.org/web/packages/ggplot2/index.html), [scales](https://cran.r-project.org/web/packages/scales/index.html), [RColorBrewer](https://cran.r-project.org/web/packages/RColorBrewer/index.html), [plotly](https://cran.r-project.org/web/packages/plotly/index.html)
     
 
 ## Funding Sources
