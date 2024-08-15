@@ -33,6 +33,9 @@ Supported:
 Tutorial available: 
 https://scribehow.com/page/BIGapp_Tutorials__FdLsY9ZxQsi6kgT9p-U2Zg
 
+Online preview:
+https://big-demo.shinyapps.io/bigapp/
+
 **Local computer**
 1. Install R
 2. Open Terminal (on mac)
