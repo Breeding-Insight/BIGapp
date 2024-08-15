@@ -17,6 +17,13 @@ test_that("test GWAS",{
   #I think I can subset the read.GWAS file pheno and fixed categories (data@pheno[,c("trait")]) and data@fixed = phenotype_file[,c("List of fixed traits")]
   phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE)
 
+  # Remove empty lines
+  rm.empty <- which(apply(phenotype_file, 1, function(x) all(is.na(x) | x == "")))
+  if(length(rm.empty) > 0){
+    warning(paste("Removing", length(rm.empty),"empty lines"))
+    phenotype_file <- phenotype_file[-rm.empty,]
+  }
+
   ids <- colnames(phenotype_file)[1]
   traits <- input$trait_info
   fixed <- input$fixed_info
@@ -36,9 +43,6 @@ test_that("test GWAS",{
   #Save new phenotype file with selected traits and fixed effects
   write.csv(phenotype_file, file = temp_pheno_file, row.names = FALSE)
 
-  #Remove the phenotype_file from memory
-  rm(phenotype_file)
-
   #Geno file path
   file_path <- input$gwas_file$datapath
 
@@ -56,10 +60,15 @@ test_that("test GWAS",{
 
     #Extract GT
     geno_mat <- extract.gt(vcf, element = "GT")
-    geno_mat <- apply(geno_mat, 2, convert_to_dosage)
+    geno_mat <- apply(geno_mat, 2, BIGapp:::convert_to_dosage)
     class(geno_mat) <- "numeric"
     info <- data.frame(vcf@fix)
     gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
+
+    if(!any(colnames(gpoly_df) %in% phenotype_file$Sample_ID)) { # Add
+      stop("Make sure passport and VCF samples have same name")
+    }
+
     write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
 
     data <- read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=temp_geno_file,
@@ -106,7 +115,7 @@ test_that("test GWAS",{
   PC<-as.matrix(PCs)
   K=as.matrix(Kin)
 
-  kin.adj<-posdefmat(K)
+  kin.adj<-BIGapp:::posdefmat(K)
   kin.test<-as.matrix(kin.adj)
 
   for (i in 2:ncol(GE)){
@@ -114,7 +123,7 @@ test_that("test GWAS",{
     #model selection
     y=as.numeric(GE[,i])
 
-    BICs<-CalcBIC(y=y,PC=PC,K=kin.test)
+    BICs<- BIGapp:::CalcBIC(y=y,PC=PC,K=kin.test)
 
     plotBICs<-cbind(rbind.data.frame(BICs$BIC$withK,BICs$BIC$withoutK),rep(c("w/Kinship","no Kinship"),each=nrow(BICs$BIC$withK)))
     colnames(plotBICs)[ncol(plotBICs)]<-"RelationshipMatrix"
@@ -165,7 +174,7 @@ test_that("test GWAS",{
 
     #Save qq_plot info
 
-    CMplot_shiny(data_qq,plot.type="q",col=c(1:8),
+    BIGapp:::CMplot_shiny(data_qq,plot.type="q",col=c(1:8),
                  ylab.pos=2,
                  file.name=colnames(data@pheno[i]),
                  conf.int=FALSE,
