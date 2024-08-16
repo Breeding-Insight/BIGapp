@@ -280,3 +280,15 @@ posdefmat <- function(mat) {
   }
   return(g)
 }
+
+# Function to split INFO column and expand it into multiple columns
+split_info_column <- function(info) {
+  # Split the INFO column by semicolon
+  info_split <- str_split(info, ";")[[1]]
+
+  # Create a named list by splitting each element by equals sign
+  info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
+                         map(info_split, ~ str_split(.x, "=")[[1]][1]))
+
+  return(info_list)
+}
