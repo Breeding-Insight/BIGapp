@@ -1,6 +1,6 @@
 Package: BIGapp
 Title: Breeding Insight Genomics Shiny Application
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: 
     c(
               person(c("Alexander", "M."), "Sandercock",
@@ -52,7 +52,6 @@ Imports:
     AGHmatrix,
     factoextra,
     future,
-    methods,
     shinycssloaders,
     RColorBrewer,
     tibble,
