@@ -9,3 +9,4 @@ $run_dev.*
 ^\www$
 ^LICENSE$
 ^\.github$
+^Dockerfile$
