@@ -300,7 +300,12 @@ mod_diversity_server <- function(id){
       )
       #Order the Chr column
       diversity_items$pos_df$POS <- as.numeric(diversity_items$pos_df$POS)
-      # Sort the dataframe
+      # Sort the dataframe and pad with a 0 if only a single digit is provided
+      diversity_items$pos_df$CHROM <- ifelse(
+        nchar(diversity_items$pos_df$CHROM) == 1, 
+        paste0("0", diversity_items$pos_df$CHROM), 
+        diversity_items$pos_df$CHROM
+      )
       diversity_items$pos_df <- diversity_items$pos_df[order(diversity_items$pos_df$CHROM), ]
 
       #Plot
