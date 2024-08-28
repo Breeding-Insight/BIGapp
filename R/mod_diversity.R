@@ -116,7 +116,7 @@ mod_diversity_server <- function(id){
 
     observeEvent(input$diversity_start, {
       toggleClass(id = "diversity_ploidy", class = "borderred", condition = (is.na(input$diversity_ploidy) | is.null(input$diversity_ploidy)))
-      toggleClass(id = "zero_value", class = "borderred", condition = (is.na(input$zero_value) | is.null(input$zero_value)))
+      #toggleClass(id = "zero_value", class = "borderred", condition = (is.na(input$zero_value) | is.null(input$zero_value)))
 
       if (is.null(input$diversity_file$datapath)) {
         shinyalert(
@@ -134,7 +134,7 @@ mod_diversity_server <- function(id){
           animation = TRUE
         )
       }
-      req(input$diversity_file, input$diversity_ploidy, input$zero_value)
+      req(input$diversity_file, input$diversity_ploidy)
 
       #Input variables (need to add support for VCF file)
       ploidy <- as.numeric(input$diversity_ploidy)
@@ -173,7 +173,7 @@ mod_diversity_server <- function(id){
       print(class(geno_mat))
       #Convert genotypes to alternate counts if they are the reference allele counts
       #Importantly, the dosage plot is based on the input format NOT the converted genotypes
-      is_reference <- (input$zero_value == "Reference Allele Counts")
+      is_reference <- TRUE #(input$zero_value == "Reference Allele Counts")
 
       print("Genotype file successfully imported")
       ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate)
