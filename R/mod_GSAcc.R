@@ -791,6 +791,7 @@ mod_GSAcc_server <- function(id){
       validate(
         need(!is.null(pred_outputs$avg_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
       )
+      pred_outputs$avg_GEBVs
     })
 
     output$pred_gebvs_table <- renderDT({avg_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
