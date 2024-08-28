@@ -1,6 +1,7 @@
 context("GWAS")
 
 test_that("test GWAS",{
+
   input <- list()
   input$cores <- 1
   input$phenotype_file$datapath <- system.file("iris_passport_file.csv", package = "BIGapp")

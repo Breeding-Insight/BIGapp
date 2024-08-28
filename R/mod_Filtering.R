@@ -132,6 +132,13 @@ mod_Filtering_server <- function(id){
 
     disable("start_updog_filter")
 
+    output$din_tabs <- renderUI({
+      tabBox(width =12, collapsible = FALSE, status = "info",
+             id = "updog_tab", height = "600px",
+             tabPanel("Results", p("Upload VCF file to access results in this section."))
+      )
+    })
+
     vcf <- eventReactive(input$run_filters, {
 
       # Ensure the files are uploaded
