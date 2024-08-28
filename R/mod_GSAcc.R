@@ -729,7 +729,7 @@ mod_GSAcc_server <- function(id){
         #geom_boxplot(position = position_dodge(width = 0.8), color = "black", width = 0.7, outlier.size = 0.2) +
         geom_boxplot() +
         facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
-        labs(title = "Prediction Accuracy by Trait",
+        labs(title = "Predictive Ability by Trait",
              x = " ",
              y = "Pearson Correlation") +
         #theme_minimal() +                      # Using a minimal theme
@@ -744,7 +744,7 @@ mod_GSAcc_server <- function(id){
         geom_violin(trim = TRUE) +  # Add violin plot
         geom_point(position = position_jitter(width = 0.1), color = "black", size = 1.5) +  # Add jittered points
         facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
-        labs(title = "Prediction Accuracy by Trait",
+        labs(title = "Predictive Ability by Trait",
              x = " ",  # x-label is blank because it's not relevant per facet
              y = "Pearson Correlation") +
         theme(legend.position = "none",
