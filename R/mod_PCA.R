@@ -448,35 +448,33 @@ mod_PCA_server <- function(id){
 
     #Download figures for PCA
     output$download_pca <- downloadHandler(
-
       filename = function() {
         if (input$pca_image_type == "jpeg") {
-          paste("pca-", Sys.Date(), ".jpg", sep="")
+          paste("pca-", Sys.Date(), ".jpg", sep = "")
         } else if (input$pca_image_type == "png") {
-          paste("pca-", Sys.Date(), ".png", sep="")
+          paste("pca-", Sys.Date(), ".png", sep = "")
         } else {
-          paste("pca-", Sys.Date(), ".tiff", sep="")
+          paste("pca-", Sys.Date(), ".tiff", sep = "")
         }
       },
       content = function(file) {
         req(input$pca_figure)
-
+        
         if (input$pca_image_type == "jpeg") {
-          jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
+          jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
         } else if (input$pca_image_type == "png") {
-          png(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
+          png(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
         } else {
-          tiff(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res= as.numeric(input$pca_image_res), units = "in")
+          tiff(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
         }
-
-        # Conditional plotting based on input selection
+        
+        # Plot based on user selection
         if (input$pca_figure == "2D Plot") {
-          pca_2d()
+          print(pca_2d())
         } else if (input$pca_figure == "Scree Plot") {
-          pca_scree()
-        } else {
-          plot(x = 1:10, y = 1:10, main = "Fallback Simple Test Plot")  # Fallback simple test plot
+          print(pca_scree())
         }
+        
         dev.off()
       }
     )
