@@ -165,6 +165,13 @@ mod_gwas_server <- function(id){
       #I think I can subset the read.GWAS file pheno and fixed categories (data@pheno[,c("trait")]) and data@fixed = phenotype_file[,c("List of fixed traits")]
       phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE)
 
+      # Remove empty lines
+      rm.empty <- which(apply(phenotype_file, 1, function(x) all(is.na(x) | x == "")))
+      if(length(rm.empty) > 0){
+        warning(paste("Removing", length(rm.empty),"empty lines"))
+        phenotype_file <- phenotype_file[-rm.empty,]
+      }
+
       ids <- colnames(phenotype_file)[1]
       traits <- input$trait_info
       fixed <- input$fixed_info
@@ -204,9 +211,6 @@ mod_gwas_server <- function(id){
       #Save new phenotype file with selected traits and fixed effects
       write.csv(phenotype_file, file = temp_pheno_file, row.names = FALSE)
 
-      #Remove the phenotype_file from memory
-      rm(phenotype_file)
-
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 5, title = "Upload Complete: Now Formatting GWASpoly Data")
 
@@ -215,6 +219,8 @@ mod_gwas_server <- function(id){
 
       #Geno.file conversion if needed
       if (grepl("\\.csv$", file_path)) {
+        #TODO: Add check for matches of sample names in genotype and phenotype data
+
         data <- read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=input$gwas_file$datapath,
                               format="numeric", n.traits=length(traits), delim=",") #only need to change files here
 
@@ -231,6 +237,28 @@ mod_gwas_server <- function(id){
         class(geno_mat) <- "numeric"
         info <- data.frame(vcf@fix)
         gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
+
+        if(!any(colnames(gpoly_df) %in% phenotype_file$Sample_ID)) {
+          shinyalert(
+            title = "Samples ID do not match",
+            text = paste("Check if passport/phenotype files have same sample ID as the VCF/genotype file."),
+            size = "s",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "error",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            animation = TRUE
+          )
+
+        }
+        validate(
+          need(any(colnames(gpoly_df) %in% phenotype_file$Sample_ID), "The selected traits must be numerical.")
+        )
+
         write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
 
         data <- read.GWASpoly(ploidy= ploidy, pheno.file= temp_pheno_file, geno.file=temp_geno_file,

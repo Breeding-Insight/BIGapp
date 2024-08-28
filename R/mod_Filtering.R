@@ -58,14 +58,7 @@ mod_Filtering_ui <- function(id){
              )
       ),
       column(width = 6,
-             tabBox(width =12, collapsible = FALSE, status = "info",
-                    id = "updog_tab", height = "600px",
-                    tabPanel("Bias Histogram", icon = icon("image"), plotOutput(ns("bias_hist"), height = '550px')),
-                    tabPanel("OD Histogram", icon = icon("image"), plotOutput(ns("od_hist"), height = '550px')),
-                    tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput(ns("maxpostprob_hist"), height = '550px')),
-                    tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
-                    tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
-             )
+             uiOutput(ns("din_tabs")),
       ),
       column(width = 3,
              valueBoxOutput(ns("snp_retained_box"), width = NULL),
@@ -139,6 +132,13 @@ mod_Filtering_server <- function(id){
 
     disable("start_updog_filter")
 
+    output$din_tabs <- renderUI({
+      tabBox(width =12, collapsible = FALSE, status = "info",
+             id = "updog_tab", height = "600px",
+             tabPanel("Results", p("Upload VCF file to access results in this section."))
+      )
+    })
+
     vcf <- eventReactive(input$run_filters, {
 
       # Ensure the files are uploaded
@@ -165,7 +165,37 @@ mod_Filtering_server <- function(id){
 
       req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
 
-      if (input$use_updog) {
+      #Input file
+      vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
+
+      # Identify if have updog parameters
+      format_fields <- unique(vcf@gt[,1])
+      info_fields <- vcf@fix[1,8]
+      updog_par <- grepl("MPP", format_fields) & grepl("PMC", info_fields) & grepl("BIAS", info_fields) & grepl("OD", info_fields)
+
+      if(updog_par){
+        output$din_tabs <- renderUI({
+          tabBox(width =12, collapsible = FALSE, status = "info",
+                 id = "updog_tab", height = "600px",
+                 tabPanel("Bias Histogram", icon = icon("image"), plotOutput(ns("bias_hist"), height = '550px')),
+                 tabPanel("OD Histogram", icon = icon("image"), plotOutput(ns("od_hist"), height = '550px')),
+                 tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput(ns("maxpostprob_hist"), height = '550px')),
+                 tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
+                 tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
+          )
+        })
+      } else {
+        output$din_tabs <- renderUI({
+          tabBox(width =12, collapsible = FALSE, status = "info",
+                 id = "updog_tab", height = "600px",
+                 tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
+                 tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
+          )
+        })
+      }
+
+
+      if (input$use_updog & updog_par) {
         # Use Updog filtering parameters
         OD_filter <- as.numeric(input$OD_filter)
         Prop_mis <- as.numeric(input$Prop_mis)
@@ -193,8 +223,7 @@ mod_Filtering_server <- function(id){
       maf_filter <- input$filter_maf
 
       updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
-      #Input file
-      vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
+
       #Starting SNPs
       starting_snps <- nrow(vcf)
       output$snp_removed_box <- renderValueBox({
@@ -225,6 +254,23 @@ mod_Filtering_server <- function(id){
                        filter.SNP.miss = as.numeric(snp_miss),
                        filter.MAF = as.numeric(maf_filter),
                        filter.MPP = max_post)
+
+      if (length(vcf@gt) == 0) {
+        shinyalert(
+          title = "All markers were filtered out",
+          text = "Loose the parameters to access results in this tab",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
 
       #Getting missing data information
       #Add support for genotype matrix filtering?
@@ -336,6 +382,8 @@ mod_Filtering_server <- function(id){
           abline(v = median(as.numeric(filtering_output$df$BIAS)), col = "green", lty = 2)  # Median line
           abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
           abline(v = 2, col = "black", lty = 2)  # proposed upper line
+          legend("topright", legend=c("mean", "median", "suggested threshold"),
+                 col=c("red", "green","black"), lty=2, cex=0.8)
 
         } else if (input$filter_hist == "OD Histogram") {
 
@@ -355,6 +403,8 @@ mod_Filtering_server <- function(id){
           abline(v = mean(as.numeric(filtering_output$df$OD)), col = "red", lty = 2)  # Mean line
           abline(v = median(as.numeric(filtering_output$df$OD)), col = "green", lty = 2)  # Median line
           abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+          legend("topright", legend=c("mean", "median", "suggested threshold"),
+                 col=c("red", "green","black"), lty=2, cex=0.8)
 
         } else if (input$filter_hist == "Prop_mis Histogram") {
 
@@ -372,6 +422,8 @@ mod_Filtering_server <- function(id){
           abline(v = mean(as.numeric(filtering_output$df$PMC)), col = "red", lty = 2)  # Mean line
           abline(v = median(as.numeric(filtering_output$df$PMC)), col = "green", lty = 2)  # Median line
           abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2)
+          legend("topright", legend=c("mean", "median", "quantile"),
+                 col=c("red", "green","blue"), lty=2, cex=0.8)
 
         } else if (input$filter_hist == "SNP_mis") {
 
@@ -389,6 +441,8 @@ mod_Filtering_server <- function(id){
           abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
           abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
           abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
+          legend("topright", legend=c("mean", "median", "quantile"),
+                 col=c("red", "green","blue"), lty=2, cex=0.8)
 
         } else if (input$filter_hist == "Sample_mis") {
 
@@ -406,6 +460,8 @@ mod_Filtering_server <- function(id){
           abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
           abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
           abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
+          legend("topright", legend=c("mean", "median", "quantile"),
+                 col=c("red", "green","blue"), lty=2, cex=0.8)
         }
         dev.off()
       }
@@ -420,19 +476,6 @@ mod_Filtering_server <- function(id){
     filtering_output <- reactiveValues(df = NULL)
 
     observeEvent(filtering_files$raw_vcf_df, {
-
-
-      # Function to split INFO column and expand it into multiple columns
-      split_info_column <- function(info) {
-        # Split the INFO column by semicolon
-        info_split <- str_split(info, ";")[[1]]
-
-        # Create a named list by splitting each element by equals sign
-        info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
-                               map(info_split, ~ str_split(.x, "=")[[1]][1]))
-
-        return(info_list)
-      }
 
       # Apply the function to each row and bind the results into a new dataframe
       new_df <- data.frame(filtering_files$raw_vcf_df) %>%
@@ -450,67 +493,80 @@ mod_Filtering_server <- function(id){
       ###Bias
 
       #Histogram
-      output$bias_hist <- renderPlot({
-        hist(as.numeric(new_df$BIAS),
-             main = "Unfiltered SNP bias histogram",
-             xlab = "bias",
-             ylab = "SNPs",
-             col = "lightblue",
-             border = "black",
-             xlim = c(0,5),
-             breaks = as.numeric(input$hist_bins))
-        axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
-        abline(v = mean(as.numeric(new_df$BIAS)), col = "red", lty = 2)  # Mean line
-        abline(v = median(as.numeric(new_df$BIAS)), col = "green", lty = 2)  # Median line
-        abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
-        abline(v = 2, col = "black", lty = 2)  # proposed upper line
-      })
+      if(any(grepl("BIAS", colnames(new_df)))){
+        output$bias_hist <- renderPlot({
+          hist(as.numeric(new_df$BIAS),
+               main = "Unfiltered SNP bias histogram",
+               xlab = "bias",
+               ylab = "SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,5),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
+          abline(v = mean(as.numeric(new_df$BIAS)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(new_df$BIAS)), col = "green", lty = 2)  # Median line
+          abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
+          abline(v = 2, col = "black", lty = 2)  # proposed upper line
+          legend("topright", legend=c("mean", "median", "suggested threshold"),
+                 col=c("red", "green","black"), lty=2, cex=0.8)
+        })
+      }
 
       ###OD
-      quantile(as.numeric(new_df$OD), 0.95)
-      #Histogram
-      output$od_hist <- renderPlot({
-        hist(as.numeric(new_df$OD),
-             main = "Unfiltered SNP overdispersion parameter histogram",
-             xlab = "OD",
-             ylab = "SNPs",
-             col = "lightblue",
-             border = "black",
-             xlim = c(0,0.6),
-             breaks = as.numeric(input$hist_bins))
-        axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
-        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+      if(any(grepl("OD", colnames(new_df)))){
 
-        # Add vertical lines
-        abline(v = mean(as.numeric(new_df$OD)), col = "red", lty = 2)  # Mean line
-        abline(v = median(as.numeric(new_df$OD)), col = "green", lty = 2)  # Median line
-        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        quantile(as.numeric(new_df$OD), 0.95)
+        #Histogram
+        output$od_hist <- renderPlot({
+          hist(as.numeric(new_df$OD),
+               main = "Unfiltered SNP overdispersion parameter histogram",
+               xlab = "OD",
+               ylab = "SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,0.6),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
+          abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
 
-      })
+          # Add vertical lines
+          abline(v = mean(as.numeric(new_df$OD)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(new_df$OD)), col = "green", lty = 2)  # Median line
+          abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+          legend("topright", legend=c("mean", "median", "suggested threshold"),
+                 col=c("red", "green","black"), lty=2, cex=0.8)
+
+        })
+      }
 
       ##MAXPOSTPROB
 
       #Histogram
+      if(any(grepl("PMC", colnames(new_df)))){
 
-      output$maxpostprob_hist <- renderPlot({
+        output$maxpostprob_hist <- renderPlot({
 
-        #Histogram
-        hist(as.numeric(new_df$PMC),
-             main = "The estimated proportion of individuals misclassified in the SNP from updog",
-             xlab = "Proportion of Misclassified Genotypes per SNP",
-             ylab = "Number of SNPs",
-             col = "lightblue",
-             border = "black",
-             xlim = c(0,1),
-             breaks = as.numeric(input$hist_bins))
-        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+          #Histogram
+          hist(as.numeric(new_df$PMC),
+               main = "The estimated proportion of individuals misclassified in the SNP from updog",
+               xlab = "Proportion of Misclassified Genotypes per SNP",
+               ylab = "Number of SNPs",
+               col = "lightblue",
+               border = "black",
+               xlim = c(0,1),
+               breaks = as.numeric(input$hist_bins))
+          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
 
-        # Add vertical lines
-        abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
-        abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2)
+          # Add vertical lines
+          abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
+          abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
+          abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2)
+          legend("topright", legend=c("mean", "median", "quantile"),
+                 col=c("red", "green","blue"), lty=2, cex=0.8)
 
-      })
+        })
+      }
 
       #Missing data
       output$missing_snp_hist <- renderPlot({
@@ -530,7 +586,8 @@ mod_Filtering_server <- function(id){
         abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
         abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
-
+        legend("topright", legend=c("mean", "median", "quantile"),
+               col=c("red", "green","blue"), lty=2, cex=0.8)
       })
 
       output$missing_sample_hist <- renderPlot({
@@ -550,7 +607,8 @@ mod_Filtering_server <- function(id){
         abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
         abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
-
+        legend("topright", legend=c("mean", "median", "quantile"),
+               col=c("red", "green","blue"), lty=2, cex=0.8)
       })
 
       ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
