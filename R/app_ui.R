@@ -21,7 +21,7 @@ app_ui <- function(request) {
       ),
       bs4DashSidebar(
         skin="light", status = "info",
-        sidebarMenu(
+        sidebarMenu(id = "MainMenu",
           flat = FALSE,
           tags$li(class = "header", style = "color: grey; margin-top: 10px; margin-bottom: 10px; padding-left: 15px;", "Menu"),
           menuItem("Home", tabName = "welcome", icon = icon("house")),

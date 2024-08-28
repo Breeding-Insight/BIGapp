@@ -109,323 +109,322 @@ mod_dapc_ui <- function(id){
 #' @importFrom vcfR read.vcfR extract.gt
 #' @importFrom stats BIC as.formula lm logLik median model.matrix na.omit prcomp qbeta quantile runif sd setNames
 #' @noRd
-mod_dapc_server <- function(id){
-  moduleServer( id, function(input, output, session){
-    ns <- session$ns
+mod_dapc_server <- function(input, output, session, parent_session){
+
+  ns <- session$ns
 
 
-    dapc_items <- reactiveValues(
-      grp = NULL,
-      bestK = NULL,
-      BIC = NULL,
-      assignments = NULL,
-      dapc = NULL
+  dapc_items <- reactiveValues(
+    grp = NULL,
+    bestK = NULL,
+    BIC = NULL,
+    assignments = NULL,
+    dapc = NULL
+  )
+
+  ##DAPC analysis
+  #Make it a two step process 1) estimate K, and 2) perform DAPC
+  observeEvent(input$K_start, {
+
+    toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
+    if (is.null(input$dosage_file$datapath)) {
+      shinyalert(
+        title = "Missing input!",
+        text = "Upload VCF File",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    req(input$dosage_file$datapath, input$dapc_ploidy)
+
+    ploidy <- as.numeric(input$dapc_ploidy)
+    maxK <- as.numeric(input$dapc_kmax)
+    geno <- input$dosage_file$datapath
+
+    ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
+
+    #Import genotype information if in VCF format
+    vcf <- read.vcfR(geno)
+
+    #Get items in FORMAT column
+    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+
+    # Apply the function to the first INFO string
+    info_ids <- extract_info_ids(info[1])
+
+    #Get the genotype values if the updog dosage calls are present
+    if ("UD" %in% info_ids) {
+      genotypeMatrix <- extract.gt(vcf, element = "UD")
+      class(genotypeMatrix) <- "numeric"
+      rm(vcf) #Remove vcf
+    }else{
+      #Extract GT and convert to numeric calls
+      genotypeMatrix <- extract.gt(vcf, element = "GT")
+      genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
+    }
+
+    #Perform analysis
+    get_k <- findK(genotypeMatrix, maxK, ploidy)
+
+    #Assign results to reactive values
+    dapc_items$grp <- get_k$grp
+    dapc_items$bestK <- get_k$bestK
+    dapc_items$BIC <- get_k$BIC
+  })
+
+  observeEvent(input$dapc_start, {
+
+    toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
+    toggleClass(id = "dapc_k", class = "borderred", condition = (is.na(input$dapc_k) | is.null(input$dapc_k)))
+
+    if (is.null(input$dosage_file$datapath)) {
+      shinyalert(
+        title = "Missing input!",
+        text = "Upload VCF File",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    req(input$dosage_file$datapath, input$dapc_ploidy, input$dapc_k)
+
+    geno <- input$dosage_file$datapath
+    ploidy <- as.numeric(input$dapc_ploidy)
+    selected_K <- as.numeric(input$dapc_k)
+
+    #Import genotype information if in VCF format
+    vcf <- read.vcfR(geno)
+
+    #Get items in FORMAT column
+    info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+
+    # Apply the function to the first INFO string
+    info_ids <- extract_info_ids(info[1])
+
+    #Get the genotype values if the updog dosage calls are present
+    if ("UD" %in% info_ids) {
+      genotypeMatrix <- extract.gt(vcf, element = "UD")
+      class(genotypeMatrix) <- "numeric"
+      rm(vcf) #Remove vcf
+    }else{
+      #Extract GT and convert to numeric calls
+      genotypeMatrix <- extract.gt(vcf, element = "GT")
+      genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
+    }
+
+    #Perform analysis
+    clusters <- performDAPC(genotypeMatrix, selected_K, ploidy)
+
+    #Assign results to reactive value
+    dapc_items$assignments <- clusters$Q
+    dapc_items$dapc <- clusters$dapc
+  })
+
+  ###Outputs from DAPC
+  #Output the BIC plot
+  BIC_plot <- reactive({
+    validate(
+      need(!is.null(dapc_items$BIC), "Input VCF, define parameters and click `run analysis` in Step 1:(K) to access results in this session.")
     )
 
-    ##DAPC analysis
-    #Make it a two step process 1) estimate K, and 2) perform DAPC
-    observeEvent(input$K_start, {
+    BIC <- dapc_items$BIC
+    selected_K <- as.numeric(dapc_items$bestK)
+    plot(BIC, type = "o", xaxt = 'n')
+    axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
 
-      toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
-      if (is.null(input$dosage_file$datapath)) {
-        shinyalert(
-          title = "Missing input!",
-          text = "Upload VCF File",
-          size = "s",
-          closeOnEsc = TRUE,
-          closeOnClickOutside = FALSE,
-          html = TRUE,
-          type = "error",
-          showConfirmButton = TRUE,
-          confirmButtonText = "OK",
-          confirmButtonCol = "#004192",
-          showCancelButton = FALSE,
-          animation = TRUE
-        )
-      }
-      req(input$dosage_file$datapath, input$dapc_ploidy)
-
-      ploidy <- as.numeric(input$dapc_ploidy)
-      maxK <- as.numeric(input$dapc_kmax)
-      geno <- input$dosage_file$datapath
-
-      ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
-
-      #Import genotype information if in VCF format
-      vcf <- read.vcfR(geno)
-
-      #Get items in FORMAT column
-      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-
-      # Apply the function to the first INFO string
-      info_ids <- extract_info_ids(info[1])
-
-      #Get the genotype values if the updog dosage calls are present
-      if ("UD" %in% info_ids) {
-        genotypeMatrix <- extract.gt(vcf, element = "UD")
-        class(genotypeMatrix) <- "numeric"
-        rm(vcf) #Remove vcf
-      }else{
-        #Extract GT and convert to numeric calls
-        genotypeMatrix <- extract.gt(vcf, element = "GT")
-        genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
-        rm(vcf) #Remove VCF
-      }
-
-      #Perform analysis
-      get_k <- findK(genotypeMatrix, maxK, ploidy)
-
-      #Assign results to reactive values
-      dapc_items$grp <- get_k$grp
-      dapc_items$bestK <- get_k$bestK
-      dapc_items$BIC <- get_k$BIC
-    })
-
-    observeEvent(input$dapc_start, {
-
-      toggleClass(id = "dapc_ploidy", class = "borderred", condition = (is.na(input$dapc_ploidy) | is.null(input$dapc_ploidy)))
-      toggleClass(id = "dapc_k", class = "borderred", condition = (is.na(input$dapc_k) | is.null(input$dapc_k)))
-
-      if (is.null(input$dosage_file$datapath)) {
-        shinyalert(
-          title = "Missing input!",
-          text = "Upload VCF File",
-          size = "s",
-          closeOnEsc = TRUE,
-          closeOnClickOutside = FALSE,
-          html = TRUE,
-          type = "error",
-          showConfirmButton = TRUE,
-          confirmButtonText = "OK",
-          confirmButtonCol = "#004192",
-          showCancelButton = FALSE,
-          animation = TRUE
-        )
-      }
-      req(input$dosage_file$datapath, input$dapc_ploidy, input$dapc_k)
-
-      geno <- input$dosage_file$datapath
-      ploidy <- as.numeric(input$dapc_ploidy)
-      selected_K <- as.numeric(input$dapc_k)
-
-      #Import genotype information if in VCF format
-      vcf <- read.vcfR(geno)
-
-      #Get items in FORMAT column
-      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-
-      # Apply the function to the first INFO string
-      info_ids <- extract_info_ids(info[1])
-
-      #Get the genotype values if the updog dosage calls are present
-      if ("UD" %in% info_ids) {
-        genotypeMatrix <- extract.gt(vcf, element = "UD")
-        class(genotypeMatrix) <- "numeric"
-        rm(vcf) #Remove vcf
-      }else{
-        #Extract GT and convert to numeric calls
-        genotypeMatrix <- extract.gt(vcf, element = "GT")
-        genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
-        rm(vcf) #Remove VCF
-      }
-
-      #Perform analysis
-      clusters <- performDAPC(genotypeMatrix, selected_K, ploidy)
-
-      #Assign results to reactive value
-      dapc_items$assignments <- clusters$Q
-      dapc_items$dapc <- clusters$dapc
-    })
-
-    ###Outputs from DAPC
-    #Output the BIC plot
-    BIC_plot <- reactive({
-      validate(
-        need(!is.null(dapc_items$BIC), "Input VCF, define parameters and click `run analysis` in Step 1:(K) to access results in this session.")
-      )
-
-      BIC <- dapc_items$BIC
-      selected_K <- as.numeric(dapc_items$bestK)
+    if (input$plot_BICX) {
       plot(BIC, type = "o", xaxt = 'n')
       axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+      points(selected_K, BIC[selected_K,2], pch = "x", col = "red", cex = 2)
+    } else {
+      plot(BIC, type = "o", xaxt = 'n')
+      axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
+    }
+  })
 
-      if (input$plot_BICX) {
-        plot(BIC, type = "o", xaxt = 'n')
-        axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
-        points(selected_K, BIC[selected_K,2], pch = "x", col = "red", cex = 2)
+  output$BIC_plot <- renderPlot({
+    BIC_plot()
+  })
+
+  # #Output the DAPC scatter plot
+  DAPC_plot <- reactive({
+    validate(
+      need(!is.null(dapc_items$dapc), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
+    )
+
+    #Get colors
+    palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
+    my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
+
+    sc1 <- scatter.dapc(dapc_items$dapc,
+                        bg = "white", solid = 1, cex = 1, # cex circle size
+                        col = my_palette,
+                        pch = 20, # shapes
+                        cstar = 1, # 0 or 1, arrows from center of cluster
+                        cell = 2, # size of elipse
+                        scree.da = T, # plot da
+                        scree.pca = T, # plot pca
+                        posi.da = "topright",
+                        posi.pca="bottomright",
+                        mstree = F, # lines connecting clusters
+                        lwd = 1, lty = 2,
+                        leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+  })
+
+  output$DAPC_plot <- renderPlot({
+    DAPC_plot()
+  })
+
+  # #Output datatables
+
+  BIC_table <-   reactive({
+    validate(
+      need(!is.null(dapc_items$BIC), "Input VCF, define parameters and click `run analysis` in Step 1:(K) to access results in this session.")
+    )
+    dapc_items$BIC
+  })
+
+  output$BIC_table <- renderDT({
+    BIC_table()
+  }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+  assignments_table <- reactive({
+    validate(
+      need(!is.null(dapc_items$assignments), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
+    )
+    dapc_items$assignments
+  })
+
+  output$DAPC_table <- renderDT({
+    assignments_table()
+  }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+  #Download figures for DAPC (change this so that the figures were already saved as reactive values to then print() here)
+  output$download_dapc_image <- downloadHandler(
+
+    filename = function() {
+      if (input$dapc_image_type == "jpeg") {
+        paste("dapc-", Sys.Date(), ".jpg", sep="")
+      } else if (input$dapc_image_type == "png") {
+        paste("dapc-", Sys.Date(), ".png", sep="")
       } else {
+        paste("dapc-", Sys.Date(), ".tiff", sep="")
+      }
+    },
+    content = function(file) {
+      #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
+      req(input$dapc_figure)
+
+      if (input$dapc_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
+      } else if (input$dapc_image_type == "png") {
+        png(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
+      }
+
+      # Conditional plotting based on input selection
+      if (input$dapc_figure == "DAPC Plot") {
+        req(dapc_items$dapc, input$dapc_k)
+
+        #Get colors
+        palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
+        my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
+
+        sc1 <- scatter.dapc(dapc_items$dapc,
+                            bg = "white", solid = 1, cex = 1, # cex circle size
+                            col = my_palette,
+                            pch = 20, # shapes
+                            cstar = 1, # 0 or 1, arrows from center of cluster
+                            cell = 2, # size of elipse
+                            scree.da = T, # plot da
+                            scree.pca = T, # plot pca
+                            posi.da = "topright",
+                            posi.pca="bottomright",
+                            mstree = F, # lines connecting clusters
+                            lwd = 1, lty = 2,
+                            leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+
+      } else if (input$dapc_figure == "BIC Plot") {
+        req(dapc_items$BIC, dapc_items$bestK)
+
+        BIC <- dapc_items$BIC
+        selected_K <- as.numeric(dapc_items$bestK)
         plot(BIC, type = "o", xaxt = 'n')
         axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
-      }
-    })
 
-    output$BIC_plot <- renderPlot({
-      BIC_plot()
-    })
-
-    # #Output the DAPC scatter plot
-    DAPC_plot <- reactive({
-      validate(
-        need(!is.null(dapc_items$dapc), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
-      )
-
-      #Get colors
-      palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
-      my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
-
-      sc1 <- scatter.dapc(dapc_items$dapc,
-                          bg = "white", solid = 1, cex = 1, # cex circle size
-                          col = my_palette,
-                          pch = 20, # shapes
-                          cstar = 1, # 0 or 1, arrows from center of cluster
-                          cell = 2, # size of elipse
-                          scree.da = T, # plot da
-                          scree.pca = T, # plot pca
-                          posi.da = "topright",
-                          posi.pca="bottomright",
-                          mstree = F, # lines connecting clusters
-                          lwd = 1, lty = 2,
-                          leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
-    })
-
-    output$DAPC_plot <- renderPlot({
-      DAPC_plot()
-    })
-
-    # #Output datatables
-
-    BIC_table <-   reactive({
-      validate(
-        need(!is.null(dapc_items$BIC), "Input VCF, define parameters and click `run analysis` in Step 1:(K) to access results in this session.")
-      )
-      dapc_items$BIC
-    })
-
-    output$BIC_table <- renderDT({
-      BIC_table()
-    }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
-    assignments_table <- reactive({
-      validate(
-        need(!is.null(dapc_items$assignments), "Input VCF, define parameters and click `run analysis` in Step 2:(DAPC) to access results in this session.")
-      )
-      dapc_items$assignments
-    })
-
-    output$DAPC_table <- renderDT({
-      assignments_table()
-    }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
-    #Download figures for DAPC (change this so that the figures were already saved as reactive values to then print() here)
-    output$download_dapc_image <- downloadHandler(
-
-      filename = function() {
-        if (input$dapc_image_type == "jpeg") {
-          paste("dapc-", Sys.Date(), ".jpg", sep="")
-        } else if (input$dapc_image_type == "png") {
-          paste("dapc-", Sys.Date(), ".png", sep="")
-        } else {
-          paste("dapc-", Sys.Date(), ".tiff", sep="")
-        }
-      },
-      content = function(file) {
-        #req(all_plots$pca_2d, all_plots$pca3d, all_plots$scree, input$pca_image_type, input$pca_image_res, input$pca_image_width, input$pca_image_height) #Get the plots
-        req(input$dapc_figure)
-
-        if (input$dapc_image_type == "jpeg") {
-          jpeg(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
-        } else if (input$dapc_image_type == "png") {
-          png(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
-        } else {
-          tiff(file, width = as.numeric(input$dapc_image_width), height = as.numeric(input$dapc_image_height), res= as.numeric(input$dapc_image_res), units = "in")
-        }
-
-        # Conditional plotting based on input selection
-        if (input$dapc_figure == "DAPC Plot") {
-          req(dapc_items$dapc, input$dapc_k)
-
-          #Get colors
-          palette <- brewer.pal(as.numeric(input$dapc_k), input$color_choice)
-          my_palette <- colorRampPalette(palette)(as.numeric(input$dapc_k))
-
-          sc1 <- scatter.dapc(dapc_items$dapc,
-                              bg = "white", solid = 1, cex = 1, # cex circle size
-                              col = my_palette,
-                              pch = 20, # shapes
-                              cstar = 1, # 0 or 1, arrows from center of cluster
-                              cell = 2, # size of elipse
-                              scree.da = T, # plot da
-                              scree.pca = T, # plot pca
-                              posi.da = "topright",
-                              posi.pca="bottomright",
-                              mstree = F, # lines connecting clusters
-                              lwd = 1, lty = 2,
-                              leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
-
-        } else if (input$dapc_figure == "BIC Plot") {
-          req(dapc_items$BIC, dapc_items$bestK)
-
-          BIC <- dapc_items$BIC
-          selected_K <- as.numeric(dapc_items$bestK)
+        if (input$plot_BICX) {
           plot(BIC, type = "o", xaxt = 'n')
           axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
-
-          if (input$plot_BICX) {
-            plot(BIC, type = "o", xaxt = 'n')
-            axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
-            points(selected_K, BIC[selected_K,2], pch = "x", col = "red", cex = 2)
-          } else {
-            plot(BIC, type = "o", xaxt = 'n')
-            axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
-          }
+          points(selected_K, BIC[selected_K,2], pch = "x", col = "red", cex = 2)
+        } else {
+          plot(BIC, type = "o", xaxt = 'n')
+          axis(1, at = seq(1, nrow(BIC), 1), labels = TRUE)
         }
-        dev.off()
       }
-    )
+      dev.off()
+    }
+  )
 
-    #Download files for DAPC
-    output$download_dapc_file <- downloadHandler(
-      filename = function() {
-        paste0("dapc-results-", Sys.Date(), ".zip")
-      },
-      content = function(file) {
-        # Temporary files list
-        temp_dir <- tempdir()
-        temp_files <- c()
+  #Download files for DAPC
+  output$download_dapc_file <- downloadHandler(
+    filename = function() {
+      paste0("dapc-results-", Sys.Date(), ".zip")
+    },
+    content = function(file) {
+      # Temporary files list
+      temp_dir <- tempdir()
+      temp_files <- c()
 
-        if (!is.null(dapc_items$assignments)) {
-          # Create a temporary file for assignments
-          assignments_file <- file.path(temp_dir, paste0("DAPC-values-", Sys.Date(), ".csv"))
-          write.csv(dapc_items$assignments, assignments_file, row.names = TRUE)
-          temp_files <- c(temp_files, assignments_file)
-        }
-
-        if (!is.null(dapc_items$BIC)) {
-          # Create a temporary file for BIC data frame
-          bicDF_file <- file.path(temp_dir, paste0("BIC-values-", Sys.Date(), ".csv"))
-          write.csv(dapc_items$BIC, bicDF_file, row.names = FALSE)
-          temp_files <- c(temp_files, bicDF_file)
-        }
-
-        # Zip files only if there's something to zip
-        if (length(temp_files) > 0) {
-          zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
-        }
-
-        # Optionally clean up
-        file.remove(temp_files)
+      if (!is.null(dapc_items$assignments)) {
+        # Create a temporary file for assignments
+        assignments_file <- file.path(temp_dir, paste0("DAPC-values-", Sys.Date(), ".csv"))
+        write.csv(dapc_items$assignments, assignments_file, row.names = TRUE)
+        temp_files <- c(temp_files, assignments_file)
       }
-    )
 
-    output$download_vcf <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_VCF_Example_file.vcf.gz")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
-        file.copy(ex, file)
-      })
-  })
+      if (!is.null(dapc_items$BIC)) {
+        # Create a temporary file for BIC data frame
+        bicDF_file <- file.path(temp_dir, paste0("BIC-values-", Sys.Date(), ".csv"))
+        write.csv(dapc_items$BIC, bicDF_file, row.names = FALSE)
+        temp_files <- c(temp_files, bicDF_file)
+      }
+
+      # Zip files only if there's something to zip
+      if (length(temp_files) > 0) {
+        zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
+      }
+
+      # Optionally clean up
+      file.remove(temp_files)
+    }
+  )
+
+  output$download_vcf <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_VCF_Example_file.vcf.gz")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+      file.copy(ex, file)
+    })
 }
 
 ## To be copied in the UI
