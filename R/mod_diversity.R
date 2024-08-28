@@ -16,7 +16,6 @@ mod_diversity_ui <- function(id){
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("diversity_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                  numericInput(ns("diversity_ploidy"), "Species Ploidy", min = 1, value = NULL),
-                 selectInput(ns("zero_value"), "What are the Dosage Calls?", choices = c("Reference Allele Counts", "Alternate Allele Counts"), selected = NULL),
                  actionButton(ns("diversity_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Diversity Parameters"),
@@ -33,7 +32,6 @@ mod_diversity_ui <- function(id){
                  div(style="display:inline-block; float:left",dropdownButton(
                    tags$h3("Save Image"),
                    selectInput(inputId = ns('div_figure'), label = 'Figure', choices = c("Dosage Plot",
-                                                                                         "AF Histogram",
                                                                                          "MAF Histogram",
                                                                                          "OHet Histogram",
                                                                                          "Marker Plot")),
@@ -56,7 +54,6 @@ mod_diversity_ui <- function(id){
                title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
                bs4Dash::tabsetPanel(
                  tabPanel("Dosage Plot", plotOutput(ns('dosage_plot')),style = "overflow-y: auto; height: 500px"),
-                 tabPanel("AF Plot", plotOutput(ns('af_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("MAF Plot", plotOutput(ns('maf_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("OHet Plot", plotOutput(ns('het_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("Marker Plot", plotOutput(ns('marker_plot')),style = "overflow-y: auto; height: 500px"), #Can this be an interactive plotly?
@@ -207,6 +204,7 @@ mod_diversity_server <- function(id){
 
       print("Heterozygosity success")
       diversity_items$maf_df <- calculateMAF(geno_mat, ploidy = ploidy)
+      diversity_items$maf_df <- diversity_items$maf_df[, c(1,3)]
 
       print("MAF success")
 
@@ -273,17 +271,17 @@ mod_diversity_server <- function(id){
     })
 
     #AF Plot
-    af_plot <- reactive({
-      validate(
-        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
-      )
-      hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
-           ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
-    })
+    #af_plot <- reactive({
+    #  validate(
+    #    need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+    #  )
+    #  hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
+    #       ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
+    #})
 
-    output$af_plot <- renderPlot({
-      af_plot()
-    })
+    #output$af_plot <- renderPlot({
+    #  af_plot()
+    #})
 
     #MAF plot
     maf_plot <- reactive({
