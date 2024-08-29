@@ -1,0 +1,12 @@
+---
+title: "GWAS_cite"
+output: html_document
+date: "2024-08-29"
+---
+
+* BIGapp
+
+
+* GWASpoly package
+
+Rosyara, U.R., De Jong, W.S., Douches, D.S. and Endelman, J.B. (2016), Software for Genome-Wide Association Studies in Autopolyploids and Its Application to Potato. The Plant Genome, 9: plantgenome2015.08.0073. https://doi.org/10.3835/plantgenome2015.08.0073

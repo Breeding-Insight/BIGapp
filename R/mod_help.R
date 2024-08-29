@@ -62,11 +62,17 @@ mod_help_ui <- function(id){
                                       ))
              ),
              box(title="GWAS", id = "GWAS_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+                 "The tab is for conducting Genome-Wide Association Studies (GWAS) to identify associations between genetic variants and traits of interest. Users can input phenotypic data and specify parameters for the GWAS analysis. The app performs statistical tests to identify significant associations between SNPs and traits, and visualizes the results using Manhattan plots and Q-Q plots. The tab helps in identifying potential genetic markers linked to specific traits. GWASpoly package is used to perform the analysis.",
+                 br(), br(),
                  bs4Dash::tabsetPanel(id = "GWAS_tabset",
-                                      tabPanel("Parameters description", value = "GWAS_par",
-                                               "**Draft**This tab is for conducting Genome-Wide Association Studies (GWAS) to identify associations between genetic variants and traits of interest. Users can input phenotypic data and specify parameters for the GWAS analysis. The app performs statistical tests to identify significant associations between SNPs and traits, and visualizes the results using Manhattan plots and Q-Q plots. This tab helps in identifying potential genetic markers linked to specific traits.**List R packages utilized",
+                                      tabPanel("Parameters description", value = "GWAS_par", br(),
+                                               includeMarkdown(system.file("help_files/GWAS_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "GWAS_results",
+                                      tabPanel("Results description", value = "GWAS_results", br(),
+                                               includeMarkdown(system.file("help_files/GWAS_res.Rmd", package = "BIGapp"))
+                                      ),
+                                      tabPanel("How to cite", value = "GWAS_cite", br(),
+                                               includeMarkdown(system.file("help_files/GWAS_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
              box(title="Genomic Prediction/Selection", id = "Genomic_Prediction/Selection_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,

@@ -23,7 +23,7 @@ mod_gwas_ui <- function(id){
                  fileInput(ns("phenotype_file"), "Choose Passport File", accept = ".csv"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
-                 selectInput(ns('trait_info'), label = 'Select Trait (eg, Color):', choices = NULL),
+                 selectInput(ns('trait_info'), label = 'Select Trait (eg. Color):', choices = NULL),
                  virtualSelectInput(
                    inputId = ns("fixed_info"),
                    label = "Select Fixed Effects (optional):",
@@ -40,6 +40,7 @@ mod_gwas_ui <- function(id){
                    p(downloadButton(ns('download_pheno'),""), "Passport Example File"), hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goGWASpar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>Graphics description:</b>"), actionButton(ns("goGWASgraph"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goGWAScite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>GWASpoly tutorial:</b>"), actionButton(ns("goGWASpoly"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://jendelman.github.io/GWASpoly/GWASpoly.html', '_blank')" )),
                    circle = FALSE,
                    status = "warning",
@@ -128,6 +129,17 @@ mod_gwas_server <- function(input, output, session, parent_session){
     updateBox(id = "GWAS_box", action = "toggle", session = parent_session)
   })
 
+  observeEvent(input$goGWAScite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "GWAS_tabset",
+                      selected = "GWAS_cite")
+    # expand specific box
+    updateBox(id = "GWAS_box", action = "toggle", session = parent_session)
+  })
 
   #Call some plots to NULL so that the spinners do not show before analysis
   output$bic_plot <- renderDT(NULL)
