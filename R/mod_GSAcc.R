@@ -763,7 +763,7 @@ mod_GSAcc_server <- function(id){
             
             #Subset training and testing samples
             train <- fold_df %>%
-              filter(FoldID != fold) %>%
+              dplyr::filter(FoldID != fold) %>%
               pull(Sample)
             test <- setdiff(row.names(Geno.mat),train)
             
