@@ -24,12 +24,12 @@ mod_dosage2vcf_ui <- function(id){
           useShinyjs(),
           downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
           div(style="display:inline-block; float:right",dropdownButton(
-
-            tags$h3("DArT File Conversion"),
-            "Converting DArT report files to VCF format. \n",
-            "You can download examples of the expected files here: \n",
-            downloadButton(ns('download_dose'), "Download Dose Report Example File"),
-            downloadButton(ns('download_counts'), "Download Counts Example File"),
+            HTML("<b>Input files</b>"),
+            p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
+            p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
+            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             circle = FALSE,
             status = "warning",
             icon = icon("info"), width = "500px",
@@ -56,6 +56,43 @@ mod_dosage2vcf_ui <- function(id){
 mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
+                      selected = "DArT_Report2VCF_par")
+    # expand specific box
+    updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
+  })
+
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
+                      selected = "DArT_Report2VCF_results")
+    # expand specific box
+    updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
+  })
+
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
+                      selected = "DArT_Report2VCF_cite")
+    # expand specific box
+    updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
+  })
 
   snp_number <- reactiveVal(0)
   disable("download_d2vcf")

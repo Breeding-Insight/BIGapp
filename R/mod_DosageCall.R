@@ -29,35 +29,13 @@ mod_DosageCall_ui <- function(id){
           downloadButton(ns('download_updog_vcf'), "Download VCF File", class = "butt"),
 
           div(style="display:inline-block; float:right",dropdownButton(
-
-            tags$h3("Updog Dosage Calling"),
-            "You can download examples of the expected files here: \n",
-            downloadButton(ns('download_vcf'), "Download VCF Example File", class = "butt"),
-            downloadButton(ns('download_madc'), "Download MADC Example File", class = "butt"),
-            # "About Population Models:\n",
-            # "Model: What form should the prior (genotype distribution) take?\n
-            #         The following information is from the Updog manual:\n
-            #         Possible values of the genotype distribution (values of model) are: \n
-            #         `norm` A distribution whose genotype frequencies are proportional to the density value of a normal
-            #         with some mean and some standard deviation. Unlike the `bb` and `hw` options, this will
-            #         allow for distributions both more and less dispersed than a binomial. This seems to be the
-            #         most robust to violations in modeling assumptions, and so is the default. This prior class was
-            #         developed in Gerard and Ferrao (2020).
-            #         `hw` A binomial distribution that results from assuming that the population is in Hardy-Weinberg
-            #         equilibrium (HWE). This actually does pretty well even when there are minor to moderate
-            #         deviations from HWE. Though it does not perform as well as the `norm` option when there
-            #         are severe deviations from HWE.
-            #         `bb` A beta-binomial distribution. This is an overdispersed version of `hw` and can be derived
-            #         from a special case of the Balding-Nichols model.
-            #         `s1` This prior assumes the individuals are all full-siblings resulting from one generation of selfing. I.e. there is only one parent. This model assumes a particular type of meiotic behavior:
-            #         polysomic inheritance with bivalent, non-preferential pairing.
-            #         `f1` This prior assumes the individuals are all full-siblings resulting from one generation of a
-            #         bi-parental cross. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing.
-            #         `f1pp` This prior allows for double reduction and preferential pairing in an F1 population of tretraploids.
-            #         `s1pp` This prior allows for double reduction and preferential pairing in an S1 population of tretraploids.
-            #         `flex` Generically any categorical distribution. Theoretically, this works well if you have a lot of
-            #         individuals. In practice, it seems to be much less robust to violations in modeling assumptions.
-            #         `uniform` A discrete uniform distribution. This should never be used in practice.",
+            HTML("<b>Input files</b>"),
+            p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+            p(downloadButton(ns('download_madc'),""), "MADC Example File"), hr(),
+            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Updog tutorial:</b>"), actionButton(ns("goUpdog"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://dcgerard.github.io/updog/', '_blank')" )),
             circle = FALSE,
             status = "warning",
             icon = icon("info"), width = "500px",
@@ -87,6 +65,43 @@ mod_DosageCall_ui <- function(id){
 mod_DosageCall_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Updog_Dosage_Calling_tabset",
+                      selected = "Updog_Dosage_Calling_par")
+    # expand specific box
+    updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
+
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Updog_Dosage_Calling_tabset",
+                      selected = "Updog_Dosage_Calling_results")
+    # expand specific box
+    updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
+
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Updog_Dosage_Calling_tabset",
+                      selected = "Updog_Dosage_Calling_cite")
+    # expand specific box
+    updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
 
   snp_number <- reactiveVal(0)
 
