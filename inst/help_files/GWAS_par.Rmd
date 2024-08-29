@@ -1,0 +1,22 @@
+---
+title: "GWAS parameters"
+output: html_document
+date: "2024-08-29"
+---
+
+* **VCF file**: Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is required for the analysis in this tab. For more details about the VCF format, see [this document](https://samtools.github.io/hts-specs/VCFv4.2.pdf).
+
+* **Passport file**: A comma-separated values (CSV) file containing individual names (Sample_ID) in the first column and phenotype values in the subsequent columns. The phenotype column names should correspond to the phenotype ID.
+
+* **Species Ploidy**: Specifies the ploidy level of the species. The current analysis supports both diploids and autopolyploids.
+
+* **Significance Threshold Method**: Define the method to be used. The ones currently available in GWASpoly are: "M.eff","Bonferroni","FDR","permute". Description contained in GWASpoly package: "The default method, "M.eff", is a Bonferroni-type correction but using an effective number of markers that accounts for LD between markers (Moskvina and Schmidt, 2008). The FDR method is based on version 1.30.0 of the qvalue package."
+
+* **Select Trait**: Once the **Passport file** is uploaded, BIGapp updates this box with the phenotype column IDs. Select the target phenotype to be evaluated. Currently, BIGapp allows selecting only one phenotype at a time.
+
+* **Select Fixed Effects (optional)**: Specifies the Phenotype ID of traits with fixed effects that may influence the evaluated trait.
+
+* **Window size (bp)**: Define the window size for the search of significant markers. Only the most significant marker within this region will be returned. We suggest to evaluate the **LD plot** (see Results description) to define the window size parameter.
+
+* **Number of CPU Cores**: Defines the number of CPU cores to be used for the GWAS analysis, enabling faster processing by splitting the workload across multiple cores.
+

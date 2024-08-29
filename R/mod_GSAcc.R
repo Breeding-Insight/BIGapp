@@ -114,8 +114,8 @@ mod_GSAcc_ui <- function(id){
 #' @import ggplot2
 #' @import tidyr
 #' @noRd
-mod_GSAcc_server <- function(id){
-  moduleServer( id, function(input, output, session){
+mod_GSAcc_server <- function(input, output, session, parent_session){
+
     ns <- session$ns
     ####Genomic Prediction Accuracy
     #This tab involved 3 observeEvents
@@ -889,7 +889,6 @@ mod_GSAcc_server <- function(id){
         ex <- system.file("iris_passport_file.csv", package = "BIGapp")
         file.copy(ex, file)
       })
-  })
 }
 
 ## To be copied in the UI
