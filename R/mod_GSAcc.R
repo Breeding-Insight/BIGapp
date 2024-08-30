@@ -23,11 +23,10 @@ mod_GSAcc_ui <- function(id){
                  fileInput(ns("pred_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                  fileInput(ns("trait_file"), "Choose Passport File", accept = ".csv"),
                  numericInput(ns("pred_ploidy"), "Species Ploidy", min = 1, value = NULL),
-                 selectInput(inputId = ns('pred_model'), label = 'Model Choice', choices = c("rrBLUP","GBLUP"), selected = "rrBLUP"),
                  numericInput(ns("pred_cv"), "Iterations", min = 1, max=20, value = 5),
                  virtualSelectInput(
                    inputId = ns("pred_trait_info"),
-                   label = "Select Trait (eg, Color):",
+                   label = "Select Trait(s):",
                    choices = NULL,
                    showValueAsTags = TRUE,
                    search = TRUE,
@@ -55,18 +54,23 @@ mod_GSAcc_ui <- function(id){
                    )
                  ),
                  actionButton(ns("prediction_start"), "Run Analysis"),
-                 div(style="display:inline-block; float:right",dropdownButton(
+                 div(style="display:inline-block; float:right", dropdownButton(
                    tags$h3("GP Parameters"),
                    "You can download examples of the expected input input files here: \n",
                    downloadButton(ns('download_vcf'), "Download VCF Example File"),
                    downloadButton(ns('download_pheno'), "Download Passport Example File"),
-                   #"GP uses the rrBLUP package: It can impute missing data, adapt to different ploidy, perform 5-fold cross validations with different number of iterations, run multiple traits, and accept multiple fixed effects.",
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see info!")
-                 ))
-
+                 )),
+                 tags$hr(style="border-color: #d3d3d3; margin-top: 20px; margin-bottom: 20px;"),  # Lighter grey line
+                 div(style="text-align: left; margin-top: 10px;",
+                     actionButton(ns("advanced_options"), 
+                                  label = HTML(paste(icon("cog", style = "color: #007bff;"), "Advanced Options")),
+                                  style = "background-color: transparent; border: none; color: #007bff; font-size: smaller; text-decoration: underline; padding: 0;"
+                     )
+                 )
              )
       ),
 
@@ -124,6 +128,7 @@ mod_GSAcc_ui <- function(id){
 #' @importFrom rrBLUP mixed.solve A.mat kin.blup
 #' @importFrom stats cor
 #' @importFrom shinyalert shinyalert
+#' @importFrom AGHmatrix Gmatrix Amatrix Hmatrix
 #' @import dplyr
 #' @import ggplot2
 #' @import tidyr
@@ -131,13 +136,83 @@ mod_GSAcc_ui <- function(id){
 mod_GSAcc_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
+    
+    #Default model choices
+    advanced_options <- reactiveValues(
+      pred_model = "rrBLUP",
+      pred_matrix = "Gmatrix",
+      ped_file = NULL
+    )
+    
+    #List the ped file name if previously uploaded
+    output$uploaded_file_name <- renderText({
+      if (!is.null(advanced_options$ped_file)) {
+        paste("Previously uploaded file:", advanced_options$ped_file$name)
+      } else {
+        ""  # Return an empty string if no file has been uploaded
+      }
+    })
+    
+    print("check1")
+    #UI popup window for input
+    observeEvent(input$advanced_options, {
+      showModal(modalDialog(
+        title = "Advanced Options (beta)",
+        selectInput(
+          inputId = ns('pred_model'), 
+          label = 'Model Choice', 
+          choices = c("rrBLUP", "GBLUP"), 
+          selected = advanced_options$pred_model  # Initialize with stored value
+        ),
+        conditionalPanel(
+          condition = "input.pred_model == 'GBLUP'", ns = ns,
+          div(
+            selectInput(
+              inputId = ns('pred_matrix'), 
+              label = 'GBLUP Matrix Choice', 
+              choices = c("Gmatrix", "Amatrix", "Hmatrix"), 
+              selected = advanced_options$pred_matrix  # Initialize with stored value
+            )
+          )
+        ),
+        conditionalPanel(
+          condition = "input.pred_matrix != 'Gmatrix'", ns = ns,
+          div(
+            fileInput(ns("ped_file"), "Choose Pedigree File", accept = ".csv"),
+            conditionalPanel(
+              condition = "output.uploaded_file_name !== ''", # Show only if there's content
+              textOutput(ns("uploaded_file_name"))  # Display the uploaded file name
+            )
+          )
+        ),
+        footer = tagList(
+          modalButton("Close"),
+          actionButton(ns("save_advanced_options"), "Save")
+        )
+      ))
+    })
+    
+    
+    
+    #Close popup window when user "saves options"
+    observeEvent(input$save_advanced_options, {
+      advanced_options$pred_model <- input$pred_model
+      advanced_options$pred_matrix <- input$pred_matrix
+      advanced_options$ped_file <- input$ped_file
+      # Save other inputs as needed
+      
+      removeModal()  # Close the modal after saving
+    })
+    
+    
+  
     ####Genomic Prediction Accuracy
     #This tab involved 3 observeEvents
     #1) to get the traits listed in the phenotype file
     #2) to input and validate the input files
     #3) to perform the genomic prediction
 
-
+    print("check2")
     #1) Get traits
     observeEvent(input$trait_file, {
       info_df <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
@@ -147,7 +222,7 @@ mod_GSAcc_server <- function(id){
       updateVirtualSelect("pred_trait_info", choices = trait_var, session = session)
 
     })
-
+    print("check3")
     #2) Error check for prediction and save input files
     continue_prediction <- reactiveVal(NULL)
     pred_inputs <- reactiveValues(
@@ -259,7 +334,7 @@ mod_GSAcc_server <- function(id){
 
       }
 
-
+      print("check4")
       #Getting genotype matrix
 
       #Geno file path
@@ -310,7 +385,7 @@ mod_GSAcc_server <- function(id){
           closeOnEsc = TRUE,
           closeOnClickOutside = FALSE,
           html = TRUE,
-          type = "info",
+          type = "warning",
           showConfirmButton = TRUE,
           confirmButtonText = "OK",
           confirmButtonCol = "#004192",
@@ -322,7 +397,7 @@ mod_GSAcc_server <- function(id){
         #Stop the analysis
         return()
       }
-
+      print("check5")
       #Save number of samples in file
       pred_inputs$pred_genos <- ncol(geno)
 
@@ -352,7 +427,7 @@ mod_GSAcc_server <- function(id){
         #return()
       }
 
-
+      print("check6")
       # Function to convert genotype matrix according to ploidy
       convert_genotype <- function(genotype_matrix, ploidy) {
         normalized_matrix <- 2 * (genotype_matrix / ploidy) - 1
@@ -395,7 +470,7 @@ mod_GSAcc_server <- function(id){
 
         # Stop the observeEvent gracefully
         return()
-
+      print("check7")
       } else if (length(common_ids) < length(colnames_geno)) {
         # If condition is met, show notification toast
         shinyalert(
@@ -452,18 +527,23 @@ mod_GSAcc_server <- function(id){
         }
       )
 
-
+      print("check8")
       # Subset and reorder geno and pheno to ensure they only contain and are ordered by common IDs
       geno_adj <- geno_adj_init[, common_ids]  # Assuming that the columns can be directly indexed by IDs
       pheno <- pheno[match(common_ids, ids_pheno), ]
 
-      #Save to reactive values
+      ##Save to reactive values
+      #Gmatrix needs the original allele count values, so the user matrix selection determines the genotype matrix used
       pred_inputs$pheno_input <- pheno
-      #pred_inputs$geno_adj_input <- geno_adj
-      pred_inputs$geno_input <- geno_adj
-
+      if (advanced_options$pred_matrix == "Gmatrix" || is.null(advanced_options$pred_matrix)) {
+        pred_inputs$geno_input <- geno_adj
+      } else if (advanced_options$pred_matrix == "Hmatrix") {
+        pred_inputs$geno_input <- geno[, common_ids]
+      } else {
+        pred_inputs$geno_input <- geno_adj
+      }
     })
-
+    print("check9")
     #3) Analysis only proceeds once continue_prediction is converted to TRUE
     observe({
 
@@ -473,7 +553,7 @@ mod_GSAcc_server <- function(id){
       if (isFALSE(continue_prediction())) {
         return()
       }
-
+      print("check10")
       #Variables
       ploidy <- as.numeric(input$pred_ploidy)
       geno_adj <- pred_inputs$geno_input
@@ -502,7 +582,7 @@ mod_GSAcc_server <- function(id){
       
       #Control whether rrBLUP or GBLUP run depending on user input
       #Note, should add the GP functions to the utils.R file and then call them here...
-      if (input$pred_model == "rrBLUP"){
+      if (advanced_options$pred_model == "rrBLUP"){
         ##Need to add ability for the use of parallelism for the for cross-validation
         ##Example at this tutorial also: https://www.youtube.com/watch?v=ARWjdQU6ays
         
@@ -533,7 +613,7 @@ mod_GSAcc_server <- function(id){
           
           #Cross validation number for progress bar (not involved in the calculations, just shiny visuals)
           pb_value = 10
-          
+          print("check11")
           #Remove the fixed traits from the Pheno file
           if (length(fixed_traits) == 0) {
             Pheno <- Pheno
@@ -542,16 +622,16 @@ mod_GSAcc_server <- function(id){
             Fixed <- subset(Pheno, select = fixed_traits)
             
             #Pheno <- subset(Pheno, select = -fixed_traits)
-            convert_all_to_factor_if_not_numeric <- function(df) {
+            convert_categorical_to_factor <- function(df, fixed_cat) {
               for (col in names(df)) {
-                if (!is.numeric(df[[col]]) && !is.integer(df[[col]])) {
+                if (col %in% fixed_cat) {
                   df[[col]] <- as.factor(df[[col]])
                 }
               }
               return(df)
             }
             # Convert all columns to factor if they are not numeric or integer
-            Fixed <- convert_all_to_factor_if_not_numeric(Fixed)
+            Fixed <- convert_categorical_to_factor(Fixed, fixed_cat)
             
             #Fixed <- as.data.frame(lapply(Fixed, as.factor)) #convert to factor
             row.names(Fixed) <- row.names(Pheno)
@@ -610,7 +690,7 @@ mod_GSAcc_server <- function(id){
                 row.names(Fixed_test) <- test
                 
               }
-              
+              print("check12")
               Pheno_train <- Pheno[train, ] # Subset the phenotype df to only retain the relevant samples from the training set
               m_train <- geno[train, ]
               Pheno_test <- Pheno[test, ]
@@ -654,7 +734,7 @@ mod_GSAcc_server <- function(id){
               #Add iter and fold information for each trait/result
               heritability_scores[(((r-1)*5)+fold), (length(traits)+1)] <- r
               heritability_scores[(((r-1)*5)+fold), (length(traits)+2)] <- fold
-              
+              print("check13")
               #Add sample, iteration, and fold information to GEBVs_fold
               GEBVs_fold[,"Iter"] = r
               GEBVs_fold[,"Fold"] = fold
@@ -725,10 +805,83 @@ mod_GSAcc_server <- function(id){
         #Cross validation number for progress bar (not involved in the calculations, just shiny visuals)
         pb_value = 10
         
-        #Convert normalized genotypes to relationship matrix
-        #By default, it removes SNPs with more than 50% missing data and imputes using the mean
-        Geno.mat <- A.mat(t(pred_inputs$geno_input))
-        
+        if (advanced_options$pred_matrix == "Gmatrix") {
+          #Convert normalized genotypes to relationship matrix
+          #By default, it removes SNPs with more than 50% missing data and imputes using the mean
+          Geno.mat <- A.mat(t(pred_inputs$geno_input))
+        print("check14")
+        }else if (advanced_options$pred_matrix == "Amatrix") {
+          
+          #Import pedigree file, where pedigree data name (3-column way format). Unknown value should be equal 0
+          ped <- read.csv(advanced_options$ped_file$datapath, header = TRUE, check.names = FALSE, colClasses = "factor")
+          colnames(ped) <- c("Ind", "Sire", "Dam")
+          #Convert NAs to 0
+          ped[is.na(ped)] <- 0
+          #Ensure Sire and Dam are also listed as individuals
+          missing_parents <- unique(c(ped$Sire, ped$Dam))
+          # Filter out parents already listed as individuals and non-zero values
+          missing_parents <- missing_parents[!missing_parents %in% ped$Ind & missing_parents != 0]
+          # Create new rows for missing parents and setting their parents to 0 (unknown)
+          new_rows <- data.frame(Ind = missing_parents, Sire = 0, Dam = 0)
+          # Combine the original dataframe with the new rows and remove duplicates
+          ped_extended <- unique(rbind(ped, new_rows))
+          
+          #Converting to Amatrix
+          #Using the default additive relationship options (Amatrix only works for even numbered ploidy)
+          Geno.mat <- Amatrix(data = ped_extended, ploidy = ploidy)
+          
+          #Filter and order the ped file based on the phenotype file (make sure this is valid to subset after generating)
+          pheno_ids <- as.character(rownames(pred_inputs$pheno_input))
+          valid_ids <- intersect(pheno_ids, rownames(Geno.mat))
+          pred_inputs$pheno_input <- pred_inputs$pheno_input[valid_ids, ]
+          Geno.mat <- Geno.mat[valid_ids, valid_ids]
+          
+          #Update variable
+          total_population <- ncol(Geno.mat)
+          print("check15")
+        }else if (advanced_options$pred_matrix == "Hmatrix") {
+          print("check16")
+          #Import pedigree file, where pedigree data name (3-column way format). Unknown value should be equal 0
+          ped <- read.csv(advanced_options$ped_file$datapath, header = TRUE, check.names = FALSE, colClasses = "factor")
+          colnames(ped) <- c("Ind", "Sire", "Dam")
+          #Convert NAs to 0
+          ped[is.na(ped)] <- 0
+          #Ensure Sire and Dam are also listed as individuals
+          missing_parents <- unique(c(ped$Sire, ped$Dam))
+          # Filter out parents already listed as individuals and non-zero values
+          missing_parents <- missing_parents[!missing_parents %in% ped$Ind & missing_parents != 0]
+          # Create new rows for missing parents and setting their parents to 0 (unknown)
+          new_rows <- data.frame(Ind = missing_parents, Sire = 0, Dam = 0)
+          # Combine the original dataframe with the new rows and remove duplicates
+          ped_extended <- unique(rbind(ped, new_rows))
+          
+          #Converting to Amatrix
+          #Using the default additive relationship options (Amatrix only works for even numbered ploidy)
+          Ped.mat <- Amatrix(data = ped_extended, ploidy = ploidy)
+          
+          #Filter and order the ped file based on the phenotype file (make sure this is valid to subset after generating)
+          pheno_ids <- as.character(rownames(pred_inputs$pheno_input))
+          valid_ids <- intersect(pheno_ids, rownames(Ped.mat))
+          pred_inputs$pheno_input <- pred_inputs$pheno_input[valid_ids, ]
+          Ped.mat <- Ped.mat[valid_ids, valid_ids]
+          
+          #Update variable
+          total_population <- ncol(Ped.mat)
+          
+          #Using Gmatrix to get the Gmatrix instead of A.mat for consistency
+          #Should I be using the raw dosage values or is it okay to use the scaled genotype data that is used for A.mat()?
+          G.mat <- Gmatrix(t(pred_inputs$geno_input[ ,valid_ids]), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
+          G.mat <- round(G.mat,3) #to be easy to invert
+          
+          #Computing H matrix (Martini) - Using the name Geno.mat for consistency
+          Geno.mat <- Hmatrix(A=Ped.mat, G=G.mat, method="Martini", 
+                                  ploidy= ploidy, 
+                                  maf=0.05)
+          #Clean memory
+          rm(G.mat)
+          rm(Ped.mat)
+          rm(ped_filtered)
+        }
         # Establish accuracy results matrix
         results <- matrix(nrow = cycles*Folds, ncol = length(traits) + 2)
         colnames(results) <- c(paste0(traits), "Iter", "Fold")  # Set the column names to be the traits
