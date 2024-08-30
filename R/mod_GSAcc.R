@@ -67,7 +67,7 @@ mod_GSAcc_ui <- function(id){
                  tags$hr(style="border-color: #d3d3d3; margin-top: 20px; margin-bottom: 20px;"),  # Lighter grey line
                  div(style="text-align: left; margin-top: 10px;",
                      actionButton(ns("advanced_options"), 
-                                  label = HTML(paste(icon("cog", style = "color: #007bff;"), "Advanced Options")),
+                                  label = HTML(paste(icon("cog", style = "color: #007bff;"), "Advanced Options (beta)")),
                                   style = "background-color: transparent; border: none; color: #007bff; font-size: smaller; text-decoration: underline; padding: 0;"
                      )
                  )
