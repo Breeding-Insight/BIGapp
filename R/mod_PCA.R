@@ -79,7 +79,8 @@ mod_PCA_ui <- function(id){
                  sliderInput(inputId = ns('pca_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                  sliderInput(inputId = ns('pca_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
                  sliderInput(inputId = ns('pca_image_height'), label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
-                 downloadButton(ns("download_pca"), "Save"),
+                 downloadButton(ns("download_pca"), "Save Image"),
+                 downloadButton(ns("download_pca_summary"), "Save Summary"),
                  circle = FALSE,
                  status = "danger",
                  icon = icon("floppy-disk"), width = "300px",
@@ -93,7 +94,7 @@ mod_PCA_ui <- function(id){
                  style = "overflow-y: auto; height: 480px"
              ),
              box(
-               title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+               title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                bs4Dash::tabsetPanel(
                  tabPanel("3D-Plot",withSpinner(plotlyOutput(ns("pca_plot"), height = '460px'))),
                  tabPanel("2D-Plot", withSpinner(plotOutput(ns("pca_plot_ggplot"), height = '460px'))),
@@ -478,6 +479,46 @@ mod_PCA_server <- function(id){
         dev.off()
       }
     )
+    
+    output$download_pca_summary <- downloadHandler(
+      filename = function() {
+        paste("pca-summary-", Sys.Date(), ".txt", sep = "")
+      },
+      
+      content = function(file) {
+        pca_param <- c(
+          "BIGapp PCA Summary",
+          " ",
+          paste0("Date: ", Sys.Date()),
+          " ",
+          version$version.string,
+          " ",
+          "### Input Files ###",
+          "",
+          paste("Input Genotype File:", input$dosage_file$name, sep = " "),
+          paste("Input Passport File:", input$passport_file$name, sep = " "),
+          "",
+          "### User Selected Parameters ###",
+          "",
+          paste("Selected Ploidy:", as.character(input$pca_ploidy), sep = " "),
+          "",
+          "### R Packages Used ###",
+          "",
+          paste("BIGapp:",packageVersion("BIGapp"),sep=" "),
+          paste("AGHmatrix:",packageVersion("AGHmatrix"), sep = " "),
+          paste("ggplot2:",packageVersion("ggplot2"), sep = " "),
+          paste("plotly:",packageVersion("plotly"), sep = " "),
+          paste("factoextra:",packageVersion("factoextra"), sep = " "),
+          paste("RColorBrewer:",packageVersion("RColorBrewer"), sep= " ")
+        )
+        
+        #sink(file)  # Open sink with the provided file path
+        #cat(pca_param, sep = "\n")  # Print the pca_param vector with newlines between entries
+        #sink()  # Close the sink
+        writeLines(pca_param, con = file)
+      }
+    )
+    
 
     output$download_vcf <- downloadHandler(
       filename = function() {
