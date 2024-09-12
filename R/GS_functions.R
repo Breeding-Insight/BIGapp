@@ -354,9 +354,9 @@ format_geno_matrix <- function(geno, model, pred_matrix = NULL, ploidy){
   if(is.null(pred_matrix)) pred_matrix <- "none_selected"
   if(model == "rrBLUP" | (model == "GBLUP" & pred_matrix == "Gmatrix")) {
     #if(model == "rrBLUP") {
-    geno_formated <- 2 * (geno_adj / as.numeric(input$pred_ploidy)) - 1 # codification -1 0 1
+    geno_formated <- 2 * (geno / as.numeric(input$pred_ploidy)) - 1 # codification -1 0 1
   } else {
-    geno_formated <- geno_adj # codification 0 1 2 3 ..
+    geno_formated <- geno # codification 0 1 2 3 ..
   }
 
   return(geno_formated)

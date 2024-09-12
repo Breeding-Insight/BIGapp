@@ -69,9 +69,6 @@ test_that("test Predictive Ability iris",{
   pred_inputs$pred_snps <- geno_snps[[2]] # n markers
   pred_inputs$pred_genos <- ncol(geno) # n samples
 
-  # Update colors based on input
-  pred_outputs$colors <- assign_colors(input$pred_color_select)
-
   ##### input checks
   #Check that the ploidy entered is correct
   if (input$pred_ploidy != max(geno, na.rm = TRUE)) stop(paste0("The maximum value in the genotype file (",max(geno, na.rm = TRUE),") does not equal the ploidy entered"))
@@ -208,9 +205,8 @@ test_that("test Predictive Ability iris",{
   # Compare rrBLUP and GBLUP
   expect_equal(pred_outputs_gBLUP$corr_output[,1], pred_outputs_rrBLUP$corr_output[,1], tolerance = 0.01)
   expect_equal(pred_outputs_gBLUP$comb_output[,2], pred_outputs_rrBLUP$comb_output[,2], tolerance = 0.01)
-  # expect_equal(pred_outputs_gBLUP$avg_GEBVs[,2], pred_outputs_rrBLUP$avg_GEBVs[,2], tolerance = 0.01) # Different
-  # expect_equal(pred_outputs_gBLUP$all_GEBVs[,1], pred_outputs_rrBLUP$all_GEBVs[,1], tolerance = 0.1) # Different
-
+  expect_equal(sum(pred_outputs_gBLUP$avg_GEBVs[,2]), -0.594, tolerance = 0.01)
+  expect_equal(sum(as.numeric(pred_outputs_gBLUP$all_GEBVs[,1])), -2.971, tolerance = 0.1)
 })
 
 # test_that("test Predictive Ability wheat (BGLR dataset)",{
