@@ -80,8 +80,8 @@ mod_diversity_ui <- function(id){
 #' @importFrom scales comma_format
 #'
 #' @noRd
-mod_diversity_server <- function(id){
-  moduleServer( id, function(input, output, session){
+mod_diversity_server <- function(input, output, session, parent_session){
+
     ns <- session$ns
     #######Genomic Diversity analysis
 
@@ -450,7 +450,6 @@ mod_diversity_server <- function(id){
         ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
         file.copy(ex, file)
       })
-  })
 }
 
 ## To be copied in the UI

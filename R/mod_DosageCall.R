@@ -29,35 +29,13 @@ mod_DosageCall_ui <- function(id){
           downloadButton(ns('download_updog_vcf'), "Download VCF File", class = "butt"),
 
           div(style="display:inline-block; float:right",dropdownButton(
-
-            tags$h3("Updog Dosage Calling"),
-            "You can download examples of the expected files here: \n",
-            downloadButton(ns('download_vcf'), "Download VCF Example File", class = "butt"),
-            downloadButton(ns('download_madc'), "Download MADC Example File", class = "butt"),
-            # "About Population Models:\n",
-            # "Model: What form should the prior (genotype distribution) take?\n
-            #         The following information is from the Updog manual:\n
-            #         Possible values of the genotype distribution (values of model) are: \n
-            #         `norm` A distribution whose genotype frequencies are proportional to the density value of a normal
-            #         with some mean and some standard deviation. Unlike the `bb` and `hw` options, this will
-            #         allow for distributions both more and less dispersed than a binomial. This seems to be the
-            #         most robust to violations in modeling assumptions, and so is the default. This prior class was
-            #         developed in Gerard and Ferrao (2020).
-            #         `hw` A binomial distribution that results from assuming that the population is in Hardy-Weinberg
-            #         equilibrium (HWE). This actually does pretty well even when there are minor to moderate
-            #         deviations from HWE. Though it does not perform as well as the `norm` option when there
-            #         are severe deviations from HWE.
-            #         `bb` A beta-binomial distribution. This is an overdispersed version of `hw` and can be derived
-            #         from a special case of the Balding-Nichols model.
-            #         `s1` This prior assumes the individuals are all full-siblings resulting from one generation of selfing. I.e. there is only one parent. This model assumes a particular type of meiotic behavior:
-            #         polysomic inheritance with bivalent, non-preferential pairing.
-            #         `f1` This prior assumes the individuals are all full-siblings resulting from one generation of a
-            #         bi-parental cross. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing.
-            #         `f1pp` This prior allows for double reduction and preferential pairing in an F1 population of tretraploids.
-            #         `s1pp` This prior allows for double reduction and preferential pairing in an S1 population of tretraploids.
-            #         `flex` Generically any categorical distribution. Theoretically, this works well if you have a lot of
-            #         individuals. In practice, it seems to be much less robust to violations in modeling assumptions.
-            #         `uniform` A discrete uniform distribution. This should never be used in practice.",
+            HTML("<b>Input files</b>"),
+            p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+            p(downloadButton(ns('download_madc'),""), "MADC Example File"), hr(),
+            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Updog tutorial:</b>"), actionButton(ns("goUpdog"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://dcgerard.github.io/updog/', '_blank')" )),
             circle = FALSE,
             status = "warning",
             icon = icon("info"), width = "500px",
@@ -84,181 +62,217 @@ mod_DosageCall_ui <- function(id){
 #' @importFrom shinyjs enable disable
 #'
 #' @noRd
-mod_DosageCall_server <- function(id){
-  moduleServer( id, function(input, output, session){
-    ns <- session$ns
+mod_DosageCall_server <- function(input, output, session, parent_session){
 
-    snp_number <- reactiveVal(0)
+  ns <- session$ns
 
-    #SNP counts value box
-    output$MADCsnps <- renderValueBox({
-      valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
-    })
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
 
-    disable("download_updog_vcf")
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Updog_Dosage_Calling_tabset",
+                      selected = "Updog_Dosage_Calling_par")
+    # expand specific box
+    updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
 
-    ##This is for performing Updog Dosage Calling
-    updog_out <- eventReactive(input$run_analysis,{
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
 
-      # Missing input with red border and alerts
-      toggleClass(id = "ploidy", class = "borderred", condition = (is.na(input$ploidy) | is.null(input$ploidy)))
-      toggleClass(id = "output_name", class = "borderred", condition = (is.na(input$output_name) | is.null(input$output_name) | input$output_name == ""))
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Updog_Dosage_Calling_tabset",
+                      selected = "Updog_Dosage_Calling_results")
+    # expand specific box
+    updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
 
-      if (is.null(input$madc_file$datapath)) {
-        shinyalert(
-          title = "Missing input!",
-          text = "Upload VCF File",
-          size = "s",
-          closeOnEsc = TRUE,
-          closeOnClickOutside = FALSE,
-          html = TRUE,
-          type = "error",
-          showConfirmButton = TRUE,
-          confirmButtonText = "OK",
-          confirmButtonCol = "#004192",
-          showCancelButton = FALSE,
-          animation = TRUE
-        )
-      }
-      req(input$madc_file$datapath, input$output_name, input$ploidy)
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
 
-      # Get inputs
-      madc_file <- input$madc_file$datapath
-      output_name <- input$output_name
-      ploidy <- input$ploidy
-      cores <- input$cores
-      model_select <- input$updog_model
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Updog_Dosage_Calling_tabset",
+                      selected = "Updog_Dosage_Calling_cite")
+    # expand specific box
+    updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
 
-      # Status
-      updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
-      #Import genotype info if genotype matrix format
-      if (grepl("\\.csv$", madc_file)) {
-        # Call the get_counts function with the specified MADC file path and output file path
-        #Status
-        result_df <- get_counts(madc_file, output_name)
+  snp_number <- reactiveVal(0)
 
-        #Call the get_matrices function
-        matrices <- get_matrices(result_df)
+  #SNP counts value box
+  output$MADCsnps <- renderValueBox({
+    valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
+  })
 
-        #Number of SNPs
-        snp_number <- (nrow(result_df) / 2)
+  disable("download_updog_vcf")
+
+  ##This is for performing Updog Dosage Calling
+  updog_out <- eventReactive(input$run_analysis,{
+
+    # Missing input with red border and alerts
+    toggleClass(id = "ploidy", class = "borderred", condition = (is.na(input$ploidy) | is.null(input$ploidy)))
+    toggleClass(id = "output_name", class = "borderred", condition = (is.na(input$output_name) | is.null(input$output_name) | input$output_name == ""))
+
+    if (is.null(input$madc_file$datapath)) {
+      shinyalert(
+        title = "Missing input!",
+        text = "Upload VCF File",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    req(input$madc_file$datapath, input$output_name, input$ploidy)
+
+    # Get inputs
+    madc_file <- input$madc_file$datapath
+    output_name <- input$output_name
+    ploidy <- input$ploidy
+    cores <- input$cores
+    model_select <- input$updog_model
+
+    # Status
+    updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
+    #Import genotype info if genotype matrix format
+    if (grepl("\\.csv$", madc_file)) {
+      # Call the get_counts function with the specified MADC file path and output file path
+      #Status
+      result_df <- get_counts(madc_file, output_name)
+
+      #Call the get_matrices function
+      matrices <- get_matrices(result_df)
+
+      #Number of SNPs
+      snp_number <- (nrow(result_df) / 2)
+
+      #SNP counts value box
+      output$MADCsnps <- renderValueBox({
+        valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+      })
+
+    } else {
+
+      #Initialize matrices list
+      matrices <- list()
+
+      #Import genotype information if in VCF format
+      vcf <- read.vcfR(madc_file, verbose = FALSE)
+
+      #Get items in FORMAT column
+      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+      chrom <- vcf@fix[,1]
+      pos <- vcf@fix[,2]
+
+      info_ids <- extract_info_ids(info[1])
+
+      if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
+        #Extract DP and RA and convert to matrices
+        matrices$size_matrix <- extract.gt(vcf, element = "DP")
+        if("RA" %in% info_ids){
+          matrices$ref_matrix <- extract.gt(vcf, element = "RA")
+        } else {
+          ad_matrix <- extract.gt(vcf, element = "AD")
+          matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
+          colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
+          rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
+        }
+
+        class(matrices$size_matrix) <- "numeric"
+        class(matrices$ref_matrix) <- "numeric"
+        rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
+
+        rm(vcf) #Remove VCF
+
+        snp_number <- (nrow(matrices$size_matrix))
 
         #SNP counts value box
         output$MADCsnps <- renderValueBox({
-          valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+          valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
         })
 
-      } else {
-
-        #Initialize matrices list
-        matrices <- list()
-
-        #Import genotype information if in VCF format
-        vcf <- read.vcfR(madc_file, verbose = FALSE)
-
-        #Get items in FORMAT column
-        info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-        chrom <- vcf@fix[,1]
-        pos <- vcf@fix[,2]
-
-        info_ids <- extract_info_ids(info[1])
-
-        if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
-          #Extract DP and RA and convert to matrices
-          matrices$size_matrix <- extract.gt(vcf, element = "DP")
-          if("RA" %in% info_ids){
-            matrices$ref_matrix <- extract.gt(vcf, element = "RA")
-          } else {
-            ad_matrix <- extract.gt(vcf, element = "AD")
-            matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
-            colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
-            rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
-          }
-
-          class(matrices$size_matrix) <- "numeric"
-          class(matrices$ref_matrix) <- "numeric"
-          rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
-
-          rm(vcf) #Remove VCF
-
-          snp_number <- (nrow(matrices$size_matrix))
-
-          #SNP counts value box
-          output$MADCsnps <- renderValueBox({
-            valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
-          })
-
-        }else{
-          ##Add user warning about read depth and allele read depth not found
-          stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
-        }
+      }else{
+        ##Add user warning about read depth and allele read depth not found
+        stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
       }
+    }
 
-      #Run Updog
-      #I initially used the "norm" model
-      #I am also taking the ploidy from the max value in the
-      updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
-      print('Performing Updog dosage calling')
-      mout <- multidog(refmat = matrices$ref_matrix,
-                       sizemat = matrices$size_matrix,
-                       ploidy = as.numeric(ploidy),
-                       model = model_select,
-                       nc = cores)
-      #Status
-      updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
-      mout
-    })
-
-    # Only make available the download button when analysis is finished
-    observe({
-      if (!is.null(updog_out())) {
-        Sys.sleep(1)
-        # enable the download button
-        enable("download_updog_vcf")
-      } else {
-        disable("download_updog_vcf")
-      }
-    })
-
-    output$download_updog_vcf <- downloadHandler(
-      filename = function() {
-        paste0(input$output_name, ".vcf.gz")
-      },
-      content = function(file) {
-        #Save Updog output as VCF file
-        temp <- tempfile()
-        updog2vcf(
-          multidog.object = updog_out(),
-          output.file = temp,
-          updog_version = packageVersion("updog"),
-          compress = TRUE
-        )
-
-        # Move the file to the path specified by 'file'
-        file.copy(paste0(temp, ".vcf.gz"), file)
-
-        # Delete the temporary file
-        unlink(temp)
-      })
-
-    output$download_vcf <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_VCF_Example_file.vcf.gz")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
-        file.copy(ex, file)
-      })
-
-    output$download_madc <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_MADC_Example_file.csv")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
-        file.copy(ex, file)
-      })
+    #Run Updog
+    #I initially used the "norm" model
+    #I am also taking the ploidy from the max value in the
+    updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
+    print('Performing Updog dosage calling')
+    mout <- multidog(refmat = matrices$ref_matrix,
+                     sizemat = matrices$size_matrix,
+                     ploidy = as.numeric(ploidy),
+                     model = model_select,
+                     nc = cores)
+    #Status
+    updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
+    mout
   })
+
+  # Only make available the download button when analysis is finished
+  observe({
+    if (!is.null(updog_out())) {
+      Sys.sleep(1)
+      # enable the download button
+      enable("download_updog_vcf")
+    } else {
+      disable("download_updog_vcf")
+    }
+  })
+
+  output$download_updog_vcf <- downloadHandler(
+    filename = function() {
+      paste0(input$output_name, ".vcf.gz")
+    },
+    content = function(file) {
+      #Save Updog output as VCF file
+      temp <- tempfile()
+      updog2vcf(
+        multidog.object = updog_out(),
+        output.file = temp,
+        updog_version = packageVersion("updog"),
+        compress = TRUE
+      )
+
+      # Move the file to the path specified by 'file'
+      file.copy(paste0(temp, ".vcf.gz"), file)
+
+      # Delete the temporary file
+      unlink(temp)
+    })
+
+  output$download_vcf <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_VCF_Example_file.vcf.gz")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+      file.copy(ex, file)
+    })
+
+  output$download_madc <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_MADC_Example_file.csv")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
+      file.copy(ex, file)
+    })
 }
 
 ## To be copied in the UI

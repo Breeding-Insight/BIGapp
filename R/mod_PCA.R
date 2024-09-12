@@ -61,15 +61,15 @@ mod_PCA_ui <- function(id){
                                 selectInput(ns("grey_choice"), "Select Grey", choices = c("Light Grey", "Grey", "Dark Grey", "Black"), selected = "Grey")
                ),
                selectInput(ns("color_choice"), "Color Palette", choices = list("Standard Palettes" = c("Set1","Set3","Pastel2",
-                                                                                                      "Pastel1","Accent","Spectral",
-                                                                                                      "RdYlGn","RdGy"),
-                                                                            "Colorblind Friendly" = c("Set2","Paired","Dark2","YlOrRd","YlOrBr","YlGnBu","YlGn",
-                                                                                                       "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
-                                                                                                       "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
-                                                                                                       "BuGn","Blues","RdYlBu",
-                                                                                                       "RdBu", "PuOr","PRGn","PiYG","BrBG"
-                                                                            )),
-                                                                            selected = "Set1"),
+                                                                                                       "Pastel1","Accent","Spectral",
+                                                                                                       "RdYlGn","RdGy"),
+                                                                               "Colorblind Friendly" = c("Set2","Paired","Dark2","YlOrRd","YlOrBr","YlGnBu","YlGn",
+                                                                                                         "Reds","RdPu","Purples","PuRd","PuBuGn","PuBu",
+                                                                                                         "OrRd","Oranges","Greys","Greens","GnBu","BuPu",
+                                                                                                         "BuGn","Blues","RdYlBu",
+                                                                                                         "RdBu", "PuOr","PRGn","PiYG","BrBG"
+                                                                               )),
+                           selected = "Set1"),
                selectInput(ns("pc_X"), "X-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC1"),
                selectInput(ns("pc_Y"), "Y-Axis (2D-Plot only)", choices = c("PC1","PC2","PC3","PC4","PC5"), selected = "PC2"),
                div(style="display:inline-block; float:right",dropdownButton(
@@ -116,59 +116,121 @@ mod_PCA_ui <- function(id){
 #' @importFrom shinyjs toggleClass
 #'
 #' @noRd
-mod_PCA_server <- function(id){
-  moduleServer( id, function(input, output, session){
-    ns <- session$ns
+mod_PCA_server <- function(input, output, session, parent_session){
 
-    #PCA reactive values
-    pca_data <- reactiveValues(
-      pc_df_pop = NULL,
-      variance_explained = NULL,
-      my_palette = NULL
+  ns <- session$ns
+
+  #PCA reactive values
+  pca_data <- reactiveValues(
+    pc_df_pop = NULL,
+    variance_explained = NULL,
+    my_palette = NULL
+  )
+
+  # Update dropdown menu choices based on uploaded passport file
+  passport_table <- reactive({
+    validate(
+      need(!is.null(input$passport_file), "Upload passport file to access results in this section."),
     )
+    info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
 
-    # Update dropdown menu choices based on uploaded passport file
-    passport_table <- reactive({
-      validate(
-        need(!is.null(input$passport_file), "Upload passport file to access results in this section."),
+    updateSelectInput(session, "group_info", choices = colnames(info_df))
+    info_df
+  })
+
+  output$passport_table <- renderDT({
+    passport_table()},
+    options = list(scrollX = TRUE,
+                   autoWidth = FALSE,
+                   pageLength = 4))
+
+  #PCA specific category selection
+  observeEvent(input$group_info, {
+    #updateMaterialSwitch(session, inputId = "use_cat", status = "success")
+
+    # Get selected column name
+    selected_col <- input$group_info
+
+    # Extract unique values from the selected column
+    unique_values <- unique(passport_table()[[selected_col]])
+
+    #Add category selection
+    updateVirtualSelect("cat_color", choices = unique_values, session = session)
+
+  })
+
+  #PCA events
+  observeEvent(input$pca_start, {
+
+    # Missing input with red border and alerts
+    toggleClass(id = "pca_ploidy", class = "borderred", condition = is.na(input$pca_ploidy))
+    if (is.null(input$dosage_file)) {
+      shinyalert(
+        title = "Missing input!",
+        text = "Upload Genotypes File",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
       )
+    }
+    req(input$pca_ploidy, input$dosage_file$datapath)
+
+    # Get inputs
+    geno <- input$dosage_file$datapath
+    g_info <- as.character(input$group_info)
+    output_name <- input$output_name
+    ploidy <- input$pca_ploidy
+
+    #Notification
+    showNotification("PCA analysis in progress...")
+
+    #Import genotype info if genotype matrix format
+    if (grepl("\\.csv$", geno)) {
+      genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
+    } else{
+
+      #Import genotype information if in VCF format
+      vcf <- read.vcfR(geno)
+
+      #Get items in FORMAT column
+      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+
+      # Apply the function to the first INFO string
+      info_ids <- extract_info_ids(info[1])
+
+      #Get the genotype values if the updog dosage calls are present
+      if ("UD" %in% info_ids) {
+        genomat <- extract.gt(vcf, element = "UD")
+        class(genomat) <- "numeric"
+        rm(vcf) #Remove vcf
+      }else{
+        #Extract GT and convert to numeric calls
+        genomat <- extract.gt(vcf, element = "GT")
+        genomat <- apply(genomat, 2, convert_to_dosage)
+        rm(vcf) #Remove VCF
+      }
+    }
+
+    #Start analysis
+
+    # Passport info
+    if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
       info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
-      info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
 
-      updateSelectInput(session, "group_info", choices = colnames(info_df))
-      info_df
-    })
-
-    output$passport_table <- renderDT({
-      passport_table()},
-      options = list(scrollX = TRUE,
-                     autoWidth = FALSE,
-                     pageLength = 4))
-
-    #PCA specific category selection
-    observeEvent(input$group_info, {
-      #updateMaterialSwitch(session, inputId = "use_cat", status = "success")
-
-      # Get selected column name
-      selected_col <- input$group_info
-
-      # Extract unique values from the selected column
-      unique_values <- unique(passport_table()[[selected_col]])
-
-      #Add category selection
-      updateVirtualSelect("cat_color", choices = unique_values, session = session)
-
-    })
-
-    #PCA events
-    observeEvent(input$pca_start, {
-
-      # Missing input with red border and alerts
-      toggleClass(id = "pca_ploidy", class = "borderred", condition = is.na(input$pca_ploidy))
-      if (is.null(input$dosage_file)) {
+      # Check for duplicates in the first column
+      duplicated_samples <- info_df[duplicated(info_df[, 1]), 1]
+      if (length(duplicated_samples) > 0) {
         shinyalert(
-          title = "Missing input!",
-          text = "Upload Genotypes File",
+          title = "Duplicate Samples Detected in Passport File",
+          text = paste("The following samples are duplicated:", paste(unique(duplicated_samples), collapse = ", ")),
           size = "s",
           closeOnEsc = TRUE,
           closeOnClickOutside = FALSE,
@@ -180,304 +242,81 @@ mod_PCA_server <- function(id){
           showCancelButton = FALSE,
           animation = TRUE
         )
-      }
-      req(input$pca_ploidy, input$dosage_file$datapath)
-
-      # Get inputs
-      geno <- input$dosage_file$datapath
-      g_info <- as.character(input$group_info)
-      output_name <- input$output_name
-      ploidy <- input$pca_ploidy
-
-      #Notification
-      showNotification("PCA analysis in progress...")
-
-      #Import genotype info if genotype matrix format
-      if (grepl("\\.csv$", geno)) {
-        genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
-      } else{
-
-        #Import genotype information if in VCF format
-        vcf <- read.vcfR(geno)
-
-        #Get items in FORMAT column
-        info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-
-        # Apply the function to the first INFO string
-        info_ids <- extract_info_ids(info[1])
-
-        #Get the genotype values if the updog dosage calls are present
-        if ("UD" %in% info_ids) {
-          genomat <- extract.gt(vcf, element = "UD")
-          class(genomat) <- "numeric"
-          rm(vcf) #Remove vcf
-        }else{
-          #Extract GT and convert to numeric calls
-          genomat <- extract.gt(vcf, element = "GT")
-          genomat <- apply(genomat, 2, convert_to_dosage)
-          rm(vcf) #Remove VCF
-        }
+        req(length(duplicated_samples) == 0) # Stop the analysis if duplicates are found
       }
 
-      #Start analysis
+    } else {
+      info_df <- data.frame(SampleID = colnames(genomat))
+    }
 
-      # Passport info
-      if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
-        info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
+    # Print the modified dataframe
+    row.names(info_df) <- info_df[,1]
 
-        # Check for duplicates in the first column
-        duplicated_samples <- info_df[duplicated(info_df[, 1]), 1]
-        if (length(duplicated_samples) > 0) {
-          shinyalert(
-            title = "Duplicate Samples Detected in Passport File",
-            text = paste("The following samples are duplicated:", paste(unique(duplicated_samples), collapse = ", ")),
-            size = "s",
-            closeOnEsc = TRUE,
-            closeOnClickOutside = FALSE,
-            html = TRUE,
-            type = "error",
-            showConfirmButton = TRUE,
-            confirmButtonText = "OK",
-            confirmButtonCol = "#004192",
-            showCancelButton = FALSE,
-            animation = TRUE
-          )
-          req(length(duplicated_samples) == 0) # Stop the analysis if duplicates are found
-        }
+    #Plotting
+    #First build a relationship matrix using the genotype values
+    G.mat.updog <- Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
 
-      } else {
-        info_df <- data.frame(SampleID = colnames(genomat))
-      }
+    #PCA
+    prin_comp <- prcomp(G.mat.updog, scale = TRUE)
+    eig <- get_eigenvalue(prin_comp)
+    round(sum(eig$variance.percent[1:3]),1)
 
-      # Print the modified dataframe
-      row.names(info_df) <- info_df[,1]
+    ###Simple plots
+    # Extract the PC scores
+    pc_scores <- prin_comp$x
 
-      #Plotting
-      #First build a relationship matrix using the genotype values
-      G.mat.updog <- Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
-
-      #PCA
-      prin_comp <- prcomp(G.mat.updog, scale = TRUE)
-      eig <- get_eigenvalue(prin_comp)
-      round(sum(eig$variance.percent[1:3]),1)
-
-      ###Simple plots
-      # Extract the PC scores
-      pc_scores <- prin_comp$x
-
-      # Create a data frame with PC scores
-      pc_df <- data.frame(PC1 = pc_scores[, 1], PC2 = pc_scores[, 2],
-                          PC3 = pc_scores[, 3], PC4 = pc_scores[, 4],
-                          PC5 = pc_scores[, 5], PC6 = pc_scores[, 6],
-                          PC7 = pc_scores[, 7], PC8 = pc_scores[, 8],
-                          PC9 = pc_scores[, 9], PC10 = pc_scores[, 10])
+    # Create a data frame with PC scores
+    pc_df <- data.frame(PC1 = pc_scores[, 1], PC2 = pc_scores[, 2],
+                        PC3 = pc_scores[, 3], PC4 = pc_scores[, 4],
+                        PC5 = pc_scores[, 5], PC6 = pc_scores[, 6],
+                        PC7 = pc_scores[, 7], PC8 = pc_scores[, 8],
+                        PC9 = pc_scores[, 9], PC10 = pc_scores[, 10])
 
 
-      # Compute the percentage of variance explained for each PC
-      variance_explained <- round(100 * prin_comp$sdev^2 / sum(prin_comp$sdev^2), 1)
+    # Compute the percentage of variance explained for each PC
+    variance_explained <- round(100 * prin_comp$sdev^2 / sum(prin_comp$sdev^2), 1)
 
 
-      # Retain only samples in common
-      row.names(info_df) <- info_df[,1]
-      info_df <- info_df[row.names(pc_df),]
+    # Retain only samples in common
+    row.names(info_df) <- info_df[,1]
+    info_df <- info_df[row.names(pc_df),]
 
-      #Add the information for each sample
-      pc_df_pop <- merge(pc_df, info_df, by.x = "row.names", by.y = "row.names", all.x = TRUE)
+    #Add the information for each sample
+    pc_df_pop <- merge(pc_df, info_df, by.x = "row.names", by.y = "row.names", all.x = TRUE)
 
 
-      # Ignore color input if none is entered by user
-      if (g_info != "") {
-        pc_df_pop[[g_info]] <- as.factor(pc_df_pop[[g_info]])
-      } else {
-        g_info <- NULL
-      }
+    # Ignore color input if none is entered by user
+    if (g_info != "") {
+      pc_df_pop[[g_info]] <- as.factor(pc_df_pop[[g_info]])
+    } else {
+      g_info <- NULL
+    }
 
-      #Update global variable
-      pca_dataframes <- pc_df_pop
+    #Update global variable
+    pca_dataframes <- pc_df_pop
 
-      # Generate a distinct color palette if g_info is provided
-      if (!is.null(g_info) && g_info != "") {
-        unique_countries <- unique(pc_df_pop[[g_info]])
-        palette <- brewer.pal(length(unique_countries), input$color_choice)
-        my_palette <- colorRampPalette(palette)(length(unique_countries))
-      } else {
-        unique_countries <- NULL
-        my_palette <- NULL
-      }
-
-      # Store processed data in reactive values
-      pca_data$pc_df_pop <- pc_df_pop
-      pca_data$variance_explained <- variance_explained
-      pca_data$my_palette <- my_palette
-
-      #End of PCA section
-    })
-
-    ##2D PCA plotting
-    pca_2d <- reactive({
-      validate(
-        need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
-      )
-
-      # Generate colors
-      if (!is.null(pca_data$my_palette)) {
-        unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-        palette <- brewer.pal(length(unique_countries), input$color_choice)
-        my_palette <- colorRampPalette(palette)(length(unique_countries))
-      } else {
-        unique_countries <- NULL
-        my_palette <- NULL
-      }
-
-      # Define a named vector to map input labels to grey values
-      label_to_value <- c("Light Grey" = "grey80",
-                          "Grey" = "grey60",
-                          "Dark Grey" = "grey40",
-                          "Black" = "black")
-
-      # Get the corresponding value based on the selected grey
-      selected_grey <- label_to_value[[input$grey_choice]]
-
-      #Set factor
-      if (!input$use_cat && is.null(my_palette)) {
-        print("No Color Info")
-      }else{
-        pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
-      }
-
-      # Similar plotting logic here
-
-      cat_colors <- c(input$cat_color, "grey")
-      plot <- {if(!is.null(input$group_info) & input$group_info != "")
-        ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
-                                       y = pca_data$pc_df_pop[[input$pc_Y]],
-                                       color = factor(pca_data$pc_df_pop[[input$group_info]]))) else
-                                         ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
-                                                                        y = pca_data$pc_df_pop[[input$pc_Y]]))} +
-        geom_point(size = 2, alpha = 0.8) +
-        {if(input$use_cat) scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) else
-          if(!is.null(my_palette)) scale_color_manual(values = my_palette)} +
-        guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
-        theme_minimal() +
-        theme(
-          panel.border = element_rect(color = "black", fill = NA),
-          legend.text = element_text(size = 14),
-          axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          legend.title = element_text(size = 16)
-        ) +
-        labs(
-          x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
-          y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-          color = input$group_info
-        )
-
-      plot  # Assign the plot to your reactiveValues
-    })
-
-    #Plot the 2d plot
-    output$pca_plot_ggplot <- renderPlot({
-      pca_2d()
-    })
-
-    #3D PCA plotting
-    pca_plot <- reactive({
-      #Plotly
-      validate(
-        need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
-      )
-
-      #Generate colors
-      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-      palette <- brewer.pal(length(unique_countries),input$color_choice)
+    # Generate a distinct color palette if g_info is provided
+    if (!is.null(g_info) && g_info != "") {
+      unique_countries <- unique(pc_df_pop[[g_info]])
+      palette <- brewer.pal(length(unique_countries), input$color_choice)
       my_palette <- colorRampPalette(palette)(length(unique_countries))
+    } else {
+      unique_countries <- NULL
+      my_palette <- NULL
+    }
 
-      tit = paste0('Total Explained Variance =', sum(pca_data$variance_explained[1:3]))
+    # Store processed data in reactive values
+    pca_data$pc_df_pop <- pc_df_pop
+    pca_data$variance_explained <- variance_explained
+    pca_data$my_palette <- my_palette
 
-      fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = pca_data$pc_df_pop[[input$group_info]],
-                     colors = my_palette) %>%
-        add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
+    #End of PCA section
+  })
 
-      fig <- fig %>%
-        layout(
-          title = tit,
-          scene = list(bgcolor = "white")
-        )
-
-      fig # Return the Plotly object here
-    })
-
-    output$pca_plot <- renderPlotly({
-      pca_plot()
-    })
-
-    pca_scree <- reactive({
-      #PCA scree plot
-      validate(
-        need(!is.null(pca_data$variance_explained), "Input Genotype file, Species ploidy, and run the analysis to access the results in this section.")
-      )
-
-      var_explained <- pca_data$variance_explained
-
-      # Create a data frame for plotting
-      plot_data <- data.frame(PC = 1:10, Variance_Explained = var_explained[1:10])
-
-      # Use ggplot for plotting
-      plot <- ggplot(plot_data, aes(x = PC, y = Variance_Explained)) +
-        geom_bar(stat = "identity", fill = "lightblue", alpha = 0.9, color = "black") +  # Bars with some transparency
-        geom_line(color = "black") +  # Connect points with a line
-        geom_point(color = "black") +  # Add points on top of the line for emphasis
-        scale_x_continuous(breaks = 1:10, limits = c(0.5, 10.5)) +
-        xlab("Principal Component") +
-        ylab("% Variance Explained") +
-        ylim(0, 100) +
-        theme_bw() +
-        theme(
-          panel.border = element_rect(color = "black", fill = NA),
-          legend.text = element_text(size = 14),
-          axis.title = element_text(size = 14),
-          axis.text = element_text(size = 12),
-          legend.title = element_text(size = 16)
-        )
-      plot
-    })
-
-    #Scree plot
-    output$scree_plot <- renderPlot({
-      pca_scree()
-    })
-
-    #Download figures for PCA
-    output$download_pca <- downloadHandler(
-      filename = function() {
-        if (input$pca_image_type == "jpeg") {
-          paste("pca-", Sys.Date(), ".jpg", sep = "")
-        } else if (input$pca_image_type == "png") {
-          paste("pca-", Sys.Date(), ".png", sep = "")
-        } else {
-          paste("pca-", Sys.Date(), ".tiff", sep = "")
-        }
-      },
-      content = function(file) {
-        req(input$pca_figure)
-        
-        if (input$pca_image_type == "jpeg") {
-          jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
-        } else if (input$pca_image_type == "png") {
-          png(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
-        } else {
-          tiff(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
-        }
-        
-        # Plot based on user selection
-        if (input$pca_figure == "2D Plot") {
-          print(pca_2d())
-        } else if (input$pca_figure == "Scree Plot") {
-          print(pca_scree())
-        }
-        
-        dev.off()
-      }
+  ##2D PCA plotting
+  pca_2d <- reactive({
+    validate(
+      need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
     )
     
     output$download_pca_summary <- downloadHandler(
@@ -520,25 +359,185 @@ mod_PCA_server <- function(id){
     )
     
 
-    output$download_vcf <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_VCF_Example_file.vcf.gz")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
-        file.copy(ex, file)
-      })
+    # Generate colors
+    if (!is.null(pca_data$my_palette)) {
+      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
+      palette <- brewer.pal(length(unique_countries), input$color_choice)
+      my_palette <- colorRampPalette(palette)(length(unique_countries))
+    } else {
+      unique_countries <- NULL
+      my_palette <- NULL
+    }
 
-    output$download_pheno <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_passport_Example_file.csv")
-      },
-      content = function(file) {
-        ex <- system.file("iris_passport_file.csv", package = "BIGapp")
-        file.copy(ex, file)
-      })
+    # Define a named vector to map input labels to grey values
+    label_to_value <- c("Light Grey" = "grey80",
+                        "Grey" = "grey60",
+                        "Dark Grey" = "grey40",
+                        "Black" = "black")
 
+    # Get the corresponding value based on the selected grey
+    selected_grey <- label_to_value[[input$grey_choice]]
+
+    #Set factor
+    if (!input$use_cat && is.null(my_palette)) {
+      print("No Color Info")
+    }else{
+      pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
+    }
+
+    # Similar plotting logic here
+
+    cat_colors <- c(input$cat_color, "grey")
+    plot <- {if(!is.null(input$group_info) & input$group_info != "")
+      ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
+                                     y = pca_data$pc_df_pop[[input$pc_Y]],
+                                     color = factor(pca_data$pc_df_pop[[input$group_info]]))) else
+                                       ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
+                                                                      y = pca_data$pc_df_pop[[input$pc_Y]]))} +
+      geom_point(size = 2, alpha = 0.8) +
+      {if(input$use_cat) scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) else
+        if(!is.null(my_palette)) scale_color_manual(values = my_palette)} +
+      guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
+      theme_minimal() +
+      theme(
+        panel.border = element_rect(color = "black", fill = NA),
+        legend.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 16)
+      ) +
+      labs(
+        x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
+        y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
+        color = input$group_info
+      )
+
+    plot  # Assign the plot to your reactiveValues
   })
+
+  #Plot the 2d plot
+  output$pca_plot_ggplot <- renderPlot({
+    pca_2d()
+  })
+
+  #3D PCA plotting
+  pca_plot <- reactive({
+    #Plotly
+    validate(
+      need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
+    )
+
+    #Generate colors
+    unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
+    palette <- brewer.pal(length(unique_countries),input$color_choice)
+    my_palette <- colorRampPalette(palette)(length(unique_countries))
+
+    tit = paste0('Total Explained Variance =', sum(pca_data$variance_explained[1:3]))
+
+    fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = pca_data$pc_df_pop[[input$group_info]],
+                   colors = my_palette) %>%
+      add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
+
+    fig <- fig %>%
+      layout(
+        title = tit,
+        scene = list(bgcolor = "white")
+      )
+
+    fig # Return the Plotly object here
+  })
+
+  output$pca_plot <- renderPlotly({
+    pca_plot()
+  })
+
+  pca_scree <- reactive({
+    #PCA scree plot
+    validate(
+      need(!is.null(pca_data$variance_explained), "Input Genotype file, Species ploidy, and run the analysis to access the results in this section.")
+    )
+
+    var_explained <- pca_data$variance_explained
+
+    # Create a data frame for plotting
+    plot_data <- data.frame(PC = 1:10, Variance_Explained = var_explained[1:10])
+
+    # Use ggplot for plotting
+    plot <- ggplot(plot_data, aes(x = PC, y = Variance_Explained)) +
+      geom_bar(stat = "identity", fill = "lightblue", alpha = 0.9, color = "black") +  # Bars with some transparency
+      geom_line(color = "black") +  # Connect points with a line
+      geom_point(color = "black") +  # Add points on top of the line for emphasis
+      scale_x_continuous(breaks = 1:10, limits = c(0.5, 10.5)) +
+      xlab("Principal Component") +
+      ylab("% Variance Explained") +
+      ylim(0, 100) +
+      theme_bw() +
+      theme(
+        panel.border = element_rect(color = "black", fill = NA),
+        legend.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 16)
+      )
+    plot
+  })
+
+  #Scree plot
+  output$scree_plot <- renderPlot({
+    pca_scree()
+  })
+
+  #Download figures for PCA
+  output$download_pca <- downloadHandler(
+    filename = function() {
+      if (input$pca_image_type == "jpeg") {
+        paste("pca-", Sys.Date(), ".jpg", sep = "")
+      } else if (input$pca_image_type == "png") {
+        paste("pca-", Sys.Date(), ".png", sep = "")
+      } else {
+        paste("pca-", Sys.Date(), ".tiff", sep = "")
+      }
+    },
+    content = function(file) {
+      req(input$pca_figure)
+
+      if (input$pca_image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
+      } else if (input$pca_image_type == "png") {
+        png(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
+      }
+
+      # Plot based on user selection
+      if (input$pca_figure == "2D Plot") {
+        print(pca_2d())
+      } else if (input$pca_figure == "Scree Plot") {
+        print(pca_scree())
+      }
+
+      dev.off()
+    }
+  )
+
+  output$download_vcf <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_VCF_Example_file.vcf.gz")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+      file.copy(ex, file)
+    })
+
+  output$download_pheno <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_passport_Example_file.csv")
+    },
+    content = function(file) {
+      ex <- system.file("iris_passport_file.csv", package = "BIGapp")
+      file.copy(ex, file)
+    })
+
 }
 
 ## To be copied in the UI
