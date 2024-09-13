@@ -187,7 +187,7 @@ rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL,
 #' @importFrom AGHmatrix Gmatrix Amatrix Hmatrix
 #'
 #'
-get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amatrix", "Hmatrix"), ploidy){
+get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amatrix", "Hmatrix"), ploidy, pheno){
 
   if (type == "Gmatrix") {
     #Convert normalized genotypes to relationship matrix
@@ -203,7 +203,7 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
     Geno.mat <- Amatrix(data = ped_file, ploidy = ploidy)
 
     #Filter and order the ped file based on the phenotype file (make sure this is valid to subset after generating)
-    pheno_ids <- as.character(colnames(geno_input))
+    pheno_ids <- as.character(pheno[,1])
     valid_ids <- intersect(pheno_ids, rownames(Geno.mat))
     Geno.mat <- Geno.mat[valid_ids, valid_ids]
 
@@ -216,7 +216,7 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
     Ped.mat <- Amatrix(data = ped_file, ploidy = ploidy)
 
     #Filter and order the ped file based on the phenotype file (make sure this is valid to subset after generating)
-    pheno_ids <- as.character(colnames(geno_input))
+    pheno_ids <- as.character(pheno[,1])
     valid_ids <- intersect(pheno_ids, rownames(Ped.mat))
     Ped.mat <- Ped.mat[valid_ids, valid_ids]
 
@@ -384,7 +384,8 @@ run_predictive_model <- function(geno, pheno, selected_traits, predictive_model,
       Geno.mat <- get_relationship_mat(geno_input = geno,
                                        type = relationship_matrix_type,
                                        ped_file = pedigree,
-                                       ploidy = ploidy)
+                                       ploidy = ploidy,
+                                       pheno = pheno)
     } else Geno.mat <- relationship_matrix
 
     results <- GBLUP_genomic_prediction(pheno_dat = pheno,

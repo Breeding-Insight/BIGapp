@@ -139,7 +139,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   #Default model choices
   advanced_options <- reactiveValues(
-    pred_model = "rrBLUP",
+    pred_model = "GBLUP",
     pred_matrix = "Gmatrix",
     ped_file = NULL
   )
@@ -221,23 +221,12 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   })
 
-  #2) Error check for prediction and save input files
-  continue_prediction <- reactiveVal(FALSE)
-  pred_inputs <- reactiveValues(
-    pheno_input = NULL,
-    geno_input = NULL,
-    pred_snps = NULL,
-    pred_genos = NULL,
-    pred_geno_pheno = NULL,
-    ped_input = NULL
-  )
-
   colors <- reactiveValues(colors = NULL)
 
   #Reactive boxes
   output$pred_snps <- renderValueBox({
     valueBox(
-      value = pred_inputs$pred_snps,
+      value = pred_inputs()$pred_snps,
       subtitle = "SNPs in Genotype File",
       icon = icon("dna"),
       color = "info"
@@ -246,7 +235,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   output$pred_geno <- renderValueBox({
     valueBox(
-      value = pred_inputs$pred_geno_pheno,
+      value = pred_inputs()$pred_geno_pheno,
       subtitle = "Samples with Phenotype Information",
       icon = icon("location-dot"),
       color = "info"
@@ -262,14 +251,18 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     updateVirtualSelect("pred_fixed_cat", choices = input$pred_fixed_info, session = session)
   })
 
-  observeEvent(input$prediction_start, {
+  #2) Error check for prediction and save input files
+  pred_inputs <- eventReactive(input$prediction_start,{
 
     toggleClass(id = "pred_ploidy", class = "borderred", condition = (is.na(input$pred_ploidy) | is.null(input$pred_ploidy)))
 
-    if (is.null(input$pred_file$datapath) | is.null(input$trait_file$datapath)) {
+    if(is.null(advanced_options$pred_matrix)) advanced_options$pred_matrix <- "none_selected"
+    if (((is.null(input$pred_file$datapath) &  advanced_options$pred_matrix != "Amatrix") |
+         (is.null(advanced_options$ped_file$datapath) &  advanced_options$pred_matrix == "Amatrix")) |
+        is.null(input$trait_file$datapath)) {
       shinyalert(
         title = "Missing input!",
-        text = "Upload VCF and phenotype files",
+        text = "Upload VCF or a pedigree file and the phenotype file",
         size = "s",
         closeOnEsc = TRUE,
         closeOnClickOutside = FALSE,
@@ -281,8 +274,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         showCancelButton = FALSE,
         animation = TRUE
       )
+      return()
     }
-    req(input$pred_file$datapath,  input$pred_ploidy, input$trait_file$datapath)
 
     #Status
     updateProgressBar(session = session, id = "pb_prediction", value = 5, title = "Checking input files")
@@ -290,6 +283,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     #Variables
     pheno <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE)
     row.names(pheno) <- pheno[,1]
+    # Assuming the first column in Pheno contains the matching IDs
+    ids_pheno <- pheno[, 1]
 
     #Make sure at least one trait was input
     if (length(input$pred_trait_info) == 0) {
@@ -315,76 +310,31 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       return()
     }
 
+    pred_inputs <- list(
+      pheno_input = NULL,
+      geno_input = NULL,
+      pred_snps = NULL,
+      pred_genos = NULL,
+      pred_geno_pheno = NULL,
+      ped_input = NULL
+    )
+
     #Getting genotype matrix
     #Geno.file conversion if needed
-    geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT")
-    geno <- geno_snps[[1]]
-    pred_inputs$pred_snps <- geno_snps[[2]]
+    if(!is.null(input$pred_file$datapath)){
+      geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT")
+      geno <- geno_snps[[1]]
+      pred_inputs$pred_snps <- geno_snps[[2]]
 
-    #Save number of samples in file
-    pred_inputs$pred_genos <- ncol(geno)
+      #Save number of samples in file
+      pred_inputs$pred_genos <- ncol(geno)
 
-    #Check that the ploidy entered is correct
-    if (input$pred_ploidy != max(geno, na.rm = TRUE)) {
-      # If condition is met, show notification toast
-      shinyalert(
-        title = "Ploidy Mismatch",
-        text = paste0("The maximum value in the genotype file (",max(geno, na.rm = TRUE),") does not equal the ploidy entered"),
-        size = "xs",
-        closeOnEsc = FALSE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "warning",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        #closeOnConfirm = TRUE,
-        #closeOnCancel = TRUE,
-        imageUrl = "",
-        animation = TRUE
-      )
-
-      # Stop the observeEvent gracefully
-      #return()
-    }
-
-    #Make sure the trait file and genotype file are in the same order
-    # Column names for geno (assuming these are the individual IDs)
-    colnames_geno <- colnames(geno)
-    # Assuming the first column in Pheno contains the matching IDs
-    ids_pheno <- pheno[, 1]
-    # Find common identifiers
-    common_ids <- intersect(colnames_geno, ids_pheno)
-    #Get number of id
-    pred_inputs$pred_geno_pheno <- length(common_ids)
-
-    #Throw an error if there are less matching samples in the phenotype file than the genotype file
-    if (length(common_ids) == 0) {
-      # If condition is met, show notification toast
-      shinyalert(
-        title = "Oops",
-        text = "All samples were missing from the phenotype file",
-        size = "xs",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "info",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        imageUrl = "",
-        animation = TRUE,
-      )
-
-      # Stop the observeEvent gracefully
-      return()
-    } else {
-      if (length(common_ids) < length(colnames_geno))
+      #Check that the ploidy entered is correct
+      if (input$pred_ploidy != max(geno, na.rm = TRUE)) {
+        # If condition is met, show notification toast
         shinyalert(
-          title = "Data Mismatch",
-          text = paste0((length(colnames_geno)-length(common_ids))," samples were removed for not having trait information"),
+          title = "Ploidy Mismatch",
+          text = paste0("The maximum value in the genotype file (",max(geno, na.rm = TRUE),") does not equal the ploidy entered"),
           size = "xs",
           closeOnEsc = FALSE,
           closeOnClickOutside = FALSE,
@@ -399,33 +349,88 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
           imageUrl = "",
           animation = TRUE
         )
-      if (length(common_ids) < length(ids_pheno))
+
+        # Stop the observeEvent gracefully
+        #return()
+      }
+
+      #Make sure the trait file and genotype file are in the same order
+      # Column names for geno (assuming these are the individual IDs)
+      colnames_geno <- colnames(geno)
+
+      # Find common identifiers
+      common_ids <- intersect(colnames_geno, ids_pheno)
+      #Get number of id
+      pred_inputs$pred_geno_pheno <- length(common_ids)
+
+      #Throw an error if there are less matching samples in the phenotype file than the genotype file
+      if (length(common_ids) == 0) {
+        # If condition is met, show notification toast
         shinyalert(
-          title = "Data Mismatch",
-          text = paste0((length(ids_pheno)-length(common_ids))," samples were removed for not having genotypic information"),
+          title = "Oops",
+          text = "All samples were missing from the phenotype file",
           size = "xs",
-          closeOnEsc = FALSE,
+          closeOnEsc = TRUE,
           closeOnClickOutside = FALSE,
           html = TRUE,
-          type = "warning",
+          type = "info",
           showConfirmButton = TRUE,
           confirmButtonText = "OK",
           confirmButtonCol = "#004192",
           showCancelButton = FALSE,
-          #closeOnConfirm = TRUE,
-          #closeOnCancel = TRUE,
           imageUrl = "",
-          animation = TRUE
+          animation = TRUE,
         )
-    }
 
-    # Subset and reorder geno and pheno to ensure they only contain and are ordered by common IDs
-    geno_adj <- geno[, common_ids]  # Assuming that the columns can be directly indexed by IDs
-    pheno <- pheno[match(common_ids, ids_pheno), ] # If there is pheno but not geno, the sample is also discarded
+        # Stop the observeEvent gracefully
+        return()
+      } else {
+        if (length(common_ids) < length(colnames_geno))
+          shinyalert(
+            title = "Data Mismatch",
+            text = paste0((length(colnames_geno)-length(common_ids))," samples were removed for not having trait information"),
+            size = "xs",
+            closeOnEsc = FALSE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "warning",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            #closeOnConfirm = TRUE,
+            #closeOnCancel = TRUE,
+            imageUrl = "",
+            animation = TRUE
+          )
+        if (length(common_ids) < length(ids_pheno))
+          shinyalert(
+            title = "Data Mismatch",
+            text = paste0((length(ids_pheno)-length(common_ids))," samples were removed for not having genotypic information"),
+            size = "xs",
+            closeOnEsc = FALSE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "warning",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            #closeOnConfirm = TRUE,
+            #closeOnCancel = TRUE,
+            imageUrl = "",
+            animation = TRUE
+          )
+      }
+
+      # Subset and reorder geno and pheno to ensure they only contain and are ordered by common IDs
+      geno_adj <- geno[, common_ids]  # Assuming that the columns can be directly indexed by IDs
+      pheno <- pheno[match(common_ids, ids_pheno), ] # If there is pheno but not geno, the sample is also discarded
+    } else geno_adj <- NULL
 
     # Check pedigree
     #Import pedigree file, where pedigree data name (3-column way format). Unknown value should be equal 0
-    if(!is.null(advanced_options$ped_file$datapath)){
+    if(!is.null(advanced_options$ped_file$datapath) & (advanced_options$pred_matrix == "Amatrix" | advanced_options$pred_matrix == "Hmatrix")){
       ped <- read.csv(advanced_options$ped_file$datapath, check.names = FALSE, colClasses = "factor")
       colnames(ped) <- c("Ind", "P1", "P2")
       #Convert NAs to 0
@@ -478,7 +483,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
             animation = TRUE
           )
           pheno <- pheno[-which(!pheno$Sample_ID %in% extended_ped$Ind),]
-          geno_adj <- geno_adj[,-which(!pheno$Sample_ID %in% extended_ped$Ind)]
+          if(!is.null(geno_adj)) geno_adj <- geno_adj[,-which(!colnames(geno_adj) %in% extended_ped$Ind)]
         }
         if (length(ped$Ind) > length(extended_ped$Ind))
           shinyalert(
@@ -551,32 +556,25 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     pred_inputs$pheno_input <- pheno
     pred_inputs$geno_input <- geno_adj
     pred_inputs$ped_input <- extended_ped
-
-    continue_prediction(TRUE)
+    pred_inputs
   })
 
-  #3) Analysis only proceeds once continue_prediction is converted to TRUE
-  pred_outputs <- reactive({
-
-    req(continue_prediction(),pred_inputs$pheno_input, pred_inputs$geno_input)
-
-    # Stop analysis if cancel was selected
-    if (isFALSE(continue_prediction())) {
-      return()
-    }
+  pred_outputs <- eventReactive(pred_inputs(), {
 
     # Convert genotype matrix according to ploidy and model used
-    geno_formated <- format_geno_matrix(pred_inputs$geno_input,advanced_options$pred_model, advanced_options$pred_matrix, input$pred_ploidy)
+    if(!is.null(pred_inputs()$geno_input)){
+      geno_formated <- format_geno_matrix(pred_inputs()$geno_input,advanced_options$pred_model, advanced_options$pred_matrix, input$pred_ploidy)
+    } else geno_formated <- NULL
 
     #Status
     updateProgressBar(session = session, id = "pb_prediction", value = 30, title = paste("Genotype matrix formatted for", advanced_options$pred_model, advanced_options$pred_matrix))
 
     results <- run_predictive_model(geno = geno_formated,
-                                    pheno = pred_inputs$pheno_input,
+                                    pheno = pred_inputs()$pheno_input,
                                     selected_traits = input$pred_trait_info,
                                     predictive_model = advanced_options$pred_model,
                                     relationship_matrix_type = advanced_options$pred_matrix,
-                                    pedigree = pred_inputs$ped_input,
+                                    pedigree = pred_inputs()$ped_input,
                                     fixed_effects = input$pred_fixed_info,
                                     categorical_fixed_effects = input$pred_fixed_cat,
                                     ploidy = input$pred_ploidy,
