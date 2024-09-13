@@ -310,7 +310,7 @@ read_geno_file <- function(file_path, requires = c("GT")){
   } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
 
     #Convert VCF file if submitted
-    vcf <- read.vcfR(file_path)
+    vcf <- read.vcfR(file_path, verbose = FALSE)
 
     all_requires <- vector()
     for(i in 1:length(requires))  all_requires[i] <- grepl(requires[i], vcf@fix[1,8]) | grepl(requires[i], vcf@gt[1,1])

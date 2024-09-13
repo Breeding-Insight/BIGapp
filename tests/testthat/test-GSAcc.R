@@ -496,7 +496,7 @@ test_that("test Predictive Ability iris",{
 #   # Inputs
 #   input <- list()
 #
-#   input$trait_file$datapath <- "BIG_pheno.csv"
+#   input$trait_file$datapath <- "BIG_pheno2.csv"
 #   input$pred_file$datapath <- "BIG_genos.vcf"
 #   input$ped_file$datapath <- "sealice_ped.csv"
 #
@@ -543,7 +543,7 @@ test_that("test Predictive Ability iris",{
 #
 #   #Variables
 #   pheno <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE)
-#   pheno <- pheno[,-c(1:(which(colnames(pheno) == "Sample_ID") - 1))] # Sample_ID must be the first column
+#   #pheno <- pheno[,-c(1:(which(colnames(pheno) == "Sample_ID") - 1))] # Sample_ID must be the first column
 #   rownames(pheno) <- pheno[,1]
 #
 #   #Getting genotype matrix
@@ -602,6 +602,7 @@ test_that("test Predictive Ability iris",{
 #       if (length(common_ped) < length(ids_pheno)){
 #         warning(paste0((length(ids_pheno)-length(common_ped))," samples were removed from the phenotype data for not having pedigree information"))
 #         pheno <- pheno[-which(!pheno$Sample_ID %in% extended_ped$Ind),]
+#         geno_adj <- geno_adj[,-which(!colnames(geno_adj) %in% extended_ped$Ind)]
 #       }
 #       if (length(ped$Ind) > length(extended_ped$Ind))
 #         warning(paste0((length(ped$Ind)-length(extended_ped$Ind))," samples in the pedigree file were unrelated to the samples with phenotype information. They were removed from the analysis.")) # samples not removed
@@ -756,6 +757,7 @@ test_that("test Predictive Ability iris",{
 #                                   cycles = input$pred_cv,
 #                                   folds = 5)
 #
+#   str(results)
 #   #Save to reactive value
 #   pred_outputs_gBLUPA <- pred_outputs
 #   pred_outputs_gBLUPA$corr_output <- results$PredictionAccuracy
