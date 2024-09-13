@@ -83,7 +83,7 @@ rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL,
     GEBVs_cycle <-list()
 
     #Status
-    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
+    if(!is.null(session)) updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
 
     for (fold in 1:folds) {
 
@@ -245,7 +245,7 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
 #'
 #' @param fixed_cat categorical fixed effect
 #'
-GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits, cores, fixed_cov = NULL, fixed_cat = NULL, session){
+GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits, cores, fixed_cov = NULL, fixed_cat = NULL, session = NULL){
 
   # Establish accuracy results matrix
   results <- matrix(nrow = cycles*folds, ncol = length(traits) + 2)
@@ -271,7 +271,7 @@ GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits,
     #Initialize GEBV object for each cycle
     GEBVs_cycle <-list()
 
-    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
+    if(!is.null(session)) updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
 
     for (fold in 1:folds) {
 
@@ -376,7 +376,7 @@ format_geno_matrix <- function(geno, model, pred_matrix = NULL, ploidy){
 
 run_predictive_model <- function(geno, pheno, selected_traits, predictive_model, relationship_matrix_type, pedigree,
                                  fixed_effects, categorical_fixed_effects, ploidy, cores, cycles, folds, relationship_matrix = NULL,
-                                 session){
+                                 session = NULL){
 
   if(predictive_model == "rrBLUP"){
     results <- rrBLUP_genomic_prediction(geno = geno,
