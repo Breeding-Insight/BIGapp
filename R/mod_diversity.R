@@ -158,17 +158,12 @@ mod_diversity_server <- function(input, output, session, parent_session){
       #Status
       updateProgressBar(session = session, id = "pb_diversity", value = 40, title = "Converting to Numeric")
 
-      #Get the genotype values if the updog dosage calls are present
-      if ("UD" %in% info_ids) {
-        geno_mat <- extract.gt(vcf, element = "UD")
-        class(geno_mat) <- "numeric"
-        rm(vcf) #Remove vcf
-      }else{
-        #Extract GT and convert to numeric calls
-        geno_mat <- extract.gt(vcf, element = "GT")
-        geno_mat <- apply(geno_mat, 2, convert_to_dosage)
-        rm(vcf) #Remove VCF
-      }
+      #Get the genotype values and convert to numeric format
+      #Extract GT and convert to numeric calls
+      geno_mat <- extract.gt(vcf, element = "GT")
+      geno_mat <- apply(geno_mat, 2, convert_to_dosage)
+      rm(vcf) #Remove VCF
+    
 
       print(class(geno_mat))
       #Convert genotypes to alternate counts if they are the reference allele counts
@@ -199,7 +194,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       geno_mat <- data.frame(convert_genotype_counts(df = geno_mat, ploidy = ploidy, is_reference),
                              check.names = FALSE)
 
-      # Calculating heterozygosity for a tetraploid organism
+      # Calculating heterozygosity
       diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
 
       print("Heterozygosity success")
