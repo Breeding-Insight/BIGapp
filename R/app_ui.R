@@ -15,10 +15,30 @@ app_ui <- function(request) {
     # Your application UI logic
     bs4DashPage(
       skin = "black",
-      bs4DashNavbar(title = tagList(
-        tags$img(src = 'www/BIG_R_logo.png', height = '40', width = '50'),
-      )
+      bs4DashNavbar(
+        title = tagList(
+          tags$img(src = 'www/BIG_R_logo.png', height = '40', width = '50'),
+        ),
+        rightUi = tags$li(
+          class = "dropdown",
+          tags$a(
+            href = "#",
+            class = "nav-link",
+            `data-toggle` = "dropdown",
+            icon("info-circle")
+          ),
+          tags$div(
+            class = "dropdown-menu dropdown-menu-right",
+            tags$a(
+              class = "dropdown-item",
+              href = "#",
+              "Session Info",
+              onclick = "Shiny.setInputValue('session_info_button', Math.random())"
+            )
+          )
+        )
       ),
+      help = NULL, #This is the default bs4Dash button to control the presence of tooltips and popovers, which can be added as a user help/info feature.
       bs4DashSidebar(
         skin="light", status = "info",
         sidebarMenu(id = "MainMenu",
