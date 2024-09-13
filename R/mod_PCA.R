@@ -36,6 +36,7 @@ mod_PCA_ui <- function(id){
                      "You can download examples of the expected files here: \n",
                      downloadButton(ns('download_vcf'), "Download VCF Example File"),
                      downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                     actionButton(ns("pca_summary"), "Summary"),
                      circle = FALSE,
                      status = "warning",
                      icon = icon("info"), width = "300px",
@@ -80,7 +81,6 @@ mod_PCA_ui <- function(id){
                  sliderInput(inputId = ns('pca_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
                  sliderInput(inputId = ns('pca_image_height'), label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
                  downloadButton(ns("download_pca"), "Save Image"),
-                 downloadButton(ns("download_pca_summary"), "Save Summary"),
                  circle = FALSE,
                  status = "danger",
                  icon = icon("floppy-disk"), width = "300px",
@@ -312,50 +312,12 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     #End of PCA section
   })
+  
 
   ##2D PCA plotting
   pca_2d <- reactive({
     validate(
       need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
-    )
-    
-    output$download_pca_summary <- downloadHandler(
-      filename = function() {
-        paste("pca-summary-", Sys.Date(), ".txt", sep = "")
-      },
-      
-      content = function(file) {
-        pca_param <- c(
-          "BIGapp PCA Summary",
-          " ",
-          paste0("Date: ", Sys.Date()),
-          " ",
-          version$version.string,
-          " ",
-          "### Input Files ###",
-          "",
-          paste("Input Genotype File:", input$dosage_file$name, sep = " "),
-          paste("Input Passport File:", input$passport_file$name, sep = " "),
-          "",
-          "### User Selected Parameters ###",
-          "",
-          paste("Selected Ploidy:", as.character(input$pca_ploidy), sep = " "),
-          "",
-          "### R Packages Used ###",
-          "",
-          paste("BIGapp:",packageVersion("BIGapp"),sep=" "),
-          paste("AGHmatrix:",packageVersion("AGHmatrix"), sep = " "),
-          paste("ggplot2:",packageVersion("ggplot2"), sep = " "),
-          paste("plotly:",packageVersion("plotly"), sep = " "),
-          paste("factoextra:",packageVersion("factoextra"), sep = " "),
-          paste("RColorBrewer:",packageVersion("RColorBrewer"), sep= " ")
-        )
-        
-        #sink(file)  # Open sink with the provided file path
-        #cat(pca_param, sep = "\n")  # Print the pca_param vector with newlines between entries
-        #sink()  # Close the sink
-        writeLines(pca_param, con = file)
-      }
     )
     
 
@@ -486,6 +448,70 @@ mod_PCA_server <- function(input, output, session, parent_session){
   output$scree_plot <- renderPlot({
     pca_scree()
   })
+  
+  ##Summary Info
+  pca_summary_info <- function() {
+    # Handle possible NULL values for inputs
+    dosage_file_name <- if (!is.null(input$dosage_file$name)) input$dosage_file$name else "No file selected"
+    passport_file_name <- if (!is.null(input$passport_file$name)) input$passport_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$pca_ploidy)) as.character(input$pca_ploidy) else "Not selected"
+    
+    # Print the summary information
+    cat(
+      "BIGapp PCA Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", dosage_file_name), "\n",
+      paste("Input Passport File:", passport_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("AGHmatrix:", packageVersion("AGHmatrix")), "\n",
+      paste("ggplot2:", packageVersion("ggplot2")), "\n",
+      paste("plotly:", packageVersion("plotly")), "\n",
+      paste("factoextra:", packageVersion("factoextra")), "\n",
+      paste("RColorBrewer:", packageVersion("RColorBrewer")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$pca_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_pca_info", "Download")
+      ),
+      pre(
+        paste(capture.output(pca_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_pca_info <- downloadHandler(
+    filename = function() {
+      paste("PCA_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(pca_summary_info()), collapse = "\n"), file)
+    }
+  )
+  
 
   #Download figures for PCA
   output$download_pca <- downloadHandler(
