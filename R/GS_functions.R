@@ -9,7 +9,7 @@
 #' @param iters ToDo
 #' @param cores ToDo
 #'
-rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL, fixed_cat = NULL,folds = 5, iters = 5, cores = 1) {
+rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL, fixed_cat = NULL,folds = 5, iters = 5, cores = 1, session) {
 
   # Define variables
   cycles <- as.numeric(iters)
@@ -82,7 +82,13 @@ rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL,
     #Initialize GEBV object for each cycle
     GEBVs_cycle <-list()
 
+    #Status
+    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
+
     for (fold in 1:folds) {
+
+      #Status bar length
+      pb_value = pb_value + (70 / as.numeric(cycles*folds))
 
       train <- fold_df %>%
         dplyr::filter(FoldID != fold) %>%
@@ -239,11 +245,12 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
 #'
 #' @param fixed_cat categorical fixed effect
 #'
-GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits, cores, fixed_cov = NULL, fixed_cat = NULL){
+GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits, cores, fixed_cov = NULL, fixed_cat = NULL, session){
 
   # Establish accuracy results matrix
   results <- matrix(nrow = cycles*folds, ncol = length(traits) + 2)
   colnames(results) <- c(paste0(traits), "Iter", "Fold")  # Set the column names to be the traits
+  pb_value <- 10
 
   # Initialize a list to store GEBVs for all traits and cycles
   GEBVs <- list()
@@ -264,7 +271,12 @@ GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits,
     #Initialize GEBV object for each cycle
     GEBVs_cycle <-list()
 
+    updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), title = paste0("Performing iteration:", r, "of", cycles))
+
     for (fold in 1:folds) {
+
+      #Status bar length
+      pb_value = pb_value + (70 / as.numeric(cycles*folds))
 
       #Subset training and testing samples
       train <- fold_df %>%
@@ -363,7 +375,8 @@ format_geno_matrix <- function(geno, model, pred_matrix = NULL, ploidy){
 }
 
 run_predictive_model <- function(geno, pheno, selected_traits, predictive_model, relationship_matrix_type, pedigree,
-                                 fixed_effects, categorical_fixed_effects, ploidy, cores, cycles, folds, relationship_matrix = NULL){
+                                 fixed_effects, categorical_fixed_effects, ploidy, cores, cycles, folds, relationship_matrix = NULL,
+                                 session){
 
   if(predictive_model == "rrBLUP"){
     results <- rrBLUP_genomic_prediction(geno = geno,
@@ -371,7 +384,8 @@ run_predictive_model <- function(geno, pheno, selected_traits, predictive_model,
                                          traits = selected_traits,
                                          fixed_effects = fixed_effects,
                                          iters = cycles,
-                                         cores = cores)
+                                         cores = cores,
+                                         session = session)
     return(results)
   } else if(predictive_model == "GBLUP"){
     fixed_cov <- if (is.null(fixed_effects) || length(fixed_effects) == length(categorical_fixed_effects)) {
@@ -395,7 +409,8 @@ run_predictive_model <- function(geno, pheno, selected_traits, predictive_model,
                                         traits = selected_traits,
                                         cores = cores,
                                         fixed_cov = fixed_cov,
-                                        fixed_cat = categorical_fixed_effects)
+                                        fixed_cat = categorical_fixed_effects,
+                                        session = session)
     return(results)
   }
 }

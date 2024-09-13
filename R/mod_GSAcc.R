@@ -222,11 +222,12 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
   })
 
   colors <- reactiveValues(colors = NULL)
+  values_boxes <- reactiveValues(pred_snps = 0, pred_geno_pheno = 0)
 
   #Reactive boxes
   output$pred_snps <- renderValueBox({
     valueBox(
-      value = pred_inputs()$pred_snps,
+      value = values_boxes$pred_snps,
       subtitle = "SNPs in Genotype File",
       icon = icon("dna"),
       color = "info"
@@ -235,7 +236,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   output$pred_geno <- renderValueBox({
     valueBox(
-      value = pred_inputs()$pred_geno_pheno,
+      value = values_boxes$pred_geno_pheno,
       subtitle = "Samples with Phenotype Information",
       icon = icon("location-dot"),
       color = "info"
@@ -313,9 +314,6 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     pred_inputs <- list(
       pheno_input = NULL,
       geno_input = NULL,
-      pred_snps = NULL,
-      pred_genos = NULL,
-      pred_geno_pheno = NULL,
       ped_input = NULL
     )
 
@@ -324,10 +322,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     if(!is.null(input$pred_file$datapath)){
       geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT")
       geno <- geno_snps[[1]]
-      pred_inputs$pred_snps <- geno_snps[[2]]
-
-      #Save number of samples in file
-      pred_inputs$pred_genos <- ncol(geno)
+      values_boxes$pred_snps <- geno_snps[[2]]
 
       #Check that the ploidy entered is correct
       if (input$pred_ploidy != max(geno, na.rm = TRUE)) {
@@ -361,7 +356,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       # Find common identifiers
       common_ids <- intersect(colnames_geno, ids_pheno)
       #Get number of id
-      pred_inputs$pred_geno_pheno <- length(common_ids)
+      values_boxes$pred_geno_pheno <- length(common_ids)
 
       #Throw an error if there are less matching samples in the phenotype file than the genotype file
       if (length(common_ids) == 0) {
@@ -550,7 +545,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     } else extended_ped <- NULL
 
     #Status
-    updateProgressBar(session = session, id = "pb_prediction", value = 20, title = "Inputs checked!")
+    updateProgressBar(session = session, id = "pb_prediction", value = 8, title = "Inputs checked!")
 
     ## Make ouput as checked inputs pred_inputs
     pred_inputs$pheno_input <- pheno
@@ -567,7 +562,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     } else geno_formated <- NULL
 
     #Status
-    updateProgressBar(session = session, id = "pb_prediction", value = 30, title = paste("Genotype matrix formatted for", advanced_options$pred_model, advanced_options$pred_matrix))
+    updateProgressBar(session = session, id = "pb_prediction", value = 10, title = paste("Genotype matrix formatted for", advanced_options$pred_model, advanced_options$pred_matrix))
 
     results <- run_predictive_model(geno = geno_formated,
                                     pheno = pred_inputs()$pheno_input,
@@ -580,9 +575,9 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
                                     ploidy = input$pred_ploidy,
                                     cores = input$pred_cores,
                                     cycles = input$pred_cv,
-                                    folds = 5)
+                                    folds = 5, session = session)
 
-    updateProgressBar(session = session, id = "pb_prediction", value = 70, title = "Cross validation concluded")
+    updateProgressBar(session = session, id = "pb_prediction", value = 90, title = "Cross validation concluded")
 
     #Save to reactive value
     pred_outputs <- list(corr_output = NULL, comb_output = NULL, all_GEBVs = NULL, avg_GEBVs = NULL)
