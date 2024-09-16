@@ -462,7 +462,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         if (length(common_ped) < length(ids_pheno)){
           shinyalert(
             title = "Data Mismatch",
-            text = paste0((length(ids_pheno)-length(common_ped))," samples were removed from the phenotype data for not having pedigree information"),
+            text = paste0((length(pheno[,1])-length(common_ped))," samples were removed from the phenotype data for not having pedigree information"),
             size = "xs",
             closeOnEsc = FALSE,
             closeOnClickOutside = FALSE,
@@ -477,8 +477,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
             imageUrl = "",
             animation = TRUE
           )
-          pheno <- pheno[-which(!pheno$Sample_ID %in% extended_ped$Ind),]
-          if(!is.null(geno_adj)) geno_adj <- geno_adj[,-which(!colnames(geno_adj) %in% extended_ped$Ind)]
+          if(length(which(!pheno[,1] %in% extended_ped$Ind)) > 0) pheno <- pheno[-which(!pheno[,1] %in% extended_ped$Ind),]
+          if(!is.null(geno_adj) & length(which(!colnames(geno_adj) %in% extended_ped$Ind)) > 0) geno_adj <- geno_adj[,-which(!colnames(geno_adj) %in% extended_ped$Ind)]
         }
         if (length(ped$Ind) > length(extended_ped$Ind))
           shinyalert(
