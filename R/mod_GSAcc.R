@@ -142,6 +142,11 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     ped_file = NULL
   )
 
+  pred_outputs <- reactiveValues(corr_output = NULL,
+                                 comb_output = NULL,
+                                 all_GEBVs = NULL,
+                                 avg_GEBVs = NULL)
+
   #List the ped file name if previously uploaded
   output$uploaded_file_name <- renderText({
     if (!is.null(advanced_options$ped_file)) {
@@ -552,7 +557,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     pred_inputs
   })
 
-  pred_outputs <- eventReactive(pred_inputs(), {
+  observeEvent(pred_inputs(),{
 
     # Convert genotype matrix according to ploidy and model used
     if(!is.null(pred_inputs()$geno_input)){
@@ -578,7 +583,6 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     updateProgressBar(session = session, id = "pb_prediction", value = 90, title = "Cross validation concluded")
 
     #Save to reactive value
-    pred_outputs <- list(corr_output = NULL, comb_output = NULL, all_GEBVs = NULL, avg_GEBVs = NULL)
     pred_outputs$corr_output <- results$PredictionAccuracy
     pred_outputs$all_GEBVs <- results$GEBVs
 
@@ -602,15 +606,16 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     #Status
     updateProgressBar(session = session, id = "pb_prediction", value = 100, title = "Finished!")
 
-    pred_outputs
+    #pred_outputs
   })
 
   plots <- reactive({
+
     validate(
-      need(!is.null(pred_outputs()$corr_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      need(!is.null(pred_outputs$corr_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
     )
 
-    df <- pred_outputs()$corr_output
+    df <- pred_outputs$corr_output
     df <- df %>% dplyr::select(-Fold, -Iter)
 
     #Probably want to add the ability for the user to select which trait(s) to display here
@@ -676,18 +681,18 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   all_GEBVs <- reactive({
     validate(
-      need(!is.null(pred_outputs()$all_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      need(!is.null(pred_outputs$all_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
     )
-    pred_outputs()$comb_output
+    pred_outputs$comb_output
   })
 
   output$pred_all_table <- renderDT({all_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
   comb_output <- reactive({
     validate(
-      need(!is.null(pred_outputs()$comb_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+      need(!is.null(pred_outputs$comb_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
     )
-    pred_outputs()$comb_output
+    pred_outputs$comb_output
   })
 
   output$pred_acc_table <- renderDT({comb_output()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
@@ -702,10 +707,10 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       temp_dir <- tempdir()
       temp_files <- c()
 
-      if (!is.null(pred_outputs()$comb_output)) {
+      if (!is.null(pred_outputs$comb_output)) {
         # Create a temporary file for BIC data frame
         acc_file <- file.path(temp_dir, paste0("GS-accuracy-statistics-", Sys.Date(), ".csv"))
-        write.csv(pred_outputs()$comb_output, acc_file, row.names = FALSE)
+        write.csv(pred_outputs$comb_output, acc_file, row.names = FALSE)
         temp_files <- c(temp_files, acc_file)
       }
 
