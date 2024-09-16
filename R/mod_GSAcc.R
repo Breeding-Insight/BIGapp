@@ -80,9 +80,7 @@ mod_GSAcc_ui <- function(id){
                bs4Dash::tabsetPanel(
                  tabPanel("Violin Plot", plotOutput(ns("pred_violin_plot"), height = "500px")),
                  tabPanel("Box Plot", plotOutput(ns("pred_box_plot"), height = "500px")),
-                 tabPanel("Accuracy Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px"),
-                 tabPanel("GEBVs Table", DTOutput(ns("pred_gebvs_table")),style = "overflow-y: auto; height: 500px")
-
+                 tabPanel("Accuracy Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px")
                )
 
              )
@@ -694,15 +692,6 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   output$pred_acc_table <- renderDT({comb_output()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
 
-  avg_GEBVs <- reactive({
-    validate(
-      need(!is.null(pred_outputs()$avg_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
-    )
-    pred_outputs()$avg_GEBVs
-  })
-
-  output$pred_gebvs_table <- renderDT({avg_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-
   #Download files for GP
   output$download_pred_file <- downloadHandler(
     filename = function() {
@@ -712,13 +701,6 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       # Temporary files list
       temp_dir <- tempdir()
       temp_files <- c()
-
-      if (!is.null(pred_outputs()$avg_GEBVs)) {
-        # Create a temporary file for assignments
-        gebv_file <- file.path(temp_dir, paste0("GEBVs-", Sys.Date(), ".csv"))
-        write.csv(pred_outputs()$avg_GEBVs, gebv_file, row.names = FALSE)
-        temp_files <- c(temp_files, gebv_file)
-      }
 
       if (!is.null(pred_outputs()$comb_output)) {
         # Create a temporary file for BIC data frame
