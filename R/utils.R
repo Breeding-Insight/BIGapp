@@ -296,3 +296,76 @@ split_info_column <- function(info) {
 
   return(info_list)
 }
+
+#' Read geno file
+#'
+#' @param file_path character indicanting path to file
+#' @param requires which information is required from the VCF. Define the FORMAT or INFO letters. Example: c("GT", "DP", "PL")
+#'
+#' @importFrom vcfR read.vcfR
+#' @importFrom shinyalert shinyalert
+#'
+read_geno_file <- function(file_path, requires = c("GT")){
+  if (grepl("\\.csv$", file_path)) {
+    geno <- read.csv(geno_path, header = TRUE, row.names = 1, check.names = FALSE)
+    n_snps <- nrow(geno)
+    return(list(geno, n_snps))
+
+  } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
+
+    #Convert VCF file if submitted
+    vcf <- read.vcfR(file_path, verbose = FALSE)
+
+    all_requires <- vector()
+    for(i in 1:length(requires))  all_requires[i] <- grepl(requires[i], vcf@fix[1,8]) | grepl(requires[i], vcf@gt[1,1])
+
+    if(!all(all_requires)) {
+      shinyalert(
+        title = "Oops",
+        text = paste("The VCF file does not contain required information:", requires[which(!all_requires)]),
+        size = "xs",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "warning",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        imageUrl = "",
+        animation = TRUE,
+      )
+      return()
+    }
+
+    n_snps <- nrow(vcf@gt)
+
+    #Extract GT
+    geno <- extract.gt(vcf, element = "GT")
+    geno <- apply(geno, 2, convert_to_dosage)
+    class(geno) <- "numeric"
+
+    return(list(geno, n_snps))
+  } else {
+    # If condition is met, show notification toast
+    shinyalert(
+      title = "Oops",
+      text = "No valid genotype file detected",
+      size = "xs",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = FALSE,
+      html = TRUE,
+      type = "warning",
+      showConfirmButton = TRUE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#004192",
+      showCancelButton = FALSE,
+      imageUrl = "",
+      animation = TRUE,
+    )
+
+    return()
+  }
+}
+
+
