@@ -47,6 +47,35 @@ mod_DosageCall_ui <- function(id){
           textInput(ns("output_name"), "Output File Name"),
           numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
           selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
+          conditionalPanel(
+            condition = "input.updog_model == 'f1' | input.updog_model == 'f1pp'",
+            ns = ns,
+            tags$div(
+              style = "padding-left: 20px;",  # Add padding/indentation
+              textInput(
+                inputId = ns("parent1"),
+                label = "Enter parent1 ID:",
+                value = NULL
+              ),
+              textInput(
+                inputId = ns("parent2"),
+                label = "Enter parent2 ID:",
+                value = NULL
+              )
+            )
+          ),
+          conditionalPanel(
+            condition = "input.updog_model == 's1' | input.updog_model == 's1pp'",
+            ns = ns,
+            tags$div(
+              style = "padding-left: 20px;",  # Add padding/indentation
+              textInput(
+                inputId = ns("parent"),
+                label = "Enter parent ID:",
+                value = NULL
+              )
+            )
+          ),
           numericInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
           actionButton(ns("run_analysis"), "Run Analysis"),
           useShinyjs(),
@@ -127,7 +156,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     # expand specific box
     updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
   })
-  
+
   # Update dropdown menu choices based on uploaded passport file
   passport_table <- reactive({
     validate(
@@ -135,29 +164,29 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     )
     info_df <- read.csv(input$madc_passport$datapath, header = TRUE, check.names = FALSE)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
-    
+
     updateVirtualSelect("cat_madc", choices = colnames(info_df), session = session)
     info_df
   })
-  
+
   # Server logic to check if passport_table() has data
   output$passportTablePopulated <- reactive({
     !is.null(passport_table()) && nrow(passport_table()) > 0  # Check if the table has rows
   })
   outputOptions(output, "passportTablePopulated", suspendWhenHidden = FALSE)
-  
+
   #MADC specific category selection
   observeEvent(input$cat_madc, {
 
     # Get selected column name
     selected_col <- input$cat_madc
-    
+
     # Extract unique values from the selected column
     unique_values <- unique(passport_table()[[selected_col]])
-    
+
     #Add category selection
     updateVirtualSelect("item_madc", choices = unique_values, session = session)
-    
+
   })
 
   snp_number <- reactiveVal(0)
@@ -175,6 +204,9 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     # Missing input with red border and alerts
     toggleClass(id = "ploidy", class = "borderred", condition = (is.na(input$ploidy) | is.null(input$ploidy)))
     toggleClass(id = "output_name", class = "borderred", condition = (is.na(input$output_name) | is.null(input$output_name) | input$output_name == ""))
+    toggleClass(id = "parent", class = "borderred", condition = ((input$updog_model == "s1" | input$updog_model == "s1pp") & (is.null(input$parent) | input$parent == "")))
+    toggleClass(id = "parent1", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent1) | input$parent1 == "")))
+    toggleClass(id = "parent2", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent2) | input$parent2 == "")))
 
     if (is.null(input$madc_file$datapath)) {
       shinyalert(
@@ -199,7 +231,6 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     output_name <- input$output_name
     ploidy <- input$ploidy
     cores <- input$cores
-    model_select <- input$updog_model
 
     # Status
     updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
@@ -265,20 +296,20 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
       }
     }
-    
+
     #Subset samples from the matrices if the user selected items in the passport file
     if (!is.null(input$item_madc) && length(input$item_madc) > 0){
-      
+
       #First getting the samples that are both in the passport and the MADC/VCF file
       #**Assuming the first column of the passport table is the sample IDs
       shared_samples <- intersect(passport_table()[[1]], colnames(matrices$ref_matrix))
-      
+
       # Filter the passport dataframe
       filtered_shared_samples <- passport_table() %>%
-        filter(passport_table()[[1]] %in% shared_samples, 
+        filter(passport_table()[[1]] %in% shared_samples,
                passport_table()[[input$cat_madc]] %in% input$item_madc) %>%
         pull(1)
-      
+
       #Give warning if no samples were subset
       if (length(filtered_shared_samples) < 1) {
         shinyalert(
@@ -295,25 +326,53 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           showCancelButton = FALSE,
           animation = TRUE
         )
-        
+
         return()
       }
-      
+
       #Subset the matrices
       matrices$ref_matrix <- matrices$ref_matrix[, filtered_shared_samples]
       matrices$size_matrix <- matrices$size_matrix[, filtered_shared_samples]
-      
+
+    }
+
+    # Select parents
+    if(input$updog_model == "s1" | input$updog_model == "s1pp"){
+      parents <- c(input$parent, NULL)
+    } else if(input$updog_model == "f1" | input$updog_model == "f1pp"){
+      parents <- c(input$parent1, input$parent2)
+    } else {
+      parents <- c(NULL, NULL)
+    }
+
+    if (!all(parents %in% colnames(matrices$size_matrix))) {
+      shinyalert(
+        title = "Data Warning!",
+        text = "Parent(s) not found. Check the genotype input file parent(s) ID, make sure they match with the input parent(s) ID.",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+
+      return()
     }
 
     #Run Updog
-    #I initially used the "norm" model
     #I am also taking the ploidy from the max value in the
     updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
-    print('Performing Updog dosage calling')
     mout <- multidog(refmat = matrices$ref_matrix,
                      sizemat = matrices$size_matrix,
                      ploidy = as.numeric(ploidy),
-                     model = model_select,
+                     p1_id = parents[1],
+                     p2_id = if(is.na(parents[2])) NULL else parents[2],
+                     model = input$updog_model,
                      nc = cores)
     #Status
     updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")

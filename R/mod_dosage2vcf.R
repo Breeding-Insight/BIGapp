@@ -125,6 +125,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     }
     req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
 
+    updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Input files evaluated.")
+
     dosage_file_df <- read.csv(input$report_file$datapath)
     snp_number <- length(dosage_file_df$X.[-c(1:7)])
 
@@ -134,6 +136,9 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     })
 
     enable("download_d2vcf")
+
+    updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Click in Download to continue.")
+
   })
 
   output$download_dose <- downloadHandler(
@@ -172,7 +177,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       temp_base <- tempfile()
 
       #Status
-      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Converting DArT files to VCF")
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting DArT files to VCF")
 
       # Convert to VCF using the BIGr package
       cat("Running BIGr::dosage2vcf...\n")
@@ -185,6 +190,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
       # The output file should be temp_base.vcf
       output_name <- paste0(temp_base, ".vcf")
+
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writting vcf.")
 
       # Check if the VCF file was created
       if (file.exists(output_name)) {
