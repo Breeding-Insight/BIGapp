@@ -20,6 +20,30 @@ mod_DosageCall_ui <- function(id){
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
           fileInput(ns("madc_file"), "Choose MADC or VCF File", accept = c(".csv",".vcf",".gz")),
+          fileInput(ns("madc_passport"), "Choose Passport File (optional)", accept = c(".csv")),
+          conditionalPanel(
+            condition = "output.passportTablePopulated",
+            ns = ns,
+            tags$div(
+              style = "padding-left: 20px;",  # Add padding/indentation
+              virtualSelectInput(
+                inputId = ns("cat_madc"),
+                label = "Select Category Subset:",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = FALSE
+              ),
+              virtualSelectInput(
+                inputId = ns("item_madc"),
+                label = "Select Subset Values:",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = TRUE
+              )
+            )
+          ),
           textInput(ns("output_name"), "Output File Name"),
           numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
           selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
@@ -60,6 +84,7 @@ mod_DosageCall_ui <- function(id){
 #' @import updog
 #' @importFrom BIGr updog2vcf
 #' @importFrom shinyjs enable disable
+#' @import dplyr
 #'
 #' @noRd
 mod_DosageCall_server <- function(input, output, session, parent_session){
@@ -101,6 +126,38 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                       selected = "Updog_Dosage_Calling_cite")
     # expand specific box
     updateBox(id = "Updog_Dosage_Calling_box", action = "toggle", session = parent_session)
+  })
+  
+  # Update dropdown menu choices based on uploaded passport file
+  passport_table <- reactive({
+    validate(
+      need(!is.null(input$madc_passport), "Upload passport file to access results in this section."),
+    )
+    info_df <- read.csv(input$madc_passport$datapath, header = TRUE, check.names = FALSE)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
+    
+    updateVirtualSelect("cat_madc", choices = colnames(info_df), session = session)
+    info_df
+  })
+  
+  # Server logic to check if passport_table() has data
+  output$passportTablePopulated <- reactive({
+    !is.null(passport_table()) && nrow(passport_table()) > 0  # Check if the table has rows
+  })
+  outputOptions(output, "passportTablePopulated", suspendWhenHidden = FALSE)
+  
+  #MADC specific category selection
+  observeEvent(input$cat_madc, {
+
+    # Get selected column name
+    selected_col <- input$cat_madc
+    
+    # Extract unique values from the selected column
+    unique_values <- unique(passport_table()[[selected_col]])
+    
+    #Add category selection
+    updateVirtualSelect("item_madc", choices = unique_values, session = session)
+    
   })
 
   snp_number <- reactiveVal(0)
@@ -207,6 +264,45 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         ##Add user warning about read depth and allele read depth not found
         stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
       }
+    }
+    
+    #Subset samples from the matrices if the user selected items in the passport file
+    if (!is.null(input$item_madc) && length(input$item_madc) > 0){
+      
+      #First getting the samples that are both in the passport and the MADC/VCF file
+      #**Assuming the first column of the passport table is the sample IDs
+      shared_samples <- intersect(passport_table()[[1]], colnames(matrices$ref_matrix))
+      
+      # Filter the passport dataframe
+      filtered_shared_samples <- passport_table() %>%
+        filter(passport_table()[[1]] %in% shared_samples, 
+               passport_table()[[input$cat_madc]] %in% input$item_madc) %>%
+        pull(1)
+      
+      #Give warning if no samples were subset
+      if (length(filtered_shared_samples) < 1) {
+        shinyalert(
+          title = "Data Warning!",
+          text = "No samples remain after subsetting options",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+        
+        return()
+      }
+      
+      #Subset the matrices
+      matrices$ref_matrix <- matrices$ref_matrix[, filtered_shared_samples]
+      matrices$size_matrix <- matrices$size_matrix[, filtered_shared_samples]
+      
     }
 
     #Run Updog
