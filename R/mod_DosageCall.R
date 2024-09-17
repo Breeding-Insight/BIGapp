@@ -86,7 +86,7 @@ mod_DosageCall_ui <- function(id){
             p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
             p(downloadButton(ns('download_madc'),""), "MADC Example File"), hr(),
             p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>Updog tutorial:</b>"), actionButton(ns("goUpdog"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://dcgerard.github.io/updog/', '_blank')" )),
             circle = FALSE,
