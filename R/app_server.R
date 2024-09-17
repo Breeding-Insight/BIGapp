@@ -35,9 +35,9 @@ app_server <- function(input, output, session) {
   callModule(mod_GS_server,
              "GS_1",
              parent_session = session)
-  #callModule(mod_GSAcc_server,
-  #           "GSAcc_1",
-  #           parent_session = session)
+  callModule(mod_GSAcc_server,
+            "GSAcc_1",
+            parent_session = session)
   callModule(mod_slurm_server,
              "slurm_1",
              parent_session = session)
@@ -50,9 +50,9 @@ app_server <- function(input, output, session) {
   # mod_gwas_server("gwas_1")
   # mod_diversity_server("diversity_1")
   # mod_GS_server("GS_1")
-  mod_GSAcc_server("GSAcc_1")
+  # mod_GSAcc_server("GSAcc_1")
   # mod_slurm_server("slurm_1")
-  
+
   #Session info popup
   observeEvent(input$session_info_button, {
     showModal(modalDialog(
@@ -68,7 +68,7 @@ app_server <- function(input, output, session) {
       )
     ))
   })
-  
+
   #Download Session Info
   output$download_session_info <- downloadHandler(
     filename = function() {
@@ -78,5 +78,5 @@ app_server <- function(input, output, session) {
       writeLines(paste(capture.output(sessionInfo()), collapse = "\n"), file)
     }
   )
-  
+
 }

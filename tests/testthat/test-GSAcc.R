@@ -496,13 +496,15 @@ test_that("test Predictive Ability iris",{
 #   # Inputs
 #   input <- list()
 #
-#   input$trait_file$datapath <- "BIG_pheno2.csv"
+#   #input$trait_file$datapath <- "BIG_pheno2.csv"
+#   input$trait_file$datapath <- "BIG_phenos.csv"
 #   input$pred_file$datapath <- "BIG_genos.vcf"
-#   input$ped_file$datapath <- "sealice_ped.csv"
+#   #input$ped_file$datapath <- "sealice_ped.csv"
+#   input$ped_file$datapath <- "BIG_ped.csv"
 #
 #   input$pred_color_select <- "red"
 #   input$pred_ploidy <- 2
-#   input$pred_trait_info <- "Pheno3"
+#   input$pred_trait_info <- "licedensity"
 #   input$pred_cv <- 5
 #   input$pred_fixed_info <- NULL
 #   input$pred_fixed_cat <- NULL
@@ -599,10 +601,10 @@ test_that("test Predictive Ability iris",{
 #       gen <- rm_unr[[2]]
 #       cat(paste0("You have pedigree information until the ", gen,"th generation\n"))
 #
-#       if (length(common_ped) < length(ids_pheno)){
-#         warning(paste0((length(ids_pheno)-length(common_ped))," samples were removed from the phenotype data for not having pedigree information"))
-#         pheno <- pheno[-which(!pheno$Sample_ID %in% extended_ped$Ind),]
-#         geno_adj <- geno_adj[,-which(!colnames(geno_adj) %in% extended_ped$Ind)]
+#       if (length(common_ped) < length(pheno[,1])){
+#         warning(paste0((length(pheno[,1])-length(common_ped))," samples were removed from the phenotype data for not having pedigree information"))
+#         if(length(which(!pheno[,1] %in% extended_ped$Ind)) > 0) pheno <- pheno[-which(!pheno[,1] %in% extended_ped$Ind),]
+#         if(length(which(!colnames(geno_adj) %in% extended_ped$Ind)) > 0) geno_adj <- geno_adj[,-which(!colnames(geno_adj) %in% extended_ped$Ind)]
 #       }
 #       if (length(ped$Ind) > length(extended_ped$Ind))
 #         warning(paste0((length(ped$Ind)-length(extended_ped$Ind))," samples in the pedigree file were unrelated to the samples with phenotype information. They were removed from the analysis.")) # samples not removed
@@ -670,8 +672,8 @@ test_that("test Predictive Ability iris",{
 #
 #   # Checks
 #   expect_equal(mean(pred_outputs_rrBLUP$corr_output[,1]), 0.1848, tolerance = 0.01)
-#   expect_equal(mean(pred_outputs_rrBLUP$comb_output[,2]$Pheno3), 0.1848, tolerance = 0.01)
-#   expect_equal(sum(pred_outputs_rrBLUP$avg_GEBVs[,2]$Pheno3), 19.378, tolerance = 0.01)
+#   expect_equal(mean(pred_outputs_rrBLUP$comb_output[,2]$licedensity), 0.1848, tolerance = 0.01)
+#   expect_equal(sum(pred_outputs_rrBLUP$avg_GEBVs[,2]$licedensity), 19.378, tolerance = 0.01)
 #   expect_equal(sum(as.numeric(pred_outputs_rrBLUP$all_GEBVs[,1])), 96.89, tolerance = 0.1)
 #   #########
 #
