@@ -210,7 +210,6 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
   )
 
   vcf_result <- read.vcfR(paste0(output_name,".vcf.gz"))
-  colnames(vcf_result@gt)
 
   DP <- sum(as.numeric(extract.gt(vcf_result, "DP")))
   expect_equal(DP, 23618990)
