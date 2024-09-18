@@ -4,3 +4,13 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **BIGapp**
+ 
+ 
+* **Updog package**
+ 
+Gerard, D., Ferrão, L. F. V., Garcia, A. A. F., & Stephens, M. (2018). Genotyping Polyploids from Messy Sequencing Data. Genetics, 210(3), 789-807. doi: 10.1534/genetics.118.301468. 
+ 
+If you used the “norm” model cite also: 
+ 
+Gerard D, Ferrão L (2020). “Priors for Genotyping Polyploids.” Bioinformatics, 36(6), 1795-1800. ISSN 1367-4803, doi: 10.1093/bioinformatics/btz852. 

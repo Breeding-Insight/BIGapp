@@ -28,16 +28,16 @@ mod_help_ui <- function(id){
                                       ))
              ),
              box(title="Updog Dosage Calling", id = "Updog_Dosage_Calling_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
-                 "**Draft**This tab is designed to handle the process of dosage calling in genomic data. Dosage calling is essential for determining the number of copies of a particular allele at each genomic location. The app likely includes functionalities to upload raw genomic data, apply various filtering criteria, and generate plots to visualize the distribution of dosages. Users can examine histograms for SNP max post probabilities and read depths, which help in assessing the quality and accuracy of the dosage calls.**Updog**",
+                 "This tab is designed to handle the process of dosage calling in genomic data. Dosage calling is essential for determining the number of copies of a particular allele at each genomic location.",
                  br(), br(),
                  bs4Dash::tabsetPanel(id = "Updog_Dosage_Calling_tabset",
-                                      tabPanel("Parameters description", value = "Updog_Dosage_Calling_par",
+                                      tabPanel("Parameters description", value = "Updog_Dosage_Calling_par", br(),
                                                includeMarkdown(system.file("help_files/Updog_Dosage_Calling_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "Updog_Dosage_Calling_results",
+                                      tabPanel("Results description", value = "Updog_Dosage_Calling_results", br(),
                                                includeMarkdown(system.file("help_files/Updog_Dosage_Calling_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "Updog_Dosage_Calling_cite",
+                                      tabPanel("How to cite", value = "Updog_Dosage_Calling_cite", br(),
                                                includeMarkdown(system.file("help_files/Updog_Dosage_Calling_cite.Rmd", package = "BIGapp"))
                                       ))
              ),

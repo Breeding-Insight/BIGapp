@@ -4,11 +4,47 @@ output: html_document
 date: "2024-08-29"
 ---
 
-:hammer: Under development
+* **MADC or VCF file** 
+ 
+  * **MADC file**: 
+ 
+  * **VCF file**: 
+Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is required for the analysis in this tab. For more details about the VCF format, see this document: https://samtools.github.io/hts-specs/VCFv4.2.pdf. 
+ 
+* **Passport File**: A comma-separated values (CSV) file containing individual names (Sample_ID) in the first column and phenotype values in the subsequent columns. The phenotype column names should correspond to the phenotype ID. 
 
-About Population Models:
-Model: What form should the prior (genotype distribution) take?
-The following information is from the Updog manual:
-Possible values of the genotype distribution (values of model) are: 
-`norm` A distribution whose genotype frequencies are proportional to the density value of a normal with some mean and some standard deviation. Unlike the `bb` and `hw` options, this will allow for distributions both more and less dispersed than a binomial. This seems to be the  most robust to violations in modeling assumptions, and so is the default. This prior class was developed in Gerard and Ferrao (2020). `hw` A binomial distribution that results from assuming that the population is in Hardy-Weinberg equilibrium (HWE). This actually does pretty well even when there are minor to moderate deviations from HWE. Though it does not perform as well as the `norm` option when there are severe deviations from HWE. `bb` A beta-binomial distribution. This is an overdispersed version of `hw` and can be derived from a special case of the Balding-Nichols model. `s1` This prior assumes the individuals are all full-siblings resulting from one generation of selfing. I.e. there is only one parent. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing.
-`f1` This prior assumes the individuals are all full-siblings resulting from one generation of a bi-parental cross. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing. `f1pp` This prior allows for double reduction and preferential pairing in an F1 population of tretraploids. `s1pp` This prior allows for double reduction and preferential pairing in an S1 population of tretraploids.  `flex` Generically any categorical distribution. Theoretically, this works well if you have a lot of individuals. In practice, it seems to be much less robust to violations in modeling assumptions.`uniform` A discrete uniform distribution. This should never be used in practice.",
+  * **Select Category Subset**: After loading the passport file, this option will be available. You can select the column name to base the subsetting for the samples 
+  
+  * **Select Category Values**: Select the value within the select column that should be kept for the analysis. For example, selecting column “Species” from the example bellow, and selecting only “setosa” as value, the “Sample_1” will be removed from the analysis. 
+
+<center>
+
+|Sample_ID | Sepal.Length| Sepal.Width| Petal.Length| Petal.Width|Species |
+|:---------:|:------------:|:-----------:|:------------:|:-----------:|:-------:|
+|Sample_1  |          5.1|         3.5|          1.4|         0.2|versicolor   |
+|Sample_2  |          4.9|         3.0|          1.4|         0.2|setosa  |
+|Sample_3  |          4.7|         3.2|          1.3|         0.2|setosa  |
+|Sample_4  |          4.6|         3.1|          1.5|         0.2|setosa  |
+|Sample_5  |          5.0|         3.6|          1.4|         0.2|setosa  |
+|Sample_6  |          5.4|         3.9|          1.7|         0.4|setosa  |
+
+</center>
+
+&nbsp;
+ 
+* **Output File Name**: Define output VCF file name 
+
+* **Species Ploidy**: Specifies the ploidy level of the species. The current analysis supports both diploids and autopolyploids. 
+ 
+* **Updog Model**: Select the model to be applied.
+
+The following information is from the Updog manual. Possible values of the genotype distribution (values of model) are:  
+ 
+`norm` A distribution whose genotype frequencies are proportional to the density value of a normal with some mean and some standard deviation. Unlike the `bb` and `hw` options, this will allow for distributions both more and less dispersed than a binomial. This seems to be the  most robust to violations in modeling assumptions, and so is the default. This prior class was developed in Gerard and Ferrao (2020). `hw` A binomial distribution that results from assuming that the population is in Hardy-Weinberg equilibrium (HWE). This actually does pretty well even when there are minor to moderate deviations from HWE. Though it does not perform as well as the `norm` option when there are severe deviations from HWE. `bb` A beta-binomial distribution. This is an overdispersed version of `hw` and can be derived from a special case of the Balding-Nichols model. `s1` This prior assumes the individuals are all full-siblings resulting from one generation of selfing. I.e. there is only one parent. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing. 
+ 
+`f1` This prior assumes the individuals are all full-siblings resulting from one generation of a bi-parental cross. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing. `f1pp` This prior allows for double reduction and preferential pairing in an F1 population of tretraploids. `s1pp` This prior allows for double reduction and preferential pairing in an S1 population of tretraploids.  `flex` Generically any categorical distribution. Theoretically, this works well if you have a lot of individuals. In practice, it seems to be much less robust to violations in modeling assumptions.`uniform` A discrete uniform distribution. This should never be used in practice." 
+ 
+  * **Parent**: If “s1” or “s1pp” model is selected you must define which sample is correspondent to the parent including the sample ID in this box. The input sample ID must match to the sample ID in the input genotype file 
+  * **Parent1 and Parent2**: if “f1” or “f1pp” model is selected you must define which samples correspondent to the parent1 and parent2 including the samples ID in the respective boxes. The input sample ID must match to the sample ID in the input genotype file 
+ 
+* **Number of CPU Cores**: Number of cores to be used in the multidog function paralelization 
