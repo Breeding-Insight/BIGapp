@@ -70,7 +70,7 @@ mod_gwas_ui <- function(id){
                  tabPanel("BIC Table", withSpinner(DTOutput(ns("bic_table"))),style = "overflow-y: auto; height: 500px"),
                  tabPanel("QTL - significant markers",
                           withSpinner(DTOutput(ns('gwas_stats'))),style = "overflow-y: auto; height: 500px"),
-                 tabPanel("fitQTL",
+                 tabPanel("Multiple QTL model results table",
                           withSpinner(DTOutput(ns('gwas_fitqtl'))),style = "overflow-y: auto; height: 500px")
                )
              )
