@@ -21,48 +21,52 @@ get_counts <- function(madc_file, output_name) {
 #Add functionality here to stop the script if indentical() is False
 get_matrices <- function(result_df) {
   #This function takes the dataframe of ref and alt counts for each sample, and converts them to ref, alt, and size(total count) matrices for Updog
-
+  
   update_df <- result_df
-
+  
   # Filter rows where 'AlleleID' ends with 'Ref'
   ref_df <- subset(update_df, grepl("Ref$", AlleleID))
-
+  
   # Filter rows where 'AlleleID' ends with 'Alt'
   alt_df <- subset(update_df, grepl("Alt$", AlleleID))
-
-  #remove alt or ref rows that do not have a counterpart in the other dataframe
-  if (nrow(ref_df) > nrow(alt_df)) {
-    ref_df <- ref_df[ref_df$CloneID %in% alt_df$CloneID,]
-  } else if (nrow(ref_df) < nrow(alt_df)) {
-    alt_df <- alt_df[alt_df$CloneID %in% ref_df$CloneID,]
-  } else {
-    alt_df <- alt_df[alt_df$CloneID %in% ref_df$CloneID,]
-  }
-
+  
   #Ensure that each has the same SNPs and that they are in the same order
-  identical(alt_df$CloneID,ref_df$CloneID)
-
+  same <- identical(alt_df$CloneID,ref_df$CloneID)
+  
   ###Convert the ref and alt counts into matrices with the CloneID as the index
   #Set SNP names as index
   row.names(ref_df) <- ref_df$CloneID
   row.names(alt_df) <- alt_df$CloneID
-
+  
+  #Retain only the rows in common if they are not identical and provide warning
+  if (same == FALSE) {
+    warning("Mismatch between Ref and Alt Markers. MADC likely altered. Markers without a Ref or Alt match removed.")
+    # Find the common CloneIDs between the two dataframes
+    common_ids <- intersect(rownames(ref_df), rownames(alt_df))
+    # Subset both dataframes to retain only the common rows
+    ref_df <- ref_df[common_ids, ]
+    alt_df <- alt_df[common_ids, ]
+  }
+  
   #Remove unwanted columns and convert to matrix
-  #Probably best to just remove the column names that aren't wanted instead of the first 16 columns.
   ref_matrix <- as.matrix(ref_df[, -c(1:16)])
   alt_matrix <- as.matrix(alt_df[, -c(1:16)])
-
+  
+  #Convert elements to numeric
+  class(ref_matrix) <- "numeric"
+  class(alt_matrix) <- "numeric"
+  
   #Make the size matrix by combining the two matrices
   size_matrix <- (ref_matrix + alt_matrix)
-
+  
   #Count the number of cells with 0 count to estimate missing data
   # Count the number of cells with the value 0
   count_zeros <- sum(size_matrix == 0)
-
+  
   # Print the result
   ratio_missing_data <- count_zeros / length(size_matrix)
   cat("Ratio of missing data =", ratio_missing_data, "\n")
-
+  
   # Return the ref and alt matrices as a list
   matrices_list <- list(ref_matrix = ref_matrix, size_matrix = size_matrix)
   return(matrices_list)
@@ -280,3 +284,88 @@ posdefmat <- function(mat) {
   }
   return(g)
 }
+
+# Function to split INFO column and expand it into multiple columns
+split_info_column <- function(info) {
+  # Split the INFO column by semicolon
+  info_split <- str_split(info, ";")[[1]]
+
+  # Create a named list by splitting each element by equals sign
+  info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
+                         map(info_split, ~ str_split(.x, "=")[[1]][1]))
+
+  return(info_list)
+}
+
+#' Read geno file
+#'
+#' @param file_path character indicanting path to file
+#' @param requires which information is required from the VCF. Define the FORMAT or INFO letters. Example: c("GT", "DP", "PL")
+#'
+#' @importFrom vcfR read.vcfR
+#' @importFrom shinyalert shinyalert
+#'
+read_geno_file <- function(file_path, requires = c("GT")){
+  if (grepl("\\.csv$", file_path)) {
+    geno <- read.csv(geno_path, header = TRUE, row.names = 1, check.names = FALSE)
+    n_snps <- nrow(geno)
+    return(list(geno, n_snps))
+
+  } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
+
+    #Convert VCF file if submitted
+    vcf <- read.vcfR(file_path, verbose = FALSE)
+
+    all_requires <- vector()
+    for(i in 1:length(requires))  all_requires[i] <- grepl(requires[i], vcf@fix[1,8]) | grepl(requires[i], vcf@gt[1,1])
+
+    if(!all(all_requires)) {
+      shinyalert(
+        title = "Oops",
+        text = paste("The VCF file does not contain required information:", requires[which(!all_requires)]),
+        size = "xs",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "warning",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        imageUrl = "",
+        animation = TRUE,
+      )
+      return()
+    }
+
+    n_snps <- nrow(vcf@gt)
+
+    #Extract GT
+    geno <- extract.gt(vcf, element = "GT")
+    geno <- apply(geno, 2, convert_to_dosage)
+    class(geno) <- "numeric"
+
+    return(list(geno, n_snps))
+  } else {
+    # If condition is met, show notification toast
+    shinyalert(
+      title = "Oops",
+      text = "No valid genotype file detected",
+      size = "xs",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = FALSE,
+      html = TRUE,
+      type = "warning",
+      showConfirmButton = TRUE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#004192",
+      showCancelButton = FALSE,
+      imageUrl = "",
+      animation = TRUE,
+    )
+
+    return()
+  }
+}
+
+

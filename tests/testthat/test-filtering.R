@@ -1,6 +1,14 @@
 context("Filtering")
 
-test_that("Filtering",{
+#library(vcfR)
+#library(BIGr)
+#library(testthat)
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(stringr)
+
+test_that("Filtering with updog metrics",{
 
   #Variables
   filter_ploidy <- 2
@@ -28,6 +36,13 @@ test_that("Filtering",{
 
   #Input file
   vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
+
+  # Identify if have updog parameters
+  format_fields <- unique(vcf@gt[,1])
+  info_fields <- vcf@fix[1,8]
+
+  updog_par <- grepl("MPP", format_fields) & grepl("PMC", info_fields) & grepl("BIAS", info_fields)
+
   #Starting SNPs
   starting_snps <- nrow(vcf)
   #export INFO dataframe
@@ -52,6 +67,9 @@ test_that("Filtering",{
   gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
   filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
   filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
+
+  expect_true(all(table(gt_matrix[,10]) == c(20,13,8)))
+
   rm(gt_matrix) #Remove gt matrix
 
   #Writing file
@@ -59,4 +77,7 @@ test_that("Filtering",{
 
   #Get final_snps
   final_snps <- nrow(vcf)
+  expect_equal(final_snps, 43)
+
 })
+

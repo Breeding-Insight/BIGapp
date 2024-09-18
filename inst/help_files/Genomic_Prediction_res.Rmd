@@ -1,0 +1,6 @@
+---
+title: "Genomic_Prediction_res"
+output: html_document
+date: "2024-08-29"
+---
+

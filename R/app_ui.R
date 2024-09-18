@@ -15,13 +15,33 @@ app_ui <- function(request) {
     # Your application UI logic
     bs4DashPage(
       skin = "black",
-      bs4DashNavbar(title = tagList(
-        tags$img(src = 'www/BIG_R_logo.png', height = '40', width = '50'),
-      )
+      bs4DashNavbar(
+        title = tagList(
+          tags$img(src = 'www/BIG_R_logo.png', height = '40', width = '50'),
+        ),
+        rightUi = tags$li(
+          class = "dropdown",
+          tags$a(
+            href = "#",
+            class = "nav-link",
+            `data-toggle` = "dropdown",
+            icon("info-circle")
+          ),
+          tags$div(
+            class = "dropdown-menu dropdown-menu-right",
+            tags$a(
+              class = "dropdown-item",
+              href = "#",
+              "Session Info",
+              onclick = "Shiny.setInputValue('session_info_button', Math.random())"
+            )
+          )
+        )
       ),
+      help = NULL, #This is the default bs4Dash button to control the presence of tooltips and popovers, which can be added as a user help/info feature.
       bs4DashSidebar(
         skin="light", status = "info",
-        sidebarMenu(
+        sidebarMenu(id = "MainMenu",
           flat = FALSE,
           tags$li(class = "header", style = "color: grey; margin-top: 10px; margin-bottom: 10px; padding-left: 15px;", "Menu"),
           menuItem("Home", tabName = "welcome", icon = icon("house")),
@@ -38,7 +58,7 @@ app_ui <- function(request) {
           menuItem("GWASpoly", tabName = "gwas", icon = icon("think-peaks")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genomic Selection"),
                   menuItem(
-                    span("Prediction Accuracy", bs4Badge("beta", position = "right", color = "success")),
+                    span("Predictive Ability", bs4Badge("beta", position = "right", color = "success")),
                            tabName = "prediction_accuracy",
                            icon = icon("right-left")),
                   menuItem(
@@ -74,7 +94,7 @@ app_ui <- function(request) {
         ),
         left = div(
           style = "display: flex; align-items: center; height: 100%;",  # Center the version text vertically
-          "v0.5.1")
+          "v0.6.0")
       ),
       dashboardBody(
         disconnectMessage(), #Adds generic error message for any error if not already accounted for

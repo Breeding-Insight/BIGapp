@@ -24,12 +24,12 @@ mod_dosage2vcf_ui <- function(id){
           useShinyjs(),
           downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
           div(style="display:inline-block; float:right",dropdownButton(
-
-            tags$h3("DArT File Conversion"),
-            "Converting DArT report files to VCF format. \n",
-            "You can download examples of the expected files here: \n",
-            downloadButton(ns('download_dose'), "Download Dose Report Example File"),
-            downloadButton(ns('download_counts'), "Download Counts Example File"),
+            HTML("<b>Input files</b>"),
+            p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
+            p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
+            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             circle = FALSE,
             status = "warning",
             icon = icon("info"), width = "500px",
@@ -53,136 +53,179 @@ mod_dosage2vcf_ui <- function(id){
 #' @importFrom shinyjs enable disable
 #'
 #' @noRd
-mod_dosage2vcf_server <- function(id){
-  moduleServer( id, function(input, output, session){
-    ns <- session$ns
+mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
-    snp_number <- reactiveVal(0)
-    disable("download_d2vcf")
+  ns <- session$ns
+
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
+                      selected = "DArT_Report2VCF_par")
+    # expand specific box
+    updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
+  })
+
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
+                      selected = "DArT_Report2VCF_results")
+    # expand specific box
+    updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
+  })
+
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
+                      selected = "DArT_Report2VCF_cite")
+    # expand specific box
+    updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
+  })
+
+  snp_number <- reactiveVal(0)
+  disable("download_d2vcf")
+
+  #SNP counts value box
+  output$ReportSnps <- renderValueBox({
+    valueBox(snp_number(), "Number of Markers", icon = icon("dna"), color = "info")
+  })
+
+  observeEvent(input$run_analysis, {
+    # Missing input with red border and alerts
+    toggleClass(id = "d2v_output_name", class = "borderred", condition = (is.na(input$d2v_output_name) | is.null(input$d2v_output_name) | input$d2v_output_name == ""))
+    toggleClass(id = "dosage2vcf_ploidy", class = "borderred", condition = (is.na(input$dosage2vcf_ploidy) | is.null(input$dosage2vcf_ploidy) | input$dosage2vcf_ploidy == ""))
+
+    if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath)) {
+      shinyalert(
+        title = "Missing input!",
+        text = "Upload Dose Report and Counts Files",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+
+    updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Input files evaluated.")
+
+    dosage_file_df <- read.csv(input$report_file$datapath)
+    snp_number <- length(dosage_file_df$X.[-c(1:7)])
 
     #SNP counts value box
     output$ReportSnps <- renderValueBox({
-      valueBox(snp_number(), "Number of Markers", icon = icon("dna"), color = "info")
+      valueBox(snp_number, "Number of Markers", icon = icon("dna"), color = "info")
     })
 
-    observeEvent(input$run_analysis, {
-      # Missing input with red border and alerts
-      toggleClass(id = "d2v_output_name", class = "borderred", condition = (is.na(input$d2v_output_name) | is.null(input$d2v_output_name) | input$d2v_output_name == ""))
-      toggleClass(id = "dosage2vcf_ploidy", class = "borderred", condition = (is.na(input$dosage2vcf_ploidy) | is.null(input$dosage2vcf_ploidy) | input$dosage2vcf_ploidy == ""))
+    enable("download_d2vcf")
 
-      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath)) {
-        shinyalert(
-          title = "Missing input!",
-          text = "Upload Dose Report and Counts Files",
-          size = "s",
-          closeOnEsc = TRUE,
-          closeOnClickOutside = FALSE,
-          html = TRUE,
-          type = "error",
-          showConfirmButton = TRUE,
-          confirmButtonText = "OK",
-          confirmButtonCol = "#004192",
-          showCancelButton = FALSE,
-          animation = TRUE
-        )
-      }
+    updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Click in Download to continue.")
+
+  })
+
+  output$download_dose <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_Dose_Report_Example_file.csv")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_Allele_Dose_Report.csv", package = "BIGapp")
+      file.copy(ex, file)
+    })
+
+  output$download_counts <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_Counts_Example_file.csv")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_Counts.csv", package = "BIGapp")
+      file.copy(ex, file)
+    })
+
+  ##This is for the DArT files conversion to VCF
+  output$download_d2vcf <- downloadHandler(
+    filename = function() {
+      paste0(input$d2v_output_name, ".vcf.gz")
+    },
+    content = function(file) {
+      # Ensure the files are uploaded
       req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
 
-      dosage_file_df <- read.csv(input$report_file$datapath)
-      snp_number <- length(dosage_file_df$X.[-c(1:7)])
+      # Get the uploaded file paths
+      dosage_file <- input$report_file$datapath
+      counts_file <- input$counts_file$datapath
+      ploidy <- input$dosage2vcf_ploidy
 
-      #SNP counts value box
-      output$ReportSnps <- renderValueBox({
-        valueBox(snp_number, "Number of Markers", icon = icon("dna"), color = "info")
-      })
+      # Use a temporary file path without appending .vcf
+      temp_base <- tempfile()
 
-      enable("download_d2vcf")
-    })
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting DArT files to VCF")
 
-    output$download_dose <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_Dose_Report_Example_file.csv")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_Allele_Dose_Report.csv", package = "BIGapp")
-        file.copy(ex, file)
-      })
+      # Convert to VCF using the BIGr package
+      cat("Running BIGr::dosage2vcf...\n")
+      dosage2vcf(
+        dart.report = dosage_file,
+        dart.counts = counts_file,
+        output.file = temp_base,
+        ploidy = as.numeric(ploidy)
+      )
 
-    output$download_counts <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_Counts_Example_file.csv")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_Counts.csv", package = "BIGapp")
-        file.copy(ex, file)
-      })
+      # The output file should be temp_base.vcf
+      output_name <- paste0(temp_base, ".vcf")
 
-    ##This is for the DArT files conversion to VCF
-    output$download_d2vcf <- downloadHandler(
-      filename = function() {
-        paste0(input$d2v_output_name, ".vcf.gz")
-      },
-      content = function(file) {
-        # Ensure the files are uploaded
-        req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writting vcf.")
 
-        # Get the uploaded file paths
-        dosage_file <- input$report_file$datapath
-        counts_file <- input$counts_file$datapath
-        ploidy <- input$dosage2vcf_ploidy
+      # Check if the VCF file was created
+      if (file.exists(output_name)) {
+        cat("VCF file created successfully.\n")
 
-        # Use a temporary file path without appending .vcf
-        temp_base <- tempfile()
+        # Compress the VCF file using gzip
+        gzip_file <- paste0(output_name, ".gz")
+        gz <- gzfile(gzip_file, "w")
+        writeLines(readLines(output_name), gz)
+        close(gz)
 
-        #Status
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Converting DArT files to VCF")
+        # Check if the gzip file was created
+        if (file.exists(gzip_file)) {
+          cat("Gzip file created successfully.\n")
 
-        # Convert to VCF using the BIGr package
-        cat("Running BIGr::dosage2vcf...\n")
-        dosage2vcf(
-          dart.report = dosage_file,
-          dart.counts = counts_file,
-          output.file = temp_base,
-          ploidy = as.numeric(ploidy)
-        )
+          # Move the compressed file to the path specified by 'file'
+          file.copy(gzip_file, file)
 
-        # The output file should be temp_base.vcf
-        output_name <- paste0(temp_base, ".vcf")
+          # Delete the temporary files
+          unlink(gzip_file)
+          unlink(output_name)
 
-        # Check if the VCF file was created
-        if (file.exists(output_name)) {
-          cat("VCF file created successfully.\n")
-
-          # Compress the VCF file using gzip
-          gzip_file <- paste0(output_name, ".gz")
-          gz <- gzfile(gzip_file, "w")
-          writeLines(readLines(output_name), gz)
-          close(gz)
-
-          # Check if the gzip file was created
-          if (file.exists(gzip_file)) {
-            cat("Gzip file created successfully.\n")
-
-            # Move the compressed file to the path specified by 'file'
-            file.copy(gzip_file, file)
-
-            # Delete the temporary files
-            unlink(gzip_file)
-            unlink(output_name)
-
-            cat("Temporary files deleted successfully.\n")
-          } else {
-            stop("Error: Failed to create the gzip file.")
-          }
+          cat("Temporary files deleted successfully.\n")
         } else {
-          stop("Error: Failed to create the VCF file.")
+          stop("Error: Failed to create the gzip file.")
         }
-
-        #Status
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+      } else {
+        stop("Error: Failed to create the VCF file.")
       }
-    )
-  })
+
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+    }
+  )
 }
 
 ## To be copied in the UI

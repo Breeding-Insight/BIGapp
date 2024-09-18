@@ -58,14 +58,7 @@ mod_Filtering_ui <- function(id){
              )
       ),
       column(width = 6,
-             tabBox(width =12, collapsible = FALSE, status = "info",
-                    id = "updog_tab", height = "600px",
-                    tabPanel("Bias Histogram", icon = icon("image"), plotOutput(ns("bias_hist"), height = '550px')),
-                    tabPanel("OD Histogram", icon = icon("image"), plotOutput(ns("od_hist"), height = '550px')),
-                    tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput(ns("maxpostprob_hist"), height = '550px')),
-                    tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
-                    tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
-             )
+             uiOutput(ns("din_tabs")),
       ),
       column(width = 3,
              valueBoxOutput(ns("snp_retained_box"), width = NULL),
@@ -106,350 +99,401 @@ mod_Filtering_ui <- function(id){
 #' @importFrom graphics abline axis hist
 #'
 #' @noRd
-mod_Filtering_server <- function(id){
-  moduleServer( id, function(input, output, session){
-    ns <- session$ns
+mod_Filtering_server <- function(input, output, session, parent_session){
 
-    #vcf
-    filtering_files <- reactiveValues(
-      raw_vcf_df = NULL,
-      sample_miss_df = NULL,
-      snp_miss_df = NULL
+  ns <- session$ns
 
+  #vcf
+  filtering_files <- reactiveValues(
+    raw_vcf_df = NULL,
+    sample_miss_df = NULL,
+    snp_miss_df = NULL
+
+  )
+
+  #Reactive boxes
+  output$snp_retained_box <- renderValueBox({
+    valueBox(
+      value = 0,
+      subtitle = "SNPs Retained",
+      icon = icon("dna"),
+      color = "info"
     )
+  })
 
-    #Reactive boxes
+  output$snp_removed_box <- renderValueBox({
+    valueBox(
+      value = 0,
+      subtitle = "Percent SNPs Removed",
+      icon = icon("filter-circle-xmark"),
+      color = "info"
+    )
+  })
+
+  disable("start_updog_filter")
+
+  output$din_tabs <- renderUI({
+    tabBox(width =12, collapsible = FALSE, status = "info",
+           id = "updog_tab", height = "600px",
+           tabPanel("Results", p("Upload VCF file to access results in this section."))
+    )
+  })
+
+  vcf <- eventReactive(input$run_filters, {
+
+    # Ensure the files are uploaded
+    # Missing input with red border and alerts
+    toggleClass(id = "filter_ploidy", class = "borderred", condition = (is.na(input$filter_ploidy) | is.null(input$filter_ploidy) | input$filter_ploidy == ""))
+    toggleClass(id = "filter_output_name", class = "borderred", condition = (is.na(input$filter_output_name) | is.null(input$filter_output_name) | input$filter_output_name == ""))
+
+    if (is.null(input$updog_rdata$datapath)) {
+      shinyalert(
+        title = "Missing input!",
+        text = "Upload Dose Report and Counts Files",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+
+    req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
+
+    #Input file
+    vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
+
+    # Identify if have updog parameters
+    format_fields <- unique(vcf@gt[,1])
+    info_fields <- vcf@fix[1,8]
+    updog_par <- grepl("MPP", format_fields) & grepl("PMC", info_fields) & grepl("BIAS", info_fields) & grepl("OD", info_fields)
+
+    if(updog_par){
+      output$din_tabs <- renderUI({
+        tabBox(width =12, collapsible = FALSE, status = "info",
+               id = "updog_tab", height = "600px",
+               tabPanel("Bias Histogram", icon = icon("image"), plotOutput(ns("bias_hist"), height = '550px')),
+               tabPanel("OD Histogram", icon = icon("image"), plotOutput(ns("od_hist"), height = '550px')),
+               tabPanel("Prop_mis Histogram", icon = icon("image"), plotOutput(ns("maxpostprob_hist"), height = '550px')),
+               tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
+               tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
+        )
+      })
+    } else {
+      output$din_tabs <- renderUI({
+        tabBox(width =12, collapsible = FALSE, status = "info",
+               id = "updog_tab", height = "600px",
+               tabPanel("SNP_miss", icon = icon("image"), plotOutput(ns("missing_snp_hist"), height = '550px')),
+               tabPanel("Sample_miss", icon = icon("image"), plotOutput(ns("missing_sample_hist"), height = '550px'))
+        )
+      })
+    }
+
+
+    if (input$use_updog & updog_par) {
+      # Use Updog filtering parameters
+      OD_filter <- as.numeric(input$OD_filter)
+      Prop_mis <- as.numeric(input$Prop_mis)
+      Bias_min <- as.numeric(input$Bias[1])
+      Bias_max <- as.numeric(input$Bias[2])
+      max_post <- as.numeric(input$maxpostprob_filter)
+
+      # Perform filtering with Updog parameters
+      # (insert your filtering code here)
+    } else {
+      # Do not use Updog filtering parameters
+      OD_filter = NULL
+      Prop_mis = NULL
+      Bias_min = NULL
+      Bias_max = NULL
+      max_post = NULL
+    }
+
+    #Variables
+    size_depth <- input$size_depth
+    output_name <- input$filter_output_name
+    snp_miss <- input$snp_miss / 100
+    sample_miss <- input$sample_miss / 100
+    ploidy <- as.numeric(input$filter_ploidy)
+    maf_filter <- input$filter_maf
+
+    updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
+
+    #Starting SNPs
+    starting_snps <- nrow(vcf)
+    output$snp_removed_box <- renderValueBox({
+      valueBox(
+        value = round(((starting_snps - final_snps)/starting_snps*100),1),
+        subtitle = "Percent SNPs Removed",
+        icon = icon("dna"),
+        color = "info"
+      )
+    })
+
+    #export INFO dataframe
+    filtering_files$raw_vcf_df <- data.frame(vcf@fix)
+
+    #Pb
+    updateProgressBar(session = session, id = "pb_filter", value = 40, title = "Filtering VCF file")
+
+    #Filtering
+    vcf <- filterVCF(vcf.file = vcf,
+                     ploidy=ploidy,
+                     output.file=NULL,
+                     filter.OD = OD_filter,
+                     filter.BIAS.min = Bias_min,
+                     filter.BIAS.max = Bias_max,
+                     filter.DP = as.numeric(size_depth),
+                     filter.PMC = Prop_mis,
+                     filter.SAMPLE.miss = as.numeric(sample_miss),
+                     filter.SNP.miss = as.numeric(snp_miss),
+                     filter.MAF = as.numeric(maf_filter),
+                     filter.MPP = max_post)
+
+    if (length(vcf@gt) == 0) {
+      shinyalert(
+        title = "All markers were filtered out",
+        text = "Loose the parameters to access results in this tab",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+
+    #Getting missing data information
+    #Add support for genotype matrix filtering?
+    #Pb
+    updateProgressBar(session = session, id = "pb_filter", value = 50, title = "Calculating Missing Data")
+
+    gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
+    filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
+    filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
+    rm(gt_matrix) #Remove gt matrix
+
+    #Pb
+    updateProgressBar(session = session, id = "pb_filter", value = 80, title = "Exporting Filtered VCF")
+
+    #Get final_snps
+    final_snps <- nrow(vcf)
+    #Updating value boxes
     output$snp_retained_box <- renderValueBox({
       valueBox(
-        value = 0,
+        value = final_snps,
         subtitle = "SNPs Retained",
         icon = icon("dna"),
         color = "info"
       )
     })
 
-    output$snp_removed_box <- renderValueBox({
-      valueBox(
-        value = 0,
-        subtitle = "Percent SNPs Removed",
-        icon = icon("filter-circle-xmark"),
-        color = "info"
-      )
-    })
+    # Status
+    updateProgressBar(session = session, id = "pb_filter", value = 100, title = "Finished!")
 
-    disable("start_updog_filter")
+    vcf
+  })
 
-    vcf <- eventReactive(input$run_filters, {
+  # Only make available the download button when analysis is finished
+  observe({
+    if (!is.null(vcf())) {
+      Sys.sleep(1)
+      # enable the download button
+      enable("start_updog_filter")
+    } else {
+      disable("start_updog_filter")
+    }
+  })
 
-      # Ensure the files are uploaded
-      # Missing input with red border and alerts
-      toggleClass(id = "filter_ploidy", class = "borderred", condition = (is.na(input$filter_ploidy) | is.null(input$filter_ploidy) | input$filter_ploidy == ""))
-      toggleClass(id = "filter_output_name", class = "borderred", condition = (is.na(input$filter_output_name) | is.null(input$filter_output_name) | input$filter_output_name == ""))
 
-      if (is.null(input$updog_rdata$datapath)) {
-        shinyalert(
-          title = "Missing input!",
-          text = "Upload Dose Report and Counts Files",
-          size = "s",
-          closeOnEsc = TRUE,
-          closeOnClickOutside = FALSE,
-          html = TRUE,
-          type = "error",
-          showConfirmButton = TRUE,
-          confirmButtonText = "OK",
-          confirmButtonCol = "#004192",
-          showCancelButton = FALSE,
-          animation = TRUE
-        )
-      }
+  #Updog filtering
+  output$start_updog_filter <- downloadHandler(
+    filename = function() {
+      paste0(input$filter_output_name, ".vcf.gz")
+    },
+    content = function(file) {
 
-      req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
+      #Writing file
+      temp_file <- tempfile(fileext = ".vcf.gz")
+      write.vcf(vcf(), file = temp_file)
 
-      if (input$use_updog) {
-        # Use Updog filtering parameters
-        OD_filter <- as.numeric(input$OD_filter)
-        Prop_mis <- as.numeric(input$Prop_mis)
-        Bias_min <- as.numeric(input$Bias[1])
-        Bias_max <- as.numeric(input$Bias[2])
-        max_post <- as.numeric(input$maxpostprob_filter)
+      # Check if the VCF file was created
+      if (file.exists(temp_file)) {
+        cat("VCF file created successfully.\n")
 
-        # Perform filtering with Updog parameters
-        # (insert your filtering code here)
+        # Move the file to the path specified by 'file'
+        file.copy(temp_file, file, overwrite = TRUE)
+
+        # Delete the temporary file
+        unlink(temp_file)
       } else {
-        # Do not use Updog filtering parameters
-        OD_filter = NULL
-        Prop_mis = NULL
-        Bias_min = NULL
-        Bias_max = NULL
-        max_post = NULL
+        stop("Error: Failed to create the VCF file.")
       }
 
-      #Variables
-      size_depth <- input$size_depth
-      output_name <- input$filter_output_name
-      snp_miss <- input$snp_miss / 100
-      sample_miss <- input$sample_miss / 100
-      ploidy <- as.numeric(input$filter_ploidy)
-      maf_filter <- input$filter_maf
+    }
+  )
 
-      updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
-      #Input file
-      vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE)
-      #Starting SNPs
-      starting_snps <- nrow(vcf)
-      output$snp_removed_box <- renderValueBox({
-        valueBox(
-          value = round(((starting_snps - final_snps)/starting_snps*100),1),
-          subtitle = "Percent SNPs Removed",
-          icon = icon("dna"),
-          color = "info"
-        )
-      })
+  #Download figures for VCF Filtering
+  output$download_filter_hist <- downloadHandler(
 
-      #export INFO dataframe
-      filtering_files$raw_vcf_df <- data.frame(vcf@fix)
-
-      #Pb
-      updateProgressBar(session = session, id = "pb_filter", value = 40, title = "Filtering VCF file")
-
-      #Filtering
-      vcf <- filterVCF(vcf.file = vcf,
-                       ploidy=ploidy,
-                       output.file=NULL,
-                       filter.OD = OD_filter,
-                       filter.BIAS.min = Bias_min,
-                       filter.BIAS.max = Bias_max,
-                       filter.DP = as.numeric(size_depth),
-                       filter.PMC = Prop_mis,
-                       filter.SAMPLE.miss = as.numeric(sample_miss),
-                       filter.SNP.miss = as.numeric(snp_miss),
-                       filter.MAF = as.numeric(maf_filter),
-                       filter.MPP = max_post)
-
-      #Getting missing data information
-      #Add support for genotype matrix filtering?
-      #Pb
-      updateProgressBar(session = session, id = "pb_filter", value = 50, title = "Calculating Missing Data")
-
-      gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
-      filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
-      filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
-      rm(gt_matrix) #Remove gt matrix
-
-      #Pb
-      updateProgressBar(session = session, id = "pb_filter", value = 80, title = "Exporting Filtered VCF")
-
-      #Get final_snps
-      final_snps <- nrow(vcf)
-      #Updating value boxes
-      output$snp_retained_box <- renderValueBox({
-        valueBox(
-          value = final_snps,
-          subtitle = "SNPs Retained",
-          icon = icon("dna"),
-          color = "info"
-        )
-      })
-
-      # Status
-      updateProgressBar(session = session, id = "pb_filter", value = 100, title = "Finished!")
-
-      vcf
-    })
-
-    # Only make available the download button when analysis is finished
-    observe({
-      if (!is.null(vcf())) {
-        Sys.sleep(1)
-        # enable the download button
-        enable("start_updog_filter")
+    filename = function() {
+      if (input$image_type == "jpeg") {
+        paste("VCF-histogram-", Sys.Date(), ".jpg", sep="")
+      } else if (input$image_type == "png") {
+        paste("VCF-histogram-", Sys.Date(), ".png", sep="")
       } else {
-        disable("start_updog_filter")
+        paste("VCF-histogram-", Sys.Date(), ".tiff", sep="")
       }
-    })
+    },
+    content = function(file) {
+      req(input$image_type)
 
-
-    #Updog filtering
-    output$start_updog_filter <- downloadHandler(
-      filename = function() {
-        paste0(input$filter_output_name, ".vcf.gz")
-      },
-      content = function(file) {
-
-        #Writing file
-        temp_file <- tempfile(fileext = ".vcf.gz")
-        write.vcf(vcf(), file = temp_file)
-
-        # Check if the VCF file was created
-        if (file.exists(temp_file)) {
-          cat("VCF file created successfully.\n")
-
-          # Move the file to the path specified by 'file'
-          file.copy(temp_file, file, overwrite = TRUE)
-
-          # Delete the temporary file
-          unlink(temp_file)
-        } else {
-          stop("Error: Failed to create the VCF file.")
-        }
-
-      }
-    )
-
-    #Download figures for VCF Filtering
-    output$download_filter_hist <- downloadHandler(
-
-      filename = function() {
-        if (input$image_type == "jpeg") {
-          paste("VCF-histogram-", Sys.Date(), ".jpg", sep="")
-        } else if (input$image_type == "png") {
-          paste("VCF-histogram-", Sys.Date(), ".png", sep="")
-        } else {
-          paste("VCF-histogram-", Sys.Date(), ".tiff", sep="")
-        }
-      },
-      content = function(file) {
-        req(input$image_type)
-
-        if (input$image_type == "jpeg") {
-          jpeg(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
-        } else if (input$image_type == "png") {
-          png(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
-        } else {
-          tiff(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
-        }
-
-        # Conditional plotting based on input selection
-        req(filtering_output$df, filtering_files)
-        if (input$filter_hist == "Bias Histogram") {
-
-          hist(as.numeric(filtering_output$df$BIAS),
-               main = "Unfiltered SNP bias histogram",
-               xlab = "bias",
-               ylab = "SNPs",
-               col = "lightblue",
-               border = "black",
-               xlim = c(0,5),
-               breaks = as.numeric(input$hist_bins))
-          axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
-          abline(v = mean(as.numeric(filtering_output$df$BIAS)), col = "red", lty = 2)  # Mean line
-          abline(v = median(as.numeric(filtering_output$df$BIAS)), col = "green", lty = 2)  # Median line
-          abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
-          abline(v = 2, col = "black", lty = 2)  # proposed upper line
-
-        } else if (input$filter_hist == "OD Histogram") {
-
-          #Plot
-          hist(as.numeric(filtering_output$df$OD),
-               main = "Unfiltered SNP overdispersion parameter histogram",
-               xlab = "OD",
-               ylab = "SNPs",
-               col = "lightblue",
-               border = "black",
-               xlim = c(0,0.6),
-               breaks = as.numeric(input$hist_bins))
-          axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
-          abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
-
-          # Add vertical lines
-          abline(v = mean(as.numeric(filtering_output$df$OD)), col = "red", lty = 2)  # Mean line
-          abline(v = median(as.numeric(filtering_output$df$OD)), col = "green", lty = 2)  # Median line
-          abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
-
-        } else if (input$filter_hist == "Prop_mis Histogram") {
-
-          hist(as.numeric(filtering_output$df$PMC),
-               main = "The estimated proportion of individuals misclassified in the SNP from updog",
-               xlab = "Proportion of Misclassified Genotypes per SNP",
-               ylab = "Number of SNPs",
-               col = "lightblue",
-               border = "black",
-               xlim = c(0,1),
-               breaks = as.numeric(input$hist_bins))
-          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
-
-          # Add vertical lines
-          abline(v = mean(as.numeric(filtering_output$df$PMC)), col = "red", lty = 2)  # Mean line
-          abline(v = median(as.numeric(filtering_output$df$PMC)), col = "green", lty = 2)  # Median line
-          abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2)
-
-        } else if (input$filter_hist == "SNP_mis") {
-
-          hist(as.numeric(filtering_files$snp_miss_df),
-               main = "Ratio of Missing Data per SNP After Filtering",
-               xlab = "Proportion of Missing Data per SNP",
-               ylab = "Number of SNPs",
-               col = "lightblue",
-               border = "black",
-               xlim = c(0,1),
-               breaks = as.numeric(input$hist_bins))
-          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
-
-          # Add vertical lines
-          abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
-          abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
-          abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
-
-        } else if (input$filter_hist == "Sample_mis") {
-
-          hist(as.numeric(filtering_files$sample_miss_df),
-               main = "Ratio of Missing Data per Sample After Filtering",
-               xlab = "Proportion of Missing Data per Sample",
-               ylab = "Number of Samples",
-               col = "lightblue",
-               border = "black",
-               xlim = c(0,1),
-               breaks = as.numeric(input$hist_bins))
-          axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
-
-          # Add vertical lines
-          abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
-          abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
-          abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
-        }
-        dev.off()
-      }
-    )
-
-    # Commented code
-    ##Updog file stats
-    #Consider Extracting the GT info or UD info if present as a datafrfame,
-    #Obtaining the info in the INFO column as it's own dataframe with a column for each value
-    #Then remove the VCF file and use the remaining dataframes for producing the figures
-
-    filtering_output <- reactiveValues(df = NULL)
-
-    observeEvent(filtering_files$raw_vcf_df, {
-
-
-      # Function to split INFO column and expand it into multiple columns
-      split_info_column <- function(info) {
-        # Split the INFO column by semicolon
-        info_split <- str_split(info, ";")[[1]]
-
-        # Create a named list by splitting each element by equals sign
-        info_list <- set_names(map(info_split, ~ str_split(.x, "=")[[1]][2]),
-                               map(info_split, ~ str_split(.x, "=")[[1]][1]))
-
-        return(info_list)
+      if (input$image_type == "jpeg") {
+        jpeg(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+      } else if (input$image_type == "png") {
+        png(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
+      } else {
+        tiff(file, width = as.numeric(input$image_width), height = as.numeric(input$image_height), res= as.numeric(input$image_res), units = "in")
       }
 
-      # Apply the function to each row and bind the results into a new dataframe
-      new_df <- data.frame(filtering_files$raw_vcf_df) %>%
-        mutate(INFO_list = map(INFO, split_info_column)) %>%
-        unnest_wider(INFO_list)
+      # Conditional plotting based on input selection
+      req(filtering_output$df, filtering_files)
+      if (input$filter_hist == "Bias Histogram") {
 
-      #Save df to reactive value
-      filtering_output$df <- new_df
+        hist(as.numeric(filtering_output$df$BIAS),
+             main = "Unfiltered SNP bias histogram",
+             xlab = "bias",
+             ylab = "SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,5),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 5, by = .2), labels = rep("", length(seq(0, 5, by = 0.2))))  # Add ticks
+        abline(v = mean(as.numeric(filtering_output$df$BIAS)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_output$df$BIAS)), col = "green", lty = 2)  # Median line
+        abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
+        abline(v = 2, col = "black", lty = 2)  # proposed upper line
+        legend("topright", legend=c("mean", "median", "suggested threshold"),
+               col=c("red", "green","black"), lty=2, cex=0.8)
+
+      } else if (input$filter_hist == "OD Histogram") {
+
+        #Plot
+        hist(as.numeric(filtering_output$df$OD),
+             main = "Unfiltered SNP overdispersion parameter histogram",
+             xlab = "OD",
+             ylab = "SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,0.6),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 0.6, by = .01), labels = rep("", length(seq(0, 0.6, by = 0.01))))  # Add ticks
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_output$df$OD)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_output$df$OD)), col = "green", lty = 2)  # Median line
+        abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        legend("topright", legend=c("mean", "median", "suggested threshold"),
+               col=c("red", "green","black"), lty=2, cex=0.8)
+
+      } else if (input$filter_hist == "Prop_mis Histogram") {
+
+        hist(as.numeric(filtering_output$df$PMC),
+             main = "The estimated proportion of individuals misclassified in the SNP from updog",
+             xlab = "Proportion of Misclassified Genotypes per SNP",
+             ylab = "Number of SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,1),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_output$df$PMC)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_output$df$PMC)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_output$df$PMC), 0.95), col = "blue", lty = 2)
+        legend("topright", legend=c("mean", "median", "quantile"),
+               col=c("red", "green","blue"), lty=2, cex=0.8)
+
+      } else if (input$filter_hist == "SNP_mis") {
+
+        hist(as.numeric(filtering_files$snp_miss_df),
+             main = "Ratio of Missing Data per SNP After Filtering",
+             xlab = "Proportion of Missing Data per SNP",
+             ylab = "Number of SNPs",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,1),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
+        legend("topright", legend=c("mean", "median", "quantile"),
+               col=c("red", "green","blue"), lty=2, cex=0.8)
+
+      } else if (input$filter_hist == "Sample_mis") {
+
+        hist(as.numeric(filtering_files$sample_miss_df),
+             main = "Ratio of Missing Data per Sample After Filtering",
+             xlab = "Proportion of Missing Data per Sample",
+             ylab = "Number of Samples",
+             col = "lightblue",
+             border = "black",
+             xlim = c(0,1),
+             breaks = as.numeric(input$hist_bins))
+        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+        # Add vertical lines
+        abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
+        abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
+        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
+        legend("topright", legend=c("mean", "median", "quantile"),
+               col=c("red", "green","blue"), lty=2, cex=0.8)
+      }
+      dev.off()
+    }
+  )
+
+  # Commented code
+  ##Updog file stats
+  #Consider Extracting the GT info or UD info if present as a datafrfame,
+  #Obtaining the info in the INFO column as it's own dataframe with a column for each value
+  #Then remove the VCF file and use the remaining dataframes for producing the figures
+
+  filtering_output <- reactiveValues(df = NULL)
+
+  observeEvent(filtering_files$raw_vcf_df, {
+
+    # Apply the function to each row and bind the results into a new dataframe
+    new_df <- data.frame(filtering_files$raw_vcf_df) %>%
+      mutate(INFO_list = map(INFO, split_info_column)) %>%
+      unnest_wider(INFO_list)
+
+    #Save df to reactive value
+    filtering_output$df <- new_df
 
 
-      ##Make plots
-      #Number of SNPs
-      nrow(filtering_files$raw_vcf_df)
+    ##Make plots
+    #Number of SNPs
+    nrow(filtering_files$raw_vcf_df)
 
-      ###Bias
+    ###Bias
 
-      #Histogram
+    #Histogram
+    if(any(grepl("BIAS", colnames(new_df)))){
       output$bias_hist <- renderPlot({
         hist(as.numeric(new_df$BIAS),
              main = "Unfiltered SNP bias histogram",
@@ -464,9 +508,14 @@ mod_Filtering_server <- function(id){
         abline(v = median(as.numeric(new_df$BIAS)), col = "green", lty = 2)  # Median line
         abline(v = 0.5, col = "black", lty = 2)  # proposed lower line
         abline(v = 2, col = "black", lty = 2)  # proposed upper line
+        legend("topright", legend=c("mean", "median", "suggested threshold"),
+               col=c("red", "green","black"), lty=2, cex=0.8)
       })
+    }
 
-      ###OD
+    ###OD
+    if(any(grepl("OD", colnames(new_df)))){
+
       quantile(as.numeric(new_df$OD), 0.95)
       #Histogram
       output$od_hist <- renderPlot({
@@ -485,12 +534,16 @@ mod_Filtering_server <- function(id){
         abline(v = mean(as.numeric(new_df$OD)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(new_df$OD)), col = "green", lty = 2)  # Median line
         abline(v = 0.05, col = "black", lty = 2)  # proposed filter by updog
+        legend("topright", legend=c("mean", "median", "suggested threshold"),
+               col=c("red", "green","black"), lty=2, cex=0.8)
 
       })
+    }
 
-      ##MAXPOSTPROB
+    ##MAXPOSTPROB
 
-      #Histogram
+    #Histogram
+    if(any(grepl("PMC", colnames(new_df)))){
 
       output$maxpostprob_hist <- renderPlot({
 
@@ -509,63 +562,67 @@ mod_Filtering_server <- function(id){
         abline(v = mean(as.numeric(new_df$PMC)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(new_df$PMC)), col = "green", lty = 2)  # Median line
         abline(v = quantile(as.numeric(new_df$PMC), 0.95), col = "blue", lty = 2)
+        legend("topright", legend=c("mean", "median", "quantile"),
+               col=c("red", "green","blue"), lty=2, cex=0.8)
 
       })
+    }
 
-      #Missing data
-      output$missing_snp_hist <- renderPlot({
+    #Missing data
+    output$missing_snp_hist <- renderPlot({
 
-        #Histogram
-        hist(as.numeric(filtering_files$snp_miss_df),
-             main = "Ratio of Missing Data per SNP After Filtering",
-             xlab = "Proportion of Missing Data per SNP",
-             ylab = "Number of SNPs",
-             col = "lightblue",
-             border = "black",
-             xlim = c(0,1),
-             breaks = as.numeric(input$hist_bins))
-        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+      #Histogram
+      hist(as.numeric(filtering_files$snp_miss_df),
+           main = "Ratio of Missing Data per SNP After Filtering",
+           xlab = "Proportion of Missing Data per SNP",
+           ylab = "Number of SNPs",
+           col = "lightblue",
+           border = "black",
+           xlim = c(0,1),
+           breaks = as.numeric(input$hist_bins))
+      axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
 
-        # Add vertical lines
-        abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
-        abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
-
-      })
-
-      output$missing_sample_hist <- renderPlot({
-
-        #Histogram
-        hist(as.numeric(filtering_files$sample_miss_df),
-             main = "Ratio of Missing Data per Sample After Filtering",
-             xlab = "Proportion of Missing Data per Sample",
-             ylab = "Number of Samples",
-             col = "lightblue",
-             border = "black",
-             xlim = c(0,1),
-             breaks = as.numeric(input$hist_bins))
-        axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
-
-        # Add vertical lines
-        abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
-        abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
-        abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
-
-      })
-
-      ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
-      quantile(as.numeric(new_df$DP), 0.95)
+      # Add vertical lines
+      abline(v = mean(as.numeric(filtering_files$snp_miss_df)), col = "red", lty = 2)  # Mean line
+      abline(v = median(as.numeric(filtering_files$snp_miss_df)), col = "green", lty = 2)  # Median line
+      abline(v = quantile(as.numeric(filtering_files$snp_miss_df), 0.95), col = "blue", lty = 2)
+      legend("topright", legend=c("mean", "median", "quantile"),
+             col=c("red", "green","blue"), lty=2, cex=0.8)
     })
 
-    output$download_vcf <- downloadHandler(
-      filename = function() {
-        paste0("BIGapp_VCF_Example_file.vcf.gz")
-      },
-      content = function(file) {
-        ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
-        file.copy(ex, file)
-      })
+    output$missing_sample_hist <- renderPlot({
+
+      #Histogram
+      hist(as.numeric(filtering_files$sample_miss_df),
+           main = "Ratio of Missing Data per Sample After Filtering",
+           xlab = "Proportion of Missing Data per Sample",
+           ylab = "Number of Samples",
+           col = "lightblue",
+           border = "black",
+           xlim = c(0,1),
+           breaks = as.numeric(input$hist_bins))
+      axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
+
+      # Add vertical lines
+      abline(v = mean(as.numeric(filtering_files$sample_miss_df)), col = "red", lty = 2)  # Mean line
+      abline(v = median(as.numeric(filtering_files$sample_miss_df)), col = "green", lty = 2)  # Median line
+      abline(v = quantile(as.numeric(filtering_files$sample_miss_df), 0.95), col = "blue", lty = 2)
+      legend("topright", legend=c("mean", "median", "quantile"),
+             col=c("red", "green","blue"), lty=2, cex=0.8)
+    })
+
+    ##Read Depth (I would prefer that this show the mean depth for SNPs or Samples instead of all loci/sample cells)
+    quantile(as.numeric(new_df$DP), 0.95)
   })
+
+  output$download_vcf <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_VCF_Example_file.vcf.gz")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+      file.copy(ex, file)
+    })
 }
 
 ## To be copied in the UI
