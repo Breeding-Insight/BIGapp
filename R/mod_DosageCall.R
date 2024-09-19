@@ -371,7 +371,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                      sizemat = matrices$size_matrix,
                      ploidy = as.numeric(ploidy),
                      p1_id = parents[1],
-                     p2_id = if(is.na(parents[2])) NULL else parents[2],
+                     p2_id = parents[2],
                      model = input$updog_model,
                      nc = cores)
     #Status
