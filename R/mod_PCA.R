@@ -415,7 +415,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     tit = paste0('Total Explained Variance =', sum(pca_data$variance_explained[1:3]))
 
-    fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = pca_data$pc_df_pop[[input$group_info]],
+    fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = as.factor(pca_data$pc_df_pop[[input$group_info]]),
                    colors = my_palette) %>%
       add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
 
