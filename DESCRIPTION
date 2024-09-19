@@ -1,6 +1,6 @@
 Package: BIGapp
 Title: Breeding Insight Genomics Shiny Application
-Version: 0.6.0
+Version: 0.6.1
 Authors@R: 
     c(
               person(c("Alexander", "M."), "Sandercock",
@@ -60,7 +60,8 @@ Imports:
     MASS,
     config,
     Matrix,
-    matrixcalc
+    matrixcalc,
+    markdown
 Remotes:
     github::jendelman/GWASpoly,
     github::Breeding-Insight/BIGr
