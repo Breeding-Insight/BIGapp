@@ -82,6 +82,22 @@ test_that("test GWAS",{
     stop("Wrong file format")
   }
 
+  LD_plot <- LD.plot(data)
+
+  lim.d <- max(LD_plot$data$d)
+
+  input$bp_window <- 5e6
+
+  if(input$bp_window > lim.d) {
+    safeError("Base pair window larger than maximum distance. Reduce window size.")
+    p <- LD_plot
+  } else {
+    p <- LD_plot + geom_vline(aes(xintercept=input$bp_window, color = "bp window"),linetype="dashed") +
+      theme(legend.title=element_blank(), legend.position="top")
+  }
+
+  print(p)
+
   data.loco <- set.K(data,LOCO=F,n.core= as.numeric(cores))
 
   #Delete temp pheno file
@@ -170,6 +186,18 @@ test_that("test GWAS",{
     qtl <- get.QTL(data=data2,traits=colnames(data@pheno[i]),bp.window=5e6)
     qtl_d <- data.frame(qtl)
 
+    if(length(qtl$Model) >0){
+      rm.qtl <- which(qtl$Model %in% c("diplo-general", "diplo-additive"))
+      if(length(rm.qtl) > 0){
+        warning("QTL detected by the models diplo-general and diplo-additive are not supported in the fit.QTL current version")
+        qtl <- qtl[-rm.qtl,]
+      }
+
+      fit.ans_temp <- fit.QTL(data=data2,
+                              trait=input$trait_info,
+                              qtl=qtl[,c("Marker","Model")])
+    }
+
     #get qqplot
     data_qq <- cbind.data.frame(SNP=data.loco.scan@map$Marker,Chr=data.loco.scan@map$Chrom, Pos=data.loco.scan@map$Position,10^(-data.loco.scan@scores[[colnames(data@pheno[i])]]))
 
@@ -195,3 +223,4 @@ test_that("test GWAS",{
   }
 
 })
+

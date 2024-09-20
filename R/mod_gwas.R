@@ -22,6 +22,7 @@ mod_gwas_ui <- function(id){
                  fileInput(ns("gwas_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                  fileInput(ns("phenotype_file"), "Choose Passport File", accept = ".csv"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
+                 numericInput(ns("bp_window_before"), "Base pair window", min = 0, value = 5e6),
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
                  selectInput(ns('trait_info'), label = 'Select Trait (eg. Color):', choices = NULL),
                  virtualSelectInput(
@@ -39,7 +40,7 @@ mod_gwas_ui <- function(id){
                    p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
                    p(downloadButton(ns('download_pheno'),""), "Passport Example File"), hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goGWASpar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-                   p(HTML("<b>Graphics description:</b>"), actionButton(ns("goGWASgraph"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goGWASgraph"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>How to cite:</b>"), actionButton(ns("goGWAScite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>GWASpoly tutorial:</b>"), actionButton(ns("goGWASpoly"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://jendelman.github.io/GWASpoly/GWASpoly.html', '_blank')" )),
                    circle = FALSE,
@@ -51,14 +52,26 @@ mod_gwas_ui <- function(id){
       ),
       column(width = 6,
              box(
-               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
+               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 800,
                bs4Dash::tabsetPanel(
+                 tabPanel("Linkage Desiquilibrium Plot",
+                          withSpinner(plotOutput(ns("LD_plot"), height = "500px")), br(),
+                          conditionalPanel(
+                            condition = "input.gwas_start", ns = ns,
+                            div(
+                              sliderInput(ns("bp_window_after"), label = "Adjust base pair window here and run analysis again", min = 0,
+                                          max = 100e6, value = 5e6, step = 100),
+                            )
+                          )
+                 ),
                  tabPanel("BIC Plot", withSpinner(plotOutput(ns("bic_plot"), height = "500px"))),
                  tabPanel("Manhattan Plot", withSpinner(plotOutput(ns("manhattan_plot"), height = "500px"))),
                  tabPanel("QQ Plot", withSpinner(plotOutput(ns("qq_plot"), height = "500px"))),
                  tabPanel("BIC Table", withSpinner(DTOutput(ns("bic_table"))),style = "overflow-y: auto; height: 500px"),
                  tabPanel("QTL - significant markers",
-                          withSpinner(DTOutput(ns('gwas_stats'))),style = "overflow-y: auto; height: 500px")
+                          withSpinner(DTOutput(ns('gwas_stats'))),style = "overflow-y: auto; height: 500px"),
+                 tabPanel("Multiple QTL model results table",
+                          withSpinner(DTOutput(ns('gwas_fitqtl'))),style = "overflow-y: auto; height: 500px")
                )
              )
       ),
@@ -152,7 +165,10 @@ mod_gwas_server <- function(input, output, session, parent_session){
   ##GWAS items
   gwas_vars <- reactiveValues(
     gwas_df = NULL,
+    fit_qtl = NULL,
     manhattan_plots = NULL,
+    LD_plot = NULL,
+    bp_window = NULL,
     qq_plots = NULL,
     bic_df = NULL,
     BIC_ggplot = NULL
@@ -271,7 +287,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
       temp_geno_file <- tempfile(fileext = ".csv")
 
       #Convert VCF file if submitted
-      vcf <- read.vcfR(input$gwas_file$datapath)
+      vcf <- read.vcfR(input$gwas_file$datapath, verbose = FALSE)
 
       #Extract GT
       geno_mat <- extract.gt(vcf, element = "GT")
@@ -331,6 +347,32 @@ mod_gwas_server <- function(input, output, session, parent_session){
       #Stop the analysis
       return()
     }
+
+    gwas_vars$LD_plot <- LD.plot(data)
+    lim.d <- max(gwas_vars$LD_plot$data$d)
+
+    if(input$bp_window_before > lim.d)
+      shinyalert(
+        title = "Adjust base pair window",
+        text = paste0("Base pair window larger than maximum distance (",lim.d,"). Reduce window size."),
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+
+    validate(
+      need(input$bp_window_before <= lim.d, paste0("Base pair window larger than maximum distance (",lim.d,"). Reduce window size."))
+    )
+
+    gwas_vars$bp_window <- input$bp_window_before
+    updateSliderInput(session = session, inputId = "bp_window_after", min = 0, max = lim.d, value = gwas_vars$bp_window, step = round(lim.d/30,4))
 
     data.loco <- set.K(data,LOCO=F,n.core= as.numeric(cores))
 
@@ -399,12 +441,6 @@ mod_gwas_server <- function(input, output, session, parent_session){
       #Save BIC plot
       gwas_vars$BIC_ggplot <- p1
 
-      #Display BIC figure
-      output$bic_plot <- renderPlot({
-        print(p1)
-      })
-      #dev.off()
-
       #Save BIC plot info
       gwas_vars$bic_df <- plotBICs_kinship
 
@@ -436,22 +472,27 @@ mod_gwas_server <- function(input, output, session, parent_session){
       #plot for six models per trait
       manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]), models = model)+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
 
-      #Output the manhattan plots
-      output$manhattan_plot <- renderPlot({
-
-        print(manhattan_plot_list[[input$model_select]])
-
-      })
-
-
       #get most significant SNPs per QTL file
-      qtl <- get.QTL(data=data2,traits=colnames(data@pheno[i]),bp.window=5e6)
+      print("Used")
+      print(gwas_vars$bp_window)
+      qtl <- get.QTL(data=data2,traits=colnames(data@pheno[i]),bp.window=gwas_vars$bp_window)
       qtl_d <- data.frame(qtl)
 
       #Save QTL info
       gwas_vars$gwas_df <- qtl_d
 
-      output$gwas_stats <-  renderDT({qtl_d}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+      if(length(qtl$Model) >0){
+        rm.qtl <- which(qtl$Model %in% c("diplo-general", "diplo-additive"))
+        if(length(rm.qtl) > 0){
+          warning("QTL detected by the models diplo-general and diplo-additive are not supported in the fit.QTL current version")
+          qtl <- qtl[-rm.qtl,]
+        }
+
+        fit.ans_temp <- fit.QTL(data=data2,
+                                trait=input$trait_info,
+                                qtl=qtl[,c("Marker","Model")])
+        gwas_vars$fit_qtl <- fit.ans_temp
+      } else gwas_vars$fit_qtl <- NULL
 
       #Updating value boxes
       output$qtls_detected <- renderValueBox({
@@ -472,18 +513,8 @@ mod_gwas_server <- function(input, output, session, parent_session){
       #Save qq_plot info
       gwas_vars$qq_plots <- data_qq
 
-      output$qq_plot <- renderPlot({
-        CMplot_shiny(data_qq,plot.type="q",col=c(1:8),
-                     ylab.pos=2,
-                     file.name=colnames(data@pheno[i]),
-                     conf.int=FALSE,
-                     box=F,multraits=TRUE,file.output=FALSE)
-      })
-
       #plot for each model per trait
       for (j in 1:length(model)) {
-        print(j)
-
         data.loco.scan_2 <- GWASpoly(data=data.loco,models=model[j],
                                      traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))
 
@@ -499,6 +530,99 @@ mod_gwas_server <- function(input, output, session, parent_session){
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 100, status = "success", title = "Finished")
 
+  })
+
+  # Tables
+  output$gwas_stats <-  renderDT({
+    validate(
+      need(dim(gwas_vars$gwas_df)[1] > 0, "No QTL detected.")
+    )
+    gwas_vars$gwas_df
+  }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+  output$gwas_fitqtl <-  renderDT({
+    validate(
+      need(dim(gwas_vars$gwas_df)[1] > 0, "No QTL detected.")
+    )
+
+    rm.qtl <- which(gwas_vars$gwas_df$Model %in% c("diplo-general", "diplo-additive"))
+    if(length(rm.qtl) > 0){
+      shinyalert(
+        title = "Oops",
+        text = "QTL detected by the models diplo-general and diplo-additive are not supported in the fit.QTL current version",
+        size = "xs",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "info",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        imageUrl = "",
+        animation = TRUE,
+      )
+    }
+
+    gwas_vars$fit_qtl
+  }, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
+
+
+
+
+  # Plots
+  #Output the manhattan plots
+  output$manhattan_plot <- renderPlot({
+    validate(
+      need(!is.null(gwas_vars$manhattan_plots), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+    )
+    print(gwas_vars$manhattan_plots[[input$model_select]])
+
+  })
+
+  output$qq_plot <- renderPlot({
+    validate(
+      need(!is.null(gwas_vars$qq_plots), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+    )
+    CMplot_shiny(gwas_vars$qq_plots,plot.type="q",col=c(1:8),
+                 ylab.pos=2,
+                 file.name=input$trait_info,
+                 conf.int=FALSE,
+                 box=F,
+                 multraits=TRUE,
+                 file.output=FALSE)
+  })
+
+  #Display BIC figure
+  output$bic_plot <- renderPlot({
+    validate(
+      need(!is.null(gwas_vars$BIC_ggplot), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+    )
+
+    print(gwas_vars$BIC_ggplot)
+  })
+
+  output$LD_plot <- renderPlot({
+
+    validate(
+      need(!is.null(gwas_vars$LD_plot), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
+    )
+
+    lim.d <- max(gwas_vars$LD_plot$data$d)
+
+    validate(
+      need(gwas_vars$bp_window <= lim.d, paste0("Base pair window larger than maximum distance (",lim.d,"). Reduce window size."))
+    )
+    if(is.null(input$bp_window_after)) {
+      line <- gwas_vars$bp_window
+    } else line <- input$bp_window_after
+
+    p <- gwas_vars$LD_plot + geom_vline(aes(xintercept=line, color = "bp window"),linetype="dashed") +
+      theme(legend.title=element_blank(), legend.position="top", text = element_text(size = 15))
+
+    updateNumericInput(session = session, inputId = "bp_window_before",value = line)
+
+    print(p)
   })
 
   #Download files for GWAS

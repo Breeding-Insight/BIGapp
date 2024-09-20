@@ -144,7 +144,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       updateProgressBar(session = session, id = "pb_diversity", value = 20, title = "Importing VCF")
 
       #Import genotype information if in VCF format
-      vcf <- read.vcfR(geno)
+      vcf <- read.vcfR(geno, verbose = FALSE)
 
       #Save position information
       diversity_items$pos_df <- data.frame(vcf@fix[, 1:2])
@@ -163,7 +163,6 @@ mod_diversity_server <- function(input, output, session, parent_session){
       geno_mat <- extract.gt(vcf, element = "GT")
       geno_mat <- apply(geno_mat, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
-    
 
       print(class(geno_mat))
       #Convert genotypes to alternate counts if they are the reference allele counts
@@ -248,8 +247,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       box_plot()
     })
 
-    #Het plot
-    het_plot <- reactive({
+    output$het_plot <- renderPlot({
       validate(
         need(!is.null(diversity_items$het_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
@@ -257,35 +255,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
            xlab = "Observed Heterozygosity",
            ylab = "Number of Samples",
            main = "Sample Observed Heterozygosity")
-
       axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
-    })
-
-    output$het_plot <- renderPlot({
-      het_plot()
-    })
-
-    #AF Plot
-    #af_plot <- reactive({
-    #  validate(
-    #    need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
-    #  )
-    #  hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
-    #       ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
-    #})
-
-    #output$af_plot <- renderPlot({
-    #  af_plot()
-    #})
-
-    #MAF plot
-    maf_plot <- reactive({
-      validate(
-        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
-      )
-
-      hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
-           ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
 
     #Marker plot
@@ -297,8 +267,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
       diversity_items$pos_df$POS <- as.numeric(diversity_items$pos_df$POS)
       # Sort the dataframe and pad with a 0 if only a single digit is provided
       diversity_items$pos_df$CHROM <- ifelse(
-        nchar(diversity_items$pos_df$CHROM) == 1, 
-        paste0("0", diversity_items$pos_df$CHROM), 
+        nchar(diversity_items$pos_df$CHROM) == 1,
+        paste0("0", diversity_items$pos_df$CHROM),
         diversity_items$pos_df$CHROM
       )
       diversity_items$pos_df <- diversity_items$pos_df[order(diversity_items$pos_df$CHROM), ]
@@ -346,7 +316,12 @@ mod_diversity_server <- function(input, output, session, parent_session){
     })
 
     output$maf_plot <- renderPlot({
-      maf_plot()
+      validate(
+        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
+
+      hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
+           ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
 
     sample_table <- reactive({
@@ -393,12 +368,15 @@ mod_diversity_server <- function(input, output, session, parent_session){
         # Conditional plotting based on input selection
         if (input$div_figure == "Dosage Plot") {
           print(box_plot())
-        } else if (input$div_figure == "AF Histogram") {
-          af_plot()
         } else if (input$div_figure == "MAF Histogram") {
-          maf_plot()
+          hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
+               ylab = "Frequency", main = "Minor Allele Frequency Distribution")
         } else if (input$div_figure == "OHet Histogram") {
-          het_plot()
+          hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+               xlab = "Observed Heterozygosity",
+               ylab = "Number of Samples",
+               main = "Sample Observed Heterozygosity")
+          axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
         } else if (input$div_figure == "Marker Plot") {
           print(marker_plot())
         }

@@ -198,7 +198,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     } else{
 
       #Import genotype information if in VCF format
-      vcf <- read.vcfR(geno)
+      vcf <- read.vcfR(geno, verbose = FALSE)
 
       #Get items in FORMAT column
       info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
@@ -251,6 +251,25 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     # Print the modified dataframe
     row.names(info_df) <- info_df[,1]
+
+    # Check ploidy
+    if(input$pca_ploidy != max(genomat, na.rm = T)){
+      shinyalert(
+        title = "Wrong ploidy",
+        text = "The input ploidy does not match the maximum dosage found in the genotype file",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      req(input$pca_ploidy == max(genomat, na.rm = T))
+    }
 
     #Plotting
     #First build a relationship matrix using the genotype values
@@ -312,14 +331,14 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     #End of PCA section
   })
-  
+
 
   ##2D PCA plotting
   pca_2d <- reactive({
     validate(
       need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
     )
-    
+
 
     # Generate colors
     if (!is.null(pca_data$my_palette)) {
@@ -396,7 +415,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     tit = paste0('Total Explained Variance =', sum(pca_data$variance_explained[1:3]))
 
-    fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = pca_data$pc_df_pop[[input$group_info]],
+    fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = as.factor(pca_data$pc_df_pop[[input$group_info]]),
                    colors = my_palette) %>%
       add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
 
@@ -448,14 +467,14 @@ mod_PCA_server <- function(input, output, session, parent_session){
   output$scree_plot <- renderPlot({
     pca_scree()
   })
-  
+
   ##Summary Info
   pca_summary_info <- function() {
     # Handle possible NULL values for inputs
     dosage_file_name <- if (!is.null(input$dosage_file$name)) input$dosage_file$name else "No file selected"
     passport_file_name <- if (!is.null(input$passport_file$name)) input$passport_file$name else "No file selected"
     selected_ploidy <- if (!is.null(input$pca_ploidy)) as.character(input$pca_ploidy) else "Not selected"
-    
+
     # Print the summary information
     cat(
       "BIGapp PCA Summary\n",
@@ -483,7 +502,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$pca_summary, {
     showModal(modalDialog(
@@ -499,8 +518,8 @@ mod_PCA_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_pca_info <- downloadHandler(
     filename = function() {
@@ -511,7 +530,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       writeLines(paste(capture.output(pca_summary_info()), collapse = "\n"), file)
     }
   )
-  
+
 
   #Download figures for PCA
   output$download_pca <- downloadHandler(
