@@ -162,7 +162,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
   ##This is for the DArT files conversion to VCF
   output$download_d2vcf <- downloadHandler(
     filename = function() {
-      paste0(input$d2v_output_name, ".vcf.gz")
+      output_name <- gsub("\\.vcf$", "", input$d2v_output_name)
+      paste0(output_name, ".vcf.gz")
     },
     content = function(file) {
       # Ensure the files are uploaded

@@ -392,7 +392,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
 
   output$download_updog_vcf <- downloadHandler(
     filename = function() {
-      paste0(input$output_name, ".vcf.gz")
+      output_name <- gsub("\\.vcf$", "", input$output_name)
+      paste0(output_name, ".vcf.gz")
     },
     content = function(file) {
       #Save Updog output as VCF file
