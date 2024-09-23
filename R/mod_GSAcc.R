@@ -76,7 +76,7 @@ mod_GSAcc_ui <- function(id){
 
       column(width = 6,
              box(
-               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
+               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600, maximizable = T,
                bs4Dash::tabsetPanel(
                  tabPanel("Violin Plot", plotOutput(ns("pred_violin_plot"), height = "500px")),
                  tabPanel("Box Plot", plotOutput(ns("pred_box_plot"), height = "500px")),

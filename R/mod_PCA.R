@@ -89,7 +89,7 @@ mod_PCA_ui <- function(id){
              )
       ),
       column(width = 8,
-             box(title = "Passport Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
+             box(title = "Passport Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
                  DTOutput(ns('passport_table')),
                  style = "overflow-y: auto; height: 480px"
              ),

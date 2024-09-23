@@ -51,7 +51,7 @@ mod_diversity_ui <- function(id){
       ),
       column(width = 6,
              box(
-               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                bs4Dash::tabsetPanel(
                  tabPanel("Dosage Plot", plotOutput(ns('dosage_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("MAF Plot", plotOutput(ns('maf_plot')),style = "overflow-y: auto; height: 500px"),

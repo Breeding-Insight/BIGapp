@@ -83,13 +83,13 @@ mod_dapc_ui <- function(id){
              )
       ),
       column(width = 8,
-             bs4Dash::box(title = "DAPC Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
+             bs4Dash::box(title = "DAPC Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Values",DTOutput(ns('BIC_table'))),
                             tabPanel("DAPC Values", DTOutput(ns('DAPC_table'))), # Placeholder for plot outputs
                             br(), br()
                           )),
-             bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+             bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Plot",withSpinner(plotOutput(ns("BIC_plot"), height = '460px'))),
                             tabPanel("DAPC Plot", withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))),

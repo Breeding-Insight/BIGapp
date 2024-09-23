@@ -59,7 +59,7 @@ mod_GS_ui <- function(id){
       ),
 
       column(width = 6,
-             box(title = "Results", status = "info", solidHeader = FALSE, width = 12, height = 600,
+             box(title = "Results", status = "info", solidHeader = FALSE, width = 12, height = 600, maximizable = T,
                  bs4Dash::tabsetPanel(
                    tabPanel("Predicted Trait Table", DTOutput(ns("pred_trait_table")), style = "overflow-y: auto; height: 500px"),
                    tabPanel("GEBVs Table", DTOutput(ns("pred_gebvs_table2")),style = "overflow-y: auto; height: 500px")
