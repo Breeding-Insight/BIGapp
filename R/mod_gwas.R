@@ -296,7 +296,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
       info <- data.frame(vcf@fix)
       gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
 
-      if(!any(colnames(gpoly_df) %in% phenotype_file$Sample_ID)) {
+      if(!any(colnames(gpoly_df) %in% phenotype_file[,1])) {
         shinyalert(
           title = "Samples ID do not match",
           text = paste("Check if passport/phenotype files have same sample ID as the VCF/genotype file."),
@@ -314,7 +314,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
       }
       validate(
-        need(any(colnames(gpoly_df) %in% phenotype_file$Sample_ID), "The selected traits must be numerical.")
+        need(any(colnames(gpoly_df) %in% phenotype_file[,1]), "The selected traits must be numerical.")
       )
 
       write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
