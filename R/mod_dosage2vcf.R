@@ -30,6 +30,7 @@ mod_dosage2vcf_ui <- function(id){
             p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+            actionButton(ns("d2vcf_summary"), "Summary"),
             circle = FALSE,
             status = "warning",
             icon = icon("info"), width = "500px",
@@ -225,6 +226,65 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+    }
+  )
+  
+  ##Summary Info
+  d2vcf_summary_info <- function() {
+    #Handle possible NULL values for inputs
+    report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
+    counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
+    
+    #Print the summary information
+    cat(
+      "BIGapp Dosage2VCF Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Dosage Report File:", report_file_name), "\n",
+      paste("Input Counts File:", counts_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("BIGr:", packageVersion("BIGr")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$d2vcf_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_d2vcf_info", "Download")
+      ),
+      pre(
+        paste(capture.output(d2vcf_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_d2vcf_info <- downloadHandler(
+    filename = function() {
+      paste("Dosage2VCF_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(d2vcf_summary_info()), collapse = "\n"), file)
     }
   )
 }

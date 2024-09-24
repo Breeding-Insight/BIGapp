@@ -46,10 +46,8 @@ mod_Filtering_ui <- function(id){
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Updog Filter Parameters"),
                    "You can download examples of the expected file here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                   # "Add description of each filter. Presently, all filtering parameters that are typically used for processing
-                   #  a VCF file from Updog dosage calling are included. If a VCF file does not contain these values, it will only be
-                   #  filtered for read depth, missing data, and maf.",
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"), hr(),
+                   actionButton(ns("filtering_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -624,6 +622,74 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
       file.copy(ex, file)
     })
+  
+  ##Summary Info
+  filtering_summary_info <- function() {
+    #Handle possible NULL values for inputs
+    genotype_file_name <- if (!is.null(input$updog_rdata$name)) input$updog_rdata$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$filter_ploidy)) as.character(input$filter_ploidy) else "Not selected"
+    
+    #Print the summary information
+    cat(
+      "BIGapp VCF Filtering Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste(R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", genotype_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      paste("MAF Filter:", input$filter_maf), "\n",
+      paste("Min Read Depth (Marker per Sample):", input$size_depth), "\n",
+      paste("Remove SNPs with >= % missing data:", input$snp_miss), "\n",
+      paste("Remove Samples with >= % missing data:", input$sample_miss), "\n",
+      paste("Use Updog Filtering Parameters?:", input$use_updog), "\n",
+      paste("Max OD (Updog filter):", ifelse(input$use_updog,input$OD_filter, "NA")), "\n",
+      paste("Bias Minimum (Updog filter):", ifelse(input$use_updog,input$Bias[1], "NA")), "\n",
+      paste("Bias Maximum (Updog filter):", ifelse(input$use_updog,input$Bias[2], "NA")), "\n",
+      paste("Max Prop_mis (Updog filter):", ifelse(input$use_updog,input$Prop_mis,"NA")), "\n",
+      paste("Minimum maxpostprob (Updog filter):", ifelse(input$use_updog,input$maxpostprob_filter,"NA")), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("BIGr:", packageVersion("BIGr")), "\n",
+      paste("Updog:", packageVersion("updog")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$filtering_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_filtering_info", "Download")
+      ),
+      pre(
+        paste(capture.output(filtering_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_filtering_info <- downloadHandler(
+    filename = function() {
+      paste("Filtering_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(filtering_summary_info()), collapse = "\n"), file)
+    }
+  )
 }
 
 ## To be copied in the UI

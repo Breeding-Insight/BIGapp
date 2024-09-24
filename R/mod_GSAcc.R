@@ -58,7 +58,8 @@ mod_GSAcc_ui <- function(id){
                    tags$h3("GP Parameters"),
                    "You can download examples of the expected input input files here: \n",
                    downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                   downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                   downloadButton(ns('download_pheno'), "Download Passport Example File"),hr(),
+                   actionButton(ns("predAcc_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -783,6 +784,74 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
     })
+  
+  ##Summary Info
+  predAcc_summary_info <- function() {
+    # Handle possible NULL values for inputs
+    dosage_file_name <- if (!is.null(input$pred_file$name)) input$pred_file$name else "No file selected"
+    passport_file_name <- if (!is.null(input$trait_file$name)) input$trait_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$pred_ploidy)) as.character(input$pred_ploidy) else "Not selected"
+    
+    # Print the summary information
+    cat(
+      "BIGapp Selection Model CV Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", dosage_file_name), "\n",
+      paste("Input Passport File:", passport_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      paste("Selected Trait(s):", input$pred_trait_info), "\n",
+      paste("Selected Fixed Effects:", input$pred_fixed_info), "\n",
+      paste("Selected Model:", advanced_options$pred_model), "\n",
+      paste("Selected Matrix:", advanced_options$pred_matrix), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("AGHmatrix:", packageVersion("AGHmatrix")), "\n",
+      paste("ggplot2:", packageVersion("ggplot2")), "\n",
+      paste("rrBLUP:", packageVersion("rrBLUP")), "\n",
+      paste("vcfR:", packageVersion("vcfR")), "\n",
+      paste("dplyr:", packageVersion("dplyr")), "\n",
+      paste("tidyr:", packageVersion("tidyr")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$predAcc_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_predAcc_info", "Download")
+      ),
+      pre(
+        paste(capture.output(predAcc_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_predAcc_info <- downloadHandler(
+    filename = function() {
+      paste("predAcc_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(predAcc_summary_info()), collapse = "\n"), file)
+    }
+  )
 }
 
 ## To be copied in the UI

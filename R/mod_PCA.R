@@ -35,7 +35,7 @@ mod_PCA_ui <- function(id){
                      tags$h3("PCA Inputs"),
                      "You can download examples of the expected files here: \n",
                      downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                     downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                     downloadButton(ns('download_pheno'), "Download Passport Example File"),hr(),
                      actionButton(ns("pca_summary"), "Summary"),
                      circle = FALSE,
                      status = "warning",
