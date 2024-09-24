@@ -26,7 +26,7 @@ mod_Filtering_ui <- function(id){
                  textInput(ns("filter_output_name"), "Output File Name"),
                  numericInput(ns("filter_ploidy"),"Ploidy", min = 0, value = NULL),
                  numericInput(ns("filter_maf"),"MAF filter", min = 0, max=1, value = 0.05, step = 0.01),
-                 sliderInput(ns("size_depth"),"Min Read Depth (Marker per Sample)", min = 0, max = 300, value = 10, step = 1),
+                 numericInput(ns("size_depth"),"Min Read Depth (Marker per Sample)", min = 0, max = 300, value = 10, step = 1),
                  numericInput(ns("snp_miss"),"Remove SNPs with >= % missing data", min = 0, max = 100, value = 50, step = 1),
                  numericInput(ns("sample_miss"),"Remove Samples with >= % missing data", min = 0, max = 100, value = 50, step = 1),
                  "Updog Filtering Parameters",
