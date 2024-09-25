@@ -25,8 +25,8 @@ mod_dapc_ui <- function(id){
                           div(style="display:inline-block; float:right",dropdownButton(
                             tags$h3("DAPC Inputs"),
                             "You can download an examples of the expected input file here: \n",
-                            downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                            #"DAPC Input file and analysis info. The DAPC analysis is broken down into two steps. The first step (Step 1), uses Kmeans clustering to estimate the most likely number of clusters within the dataset. This is visualized in the BIC plot and is typically the minimum BIC value. Step 2 is the DAPC analysis where the most likely value for K (number of clusters) is input and the cluster memberships are determined in the DAPC results",
+                            downloadButton(ns('download_vcf'), "Download VCF Example File"),hr(),
+                            actionButton(ns("dapc_summary"), "Summary"),
                             circle = FALSE,
                             status = "warning",
                             icon = icon("info"), width = "300px",
@@ -83,13 +83,13 @@ mod_dapc_ui <- function(id){
              )
       ),
       column(width = 8,
-             bs4Dash::box(title = "DAPC Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
+             bs4Dash::box(title = "DAPC Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Values",DTOutput(ns('BIC_table'))),
                             tabPanel("DAPC Values", DTOutput(ns('DAPC_table'))), # Placeholder for plot outputs
                             br(), br()
                           )),
-             bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+             bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Plot",withSpinner(plotOutput(ns("BIC_plot"), height = '460px'))),
                             tabPanel("DAPC Plot", withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))),
@@ -425,6 +425,70 @@ mod_dapc_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
       file.copy(ex, file)
     })
+  
+  ##Summary Info
+  dapc_summary_info <- function() {
+    #Handle possible NULL values for inputs
+    dosage_file_name <- if (!is.null(input$dosage_file$name)) input$dosage_file$name else "No file selected"
+    #passport_file_name <- if (!is.null(input$passport_file$name)) input$passport_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$dapc_ploidy)) as.character(input$dapc_ploidy) else "Not selected"
+
+    #Print the summary information
+    cat(
+      "BIGapp DAPC Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", dosage_file_name), "\n",
+      #paste("Input Passport File:", passport_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      paste("Maximum K:", input$dapc_kmax), "\n",
+      paste("Number of Clusters (K):", input$dapc_k), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("adegenet:", packageVersion("adegenet")), "\n",
+      paste("ggplot2:", packageVersion("ggplot2")), "\n",
+      paste("vcfR:", packageVersion("vcfR")), "\n",
+      paste("RColorBrewer:", packageVersion("RColorBrewer")), "\n",
+      sep = ""
+    )
+  }
+
+  # Popup for analysis summary
+  observeEvent(input$dapc_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_dapc_info", "Download")
+      ),
+      pre(
+        paste(capture.output(dapc_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+
+
+  # Download Summary Info
+  output$download_dapc_info <- downloadHandler(
+    filename = function() {
+      paste("dapc_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(dapc_summary_info()), collapse = "\n"), file)
+    }
+  )
 }
 
 ## To be copied in the UI
