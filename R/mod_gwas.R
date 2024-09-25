@@ -42,7 +42,8 @@ mod_gwas_ui <- function(id){
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goGWASpar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>Results description:</b>"), actionButton(ns("goGWASgraph"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>How to cite:</b>"), actionButton(ns("goGWAScite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-                   p(HTML("<b>GWASpoly tutorial:</b>"), actionButton(ns("goGWASpoly"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://jendelman.github.io/GWASpoly/GWASpoly.html', '_blank')" )),
+                   p(HTML("<b>GWASpoly tutorial:</b>"), actionButton(ns("goGWASpoly"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://jendelman.github.io/GWASpoly/GWASpoly.html', '_blank')" )),hr(),
+                   actionButton(ns("gwas_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -296,7 +297,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
       info <- data.frame(vcf@fix)
       gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
 
-      if(!any(colnames(gpoly_df) %in% phenotype_file$Sample_ID)) {
+      if(!any(colnames(gpoly_df) %in% phenotype_file[,1])) {
         shinyalert(
           title = "Samples ID do not match",
           text = paste("Check if passport/phenotype files have same sample ID as the VCF/genotype file."),
@@ -314,7 +315,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
       }
       validate(
-        need(any(colnames(gpoly_df) %in% phenotype_file$Sample_ID), "The selected traits must be numerical.")
+        need(any(colnames(gpoly_df) %in% phenotype_file[,1]), "The selected traits must be numerical.")
       )
 
       write.csv(gpoly_df, file = temp_geno_file, row.names = FALSE)
@@ -727,6 +728,72 @@ mod_gwas_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
     })
+  
+  ##Summary Info
+  gwas_summary_info <- function() {
+    #Handle possible NULL values for inputs
+    dosage_file_name <- if (!is.null(input$gwas_file$name)) input$gwas_file$name else "No file selected"
+    passport_file_name <- if (!is.null(input$phenotype_file$name)) input$phenotype_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$gwas_ploidy)) as.character(input$gwas_ploidy) else "Not selected"
+    
+    #Print the summary information
+    cat(
+      "BIGapp GWAS Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", dosage_file_name), "\n",
+      paste("Input Passport File:", passport_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      paste("Significance Threshold Method:", input$gwas_threshold), "\n",
+      paste("Selected Trait:", input$trait_info), "\n",
+      paste("Selected Fixed Effects:", input$fixed_info), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("AGHmatrix:", packageVersion("AGHmatrix")), "\n",
+      paste("ggplot2:", packageVersion("ggplot2")), "\n",
+      paste("GWASpoly:", packageVersion("GWASpoly")), "\n",
+      paste("vcfR:", packageVersion("vcfR")), "\n",
+      paste("Matrix:", packageVersion("Matrix")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$gwas_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_gwas_info", "Download")
+      ),
+      pre(
+        paste(capture.output(gwas_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_gwas_info <- downloadHandler(
+    filename = function() {
+      paste("gwas_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(gwas_summary_info()), collapse = "\n"), file)
+    }
+  )
 }
 
 ## To be copied in the UI

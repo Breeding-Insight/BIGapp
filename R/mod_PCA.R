@@ -35,7 +35,7 @@ mod_PCA_ui <- function(id){
                      tags$h3("PCA Inputs"),
                      "You can download examples of the expected files here: \n",
                      downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                     downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                     downloadButton(ns('download_pheno'), "Download Passport Example File"),hr(),
                      actionButton(ns("pca_summary"), "Summary"),
                      circle = FALSE,
                      status = "warning",
@@ -89,7 +89,7 @@ mod_PCA_ui <- function(id){
              )
       ),
       column(width = 8,
-             box(title = "Passport Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE,
+             box(title = "Passport Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
                  DTOutput(ns('passport_table')),
                  style = "overflow-y: auto; height: 480px"
              ),

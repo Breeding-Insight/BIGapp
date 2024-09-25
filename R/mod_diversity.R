@@ -20,7 +20,8 @@ mod_diversity_ui <- function(id){
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Diversity Parameters"),
                    "You can download an examples of the expected input file here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                   downloadButton(ns('download_vcf'), "Download VCF Example File"),hr(),
+                   actionButton(ns("diversity_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -51,7 +52,7 @@ mod_diversity_ui <- function(id){
       ),
       column(width = 6,
              box(
-               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                bs4Dash::tabsetPanel(
                  tabPanel("Dosage Plot", plotOutput(ns('dosage_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("MAF Plot", plotOutput(ns('maf_plot')),style = "overflow-y: auto; height: 500px"),
@@ -428,6 +429,65 @@ mod_diversity_server <- function(input, output, session, parent_session){
         ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
         file.copy(ex, file)
       })
+    
+    ##Summary Info
+    diversity_summary_info <- function() {
+      # Handle possible NULL values for inputs
+      dosage_file_name <- if (!is.null(input$diversity_file$name)) input$diversity_file$name else "No file selected"
+      selected_ploidy <- if (!is.null(input$diversity_ploidy)) as.character(input$diversity_ploidy) else "Not selected"
+      
+      # Print the summary information
+      cat(
+        "BIGapp Summary Metrics Summary\n",
+        "\n",
+        paste0("Date: ", Sys.Date()), "\n",
+        paste(R.Version()$version.string), "\n",
+        "\n",
+        "### Input Files ###\n",
+        "\n",
+        paste("Input Genotype File:", dosage_file_name), "\n",
+        "\n",
+        "### User Selected Parameters ###\n",
+        "\n",
+        paste("Selected Ploidy:", selected_ploidy), "\n",
+        "\n",
+        "### R Packages Used ###\n",
+        "\n",
+        paste("BIGapp:", packageVersion("BIGapp")), "\n",
+        paste("BIGr:", packageVersion("BIGr")), "\n",
+        paste("ggplot2:", packageVersion("ggplot2")), "\n",
+        paste("vcfR:", packageVersion("vcfR")), "\n",
+        sep = ""
+      )
+    }
+    
+    # Popup for analysis summary
+    observeEvent(input$diversity_summary, {
+      showModal(modalDialog(
+        title = "Summary Information",
+        size = "l",
+        easyClose = TRUE,
+        footer = tagList(
+          modalButton("Close"),
+          downloadButton("download_diversity_info", "Download")
+        ),
+        pre(
+          paste(capture.output(diversity_summary_info()), collapse = "\n")
+        )
+      ))
+    })
+    
+    
+    # Download Summary Info
+    output$download_diversity_info <- downloadHandler(
+      filename = function() {
+        paste("diversity_summary_", Sys.Date(), ".txt", sep = "")
+      },
+      content = function(file) {
+        # Write the summary info to a file
+        writeLines(paste(capture.output(diversity_summary_info()), collapse = "\n"), file)
+      }
+    )
 }
 
 ## To be copied in the UI
