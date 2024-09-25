@@ -534,7 +534,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
   #Updating value boxes
   output$qtls_detected <- renderValueBox({
     valueBox(
-      value = length(unique(gwas_vars$gwas_df$Position)),
+      value = length(unique(gwas_vars$gwas_df_filt$Position)),
       subtitle = "QTLs Detected",
       icon = icon("dna"),
       color = "info"
