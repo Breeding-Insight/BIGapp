@@ -40,11 +40,15 @@ app_ui <- function(request) {
       ),
       help = NULL, #This is the default bs4Dash button to control the presence of tooltips and popovers, which can be added as a user help/info feature.
       bs4DashSidebar(
-        skin="light", status = "info",
+        skin="light",
+        status = "info",
+        fixed=TRUE,
+        #minified = F,
+        expandOnHover = TRUE,
         sidebarMenu(id = "MainMenu",
           flat = FALSE,
           tags$li(class = "header", style = "color: grey; margin-top: 10px; margin-bottom: 10px; padding-left: 15px;", "Menu"),
-                   menuItem("Home", tabName = "welcome", icon = icon("house")),
+                   menuItem("Home", tabName = "welcome", icon = icon("house"),startExpanded = FALSE),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genotype Processing"),
                    menuItem("DArT Report2VCF", tabName = "dosage2vcf", icon = icon("share-from-square")),
                    menuItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
