@@ -364,6 +364,25 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
 
       return()
     }
+    
+    if (nrow(matrices$ref_matrix) == 0 || nrow(matrices$size_matrix) == 0) {
+      shinyalert(
+        title = "Data Warning!",
+        text = "All markers are missing read count information for reference and alternate alleles",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      
+      return()
+    }
 
     #Run Updog
     #I am also taking the ploidy from the max value in the
