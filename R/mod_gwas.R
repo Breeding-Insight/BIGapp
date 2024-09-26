@@ -22,7 +22,7 @@ mod_gwas_ui <- function(id){
                  fileInput(ns("gwas_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                  fileInput(ns("phenotype_file"), "Choose Passport File", accept = ".csv"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
-                 numericInput(ns("bp_window_before"), "Base pair window", min = 0, value = 50),
+                 numericInput(ns("bp_window_before"), "Base pair window (Mb)", min = 0, value = 2),
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
                  selectInput(ns('trait_info'), label = 'Select Trait (eg. Color):', choices = NULL),
                  virtualSelectInput(
@@ -64,9 +64,9 @@ mod_gwas_ui <- function(id){
                           br(),
                           box(
                             title = "LD plot",solidHeader = FALSE, width = 12,
-                            withSpinner(plotOutput(ns("LD_plot"), height = "500px")), br(),
-                            sliderInput(ns("bp_window_after"), label = "Adjust base pair window here and run analysis again", min = 0,
-                                        max = 100e6, value = 50, step = 100)
+                            plotlyOutput(ns("LD_plot"), height = "500px"), br(),
+                            sliderInput(ns("bp_window_after"), label = "Adjust base pair window here to filter QTLs", min = 0,
+                                        max = 100, value = 5, step = 1)
                           ),
                           box(
                             title = "Filtered QTL", solidHeader = FALSE, width = 12,
@@ -107,7 +107,8 @@ mod_gwas_ui <- function(id){
                    tags$h3("Save Image"),
                    selectInput(inputId = ns('gwas_figures'), label = 'Figure', choices = c("BIC Plot",
                                                                                            "Manhattan Plot",
-                                                                                           "QQ Plot")),
+                                                                                           "QQ Plot",
+                                                                                           "LD Plot")),
                    selectInput(inputId = ns('gwas_image_type'), label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
                    sliderInput(inputId = ns('gwas_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('gwas_image_width'), label = 'Width', value = 9, min = 1, max = 20, step=0.5),
@@ -134,6 +135,7 @@ mod_gwas_ui <- function(id){
 #' @importFrom stats BIC as.formula lm logLik median model.matrix na.omit prcomp qbeta quantile runif sd setNames
 #' @importFrom bs4Dash updatebs4TabItems updateBox
 #' @importFrom shiny updateTabsetPanel
+#' @importFrom plotly ggplotly
 #' @noRd
 mod_gwas_server <- function(input, output, session, parent_session){
 
@@ -398,7 +400,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     )
 
     gwas_vars$bp_window <- input$bp_window_before
-    updateSliderInput(session = session, inputId = "bp_window_after", min = 0, max = round(lim.d,2), value = gwas_vars$bp_window, step = round(lim.d/30,4))
+    updateSliderInput(session = session, inputId = "bp_window_after", min = 0, max = round(lim.d,2), value = gwas_vars$bp_window, step = round(lim.d/150,4))
 
     data.loco <- set.K(data,LOCO=F,n.core= as.numeric(cores))
 
@@ -534,7 +536,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
   #Updating value boxes
   output$qtls_detected <- renderValueBox({
     valueBox(
-      value = length(unique(gwas_vars$gwas_df$Position)),
+      value = length(unique(gwas_vars$gwas_df_filt$Position)),
       subtitle = "QTLs Detected",
       icon = icon("dna"),
       color = "info"
@@ -662,7 +664,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     print(gwas_vars$BIC_ggplot)
   })
 
-  output$LD_plot <- renderPlot({
+  output$LD_plot <- renderPlotly({
 
     validate(
       need(!is.null(gwas_vars$LD_plot), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
@@ -678,11 +680,21 @@ mod_gwas_server <- function(input, output, session, parent_session){
     } else line <- input$bp_window_after
 
     p <- gwas_vars$LD_plot + geom_vline(aes(xintercept=line, color = "bp window"),linetype="dashed") +
-      theme(legend.title=element_blank(), legend.position="top", text = element_text(size = 15))
+      theme(legend.title=element_blank(), legend.position=c(1,1),legend.justification = c(1,1), text = element_text(size = 15)) +
+      labs(y = "R-squared")
 
     updateNumericInput(session = session, inputId = "bp_window_before",value = line)
 
-    print(p)
+    ggplotly(p) %>%
+      layout(
+        legend = list(
+          title = list(text = ''),  # Explicitly remove legend title in plotly
+          x = 1,  # X position (right)
+          y = 1,  # Y position (top)
+          xanchor = 'right',  # Anchor the legend at the right
+          yanchor = 'top'  # Anchor the legend at the top
+        )
+      )
   })
 
   #Download files for GWAS
@@ -694,11 +706,25 @@ mod_gwas_server <- function(input, output, session, parent_session){
       # Temporary files list
       temp_dir <- tempdir()
       temp_files <- c()
-
+      
+      if (!is.null(gwas_vars$gwas_df)) {
+        # Create a temporary file for assignments
+        gwas_file <- file.path(temp_dir, paste0("QTL-Significant_Markers-statistics-", Sys.Date(), ".csv"))
+        write.csv(gwas_vars$gwas_df, gwas_file, row.names = FALSE)
+        temp_files <- c(temp_files, gwas_file)
+      }
+      
       if (!is.null(gwas_vars$gwas_df_filt)) {
         # Create a temporary file for assignments
-        gwas_file <- file.path(temp_dir, paste0("QTL-statistics-", Sys.Date(), ".csv"))
+        gwas_file <- file.path(temp_dir, paste0("QTL-LD-filtered-statistics-", Sys.Date(), ".csv"))
         write.csv(gwas_vars$gwas_df_filt, gwas_file, row.names = FALSE)
+        temp_files <- c(temp_files, gwas_file)
+      }
+      
+      if (!is.null(gwas_vars$fit_qtl)) {
+        # Create a temporary file for assignments
+        gwas_file <- file.path(temp_dir, paste0("Multiple-QTL-model-statistics-", Sys.Date(), ".csv"))
+        write.csv(gwas_vars$fit_qtl, gwas_file, row.names = FALSE)
         temp_files <- c(temp_files, gwas_file)
       }
 
@@ -748,6 +774,11 @@ mod_gwas_server <- function(input, output, session, parent_session){
         req(gwas_vars$BIC_ggplot)
         print(gwas_vars$BIC_ggplot)
 
+      } else if (input$gwas_figures == "LD Plot") {
+        req(gwas_vars$LD_plot)
+        #Plot
+        print(gwas_vars$LD_plot)
+      
       } else if (input$gwas_figures == "Manhattan Plot") {
         req(gwas_vars$manhattan_plots, input$model_select)
         #Plot
