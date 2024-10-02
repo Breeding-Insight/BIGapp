@@ -20,7 +20,7 @@ mod_dosage2vcf_ui <- function(id){
           fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
           textInput(ns("d2v_output_name"), "Output File Name"),
           numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
-          actionButton(ns("run_analysis"), "Run Analysis"),
+          #actionButton(ns("run_analysis"), "Run Analysis"),
           useShinyjs(),
           downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
           div(style="display:inline-block; float:right",dropdownButton(
