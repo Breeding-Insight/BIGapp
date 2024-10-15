@@ -26,7 +26,17 @@ mod_PCA_ui <- function(id){
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
                p("* Required"),
                fileInput(ns("dosage_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
-               fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
+               #passport data header
+               radioGroupButtons(inputId = ns("passportImportType"), "Passport Data", choices = c("File Upload" = 1, "BrAPI" = 2), selected = 1),
+               #selection buttons
+               conditionalPanel(condition=("input.passportImportType==1"),
+                                fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
+                                ns=ns
+                                ),
+               conditionalPanel(condition=("input.passportImportType==2"),
+                                textInput(ns("brapi_token"), "Access Token"),
+                                ns=ns
+               ),
                #Dropdown will update after passport upload
                numericInput(ns("pca_ploidy"), "Species Ploidy*", min = 2, value = NULL),
                actionButton(ns("pca_start"), "Run Analysis"),
@@ -126,6 +136,9 @@ mod_PCA_server <- function(input, output, session, parent_session){
     variance_explained = NULL,
     my_palette = NULL
   )
+  
+  #Pull in BrAPI data when token entered
+  #todo
 
   # Update dropdown menu choices based on uploaded passport file
   passport_table <- reactive({
