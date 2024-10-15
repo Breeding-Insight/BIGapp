@@ -16,8 +16,18 @@ mod_dosage2vcf_ui <- function(id){
       fluidRow(
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-          fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
-          fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+          selectInput(ns('file_type'), label = 'Select File Format', choices = c("DArT Dosage Reports","AgriSeq")),
+          conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
+                           ns = ns,
+                           fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
+                           fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+          ),
+          conditionalPanel(condition = "input.file_type == 'AgriSeq'",
+                           ns = ns,
+                           "Support for this file type is in-progress",
+                           "",
+                           #fileInput(ns("agriseq_file"), "Choose Input File", accept = c(".csv"))
+          ),
           textInput(ns("d2v_output_name"), "Output File Name"),
           numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
           #actionButton(ns("run_analysis"), "Run Analysis"),
