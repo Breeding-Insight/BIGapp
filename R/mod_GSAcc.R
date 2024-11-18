@@ -639,7 +639,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
       labs(title = "Predictive Ability by Trait",
            x = " ",
-           y = "Pearson Correlation") +
+           y = "Predictive Ability") +
       #theme_minimal() +                      # Using a minimal theme
       theme(legend.position = "none",
             strip.text = element_text(size = 12),
@@ -656,7 +656,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
       labs(title = "Predictive Ability by Trait",
            x = " ",  # x-label is blank because it's not relevant per facet
-           y = "Pearson Correlation") +
+           y = "Predictive Ability") +
       theme(legend.position = "none",
             strip.text = element_text(size = 12),
             axis.text = element_text(size = 12),
