@@ -43,9 +43,9 @@
 
 #' function for BIC calculation
 #'
-#' @param y describe documentation
-#' @param PC describe documentation
-#' @param K describe documentation
+#' @param y length N vector
+#' @param PC matrix of principal components with N rows and P columns
+#' @param K kinship matrix with N rows and N columns
 #'
 #' @import rrBLUP
 #' @importFrom MASS ginv
