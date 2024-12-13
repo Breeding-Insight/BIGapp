@@ -21,7 +21,7 @@ mod_GSAcc_ui <- function(id){
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("pred_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("trait_file"), "Choose Passport File", accept = ".csv"),
+                 fileInput(ns("trait_file"), "Choose Trait File", accept = ".csv"),
                  numericInput(ns("pred_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  numericInput(ns("pred_cv"), "Iterations", min = 1, max=20, value = 5),
                  virtualSelectInput(

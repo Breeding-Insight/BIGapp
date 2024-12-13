@@ -20,7 +20,7 @@ mod_gwas_ui <- function(id){
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("gwas_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("phenotype_file"), "Choose Passport File", accept = ".csv"),
+                 fileInput(ns("phenotype_file"), "Choose Trait File", accept = ".csv"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  numericInput(ns("bp_window_before"), "Base pair window (Mb)", min = 0, value = 2),
                  selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),

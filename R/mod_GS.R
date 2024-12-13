@@ -21,7 +21,7 @@ mod_GS_ui <- function(id){
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("pred_known_file"), "Choose Training VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("pred_trait_file"), "Choose Passport File", accept = ".csv"),
+                 fileInput(ns("pred_trait_file"), "Choose Trait File", accept = ".csv"),
                  fileInput(ns("pred_est_file"), "Choose Prediction VCF File", accept = c(".csv",".vcf",".gz")),
                  numericInput(ns("pred_est_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  virtualSelectInput(
