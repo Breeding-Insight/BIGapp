@@ -34,6 +34,12 @@ app_ui <- function(request) {
               href = "#",
               "Session Info",
               onclick = "Shiny.setInputValue('session_info_button', Math.random())"
+            ),
+            tags$a(
+              class = "dropdown-item",
+              href = "#",
+              "Check for Updates",
+              onclick = "Shiny.setInputValue('updates_info_button', Math.random())"
             )
           )
         )
