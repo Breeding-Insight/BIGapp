@@ -6,7 +6,7 @@ date: "2024-08-29"
 
 * **Cluster assignments table**
 
-<center>
+
 
 |K          |       BIC    | 
 |:---------:|:------------:|
@@ -17,7 +17,6 @@ date: "2024-08-29"
 |Sample_5   |           5.0|  
 |Sample_6   |           5.4|  
 
-</center>
 
 &nbsp;
 

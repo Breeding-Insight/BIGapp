@@ -16,6 +16,8 @@ date: "2024-08-29"
 | Sample_6   | 5.4          | 3.9         |
 
  
+&nbsp;
+ 
 * **EBV table**: Estimated Breeding Values (EBVs) from genomic prediction are statistical estimates of an individual's genetic potential for a specific trait, calculated by combining genomic information with phenotypic and pedigree data. These values help predict an organism's ability to pass on desirable traits to its offspring, allowing for more accurate selection in breeding programs. The EBVs are predicted for all samples in either the input VCF file (if only one provided), or for all of the samples in the predictive VCF file. It is in the format of samples IDs in the first column, and each subsequent column being the information for the traits selected by the user. 
 
 | Sample ID  | Sepal Length | Sepal Width |

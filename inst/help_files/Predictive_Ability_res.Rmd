@@ -10,7 +10,6 @@ date: "2024-08-29"
 
 * **Predictive ability table**
 
-<center>
 
 |Iter       | Sepal.Length | Sepal.Width | 
 |:---------:|:------------:|:-----------:|
@@ -19,6 +18,5 @@ date: "2024-08-29"
 |3          |         0.724|        0.543|   
 
 
-</center>
 
 &nbsp;
