@@ -4,16 +4,23 @@ output: html_document
 date: "2024-08-29"
 ---
 
-* BIC plot
-
-* BIC Table
-
-* LD plot
-
-* Manhattan Plot
-
-* QQ Plot
-
-* QTL - significant markers
-
-* Multiple QTL model results table
+* **BIC plot**
+Plot of the BIC of the tested models including PCs and kinship. The model using the number of PC that resulted in the lower BIC is the one used by BIGapp. 
+ 
+* **BIC Table**
+Table with BIC for the tests including PC and kinship. The model using the number of PC that resulted in the lower BIC is the one used by BIGapp. 
+ 
+* **LD plot**
+Plot LD vs distance. A monotone decreasing, convex spline is fit using R package scam. 
+ 
+* **Manhattan Plot**
+From GWASpoly documentation: Results for the ref and alt versions of the dominance model are combined. If data is the output from set.threshold, then the threshold is displayed as a horizontal dashed line when models contains a single model. Because the threshold varies between models, it is not drawn when multiple models are included. Although the ref and alt versions of each dominance model are slightly different (as seen with qq.plot), they are treated as a single model for the Manhattan plot, and the average threshold is shown. 
+ 
+* **QQ Plot** 
+From GWASpoly documentation: One of the standard diagnostics in GWAS is to check the inflation of the -log10(p) values (aka “scores”). This can be done using a quantile-quantile plot of the observed vs. expected values under the null hypothesis, which follows a uniform distribution and is shown with a dotted line 
+ 
+* **QTL - significant markers**
+Describes significant markers after screening with GWASpoly function 
+ 
+* **Multiple QTL model results table** 
+Results after fit.QTL function 

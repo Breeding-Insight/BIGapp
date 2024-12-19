@@ -14,16 +14,16 @@ mod_help_ui <- function(id){
       column(width=12),
       column(width=12,
              box(title="DArT Report2VCF", id = "DArT_Report2VCF_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
-                 "**Draft**This tab is designed to convert the DArT Dose Report and Counts files to a VCF file. **DArT Website**",
+                 "This tab converts the processed genotype and counts files from DArT into a VCF file (v4.3). This file can then be used as the genotype input for the analyses within BIGapp or used with other genomics applications.",
                  br(), br(),
                  bs4Dash::tabsetPanel(id = "DArT_Report2VCF_tabset",
-                                      tabPanel("Parameters description", value = "DArT_Report2VCF_par",
+                                      tabPanel("Parameters description", value = "DArT_Report2VCF_par", br(),
                                                includeMarkdown(system.file("help_files/DArT_Report2VCF_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "DArT_Report2VCF_results",
+                                      tabPanel("Results description", value = "DArT_Report2VCF_results", br(),
                                                includeMarkdown(system.file("help_files/DArT_Report2VCF_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "DArT_Report2VCF_cite",
+                                      tabPanel("How to cite", value = "DArT_Report2VCF_cite", br(),
                                                includeMarkdown(system.file("help_files/DArT_Report2VCF_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
@@ -42,52 +42,58 @@ mod_help_ui <- function(id){
                                       ))
              ),
              box(title="VCF Filtering", id = "VCF_Filtering_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+                 "Filter SNPs and samples in a VCF file based on missing data, minor allele frequency, read depth, and Updog dosage calling metrics",
+                 br(), br(),
                  bs4Dash::tabsetPanel(id = "VCF_Filtering_tabset",
-                                      tabPanel("Parameters description", value = "VCF_Filtering_par",
+                                      tabPanel("Parameters description", value = "VCF_Filtering_par", br(),
                                                includeMarkdown(system.file("help_files/VCF_Filtering_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "VCF_Filtering_results",
-                                               includeMarkdown(system.file("help_files/VCF_Filtering_par.Rmd", package = "BIGapp"))
+                                      tabPanel("Results description", value = "VCF_Filtering_results", br(),
+                                               includeMarkdown(system.file("help_files/VCF_Filtering_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "Updog_Dosage_Calling_cite",
+                                      tabPanel("How to cite", value = "Updog_Dosage_Calling_cite", br(),
                                                includeMarkdown(system.file("help_files/VCF_Filtering_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
              box(title="PCA", id = "PCA_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+                 "This tab is used to perform a PCA to visualize the genomic relationships between samples (population structure)",
+                 br(), br(),
                  bs4Dash::tabsetPanel(id = "PCA_tabset",
-                                      tabPanel("Parameters description", value = "PCA_par",
+                                      tabPanel("Parameters description", value = "PCA_par", br(),
                                                includeMarkdown(system.file("help_files/PCA_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "PCA_results",
+                                      tabPanel("Results description", value = "PCA_results", br(),
                                                includeMarkdown(system.file("help_files/PCA_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "PCA_cite",
+                                      tabPanel("How to cite", value = "PCA_cite", br(),
                                                includeMarkdown(system.file("help_files/PCA_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
              box(title="DAPC", id = "DAPC_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+                 "This tab group estimates the number of distinct groups that are present within the genomic dataset, and classifies each sample into a distinct group.",
+                 br(), br(),
                  bs4Dash::tabsetPanel(id = "DAPC_tabset",
-                                      tabPanel("Parameters description", value = "DAPC_par",
+                                      tabPanel("Parameters description", value = "DAPC_par", br(),
                                                includeMarkdown(system.file("help_files/DAPC_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "DAPC_results",
+                                      tabPanel("Results description", value = "DAPC_results", br(),
                                                includeMarkdown(system.file("help_files/DAPC_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "DAPC_cite",
+                                      tabPanel("How to cite", value = "DAPC_cite", br(),
                                                includeMarkdown(system.file("help_files/DAPC_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
              box(title="Genomic Diversity", id = "Genomic_Diversity_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
-                 "**Draft**This tab is dedicated to analyzing genomic diversity within the population. It calculates various diversity metrics such as heterozygosity and minor allele frequency (MAF). The app includes functionalities to visualize these metrics through histograms and other plots. Users can download the calculated diversity metrics as CSV files. This tab helps in understanding the genetic variability and distribution of alleles within the population.",
+                 "This tab estimates summary metrics for the samples and SNPs within a genomic dataset and produces figures and tables.",
                  br(), br(),
                  bs4Dash::tabsetPanel(id = "Genomic_Diversity_tabset",
-                                      tabPanel("Parameters description", value = "Genomic_Diversity_par",
+                                      tabPanel("Parameters description", value = "Genomic_Diversity_par", br(),
                                                includeMarkdown(system.file("help_files/Genomic_Diversity_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "Genomic_Diversity_results",
+                                      tabPanel("Results description", value = "Genomic_Diversity_results", br(),
                                                includeMarkdown(system.file("help_files/Genomic_Diversity_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "Genomic_Diversity_cite",
+                                      tabPanel("How to cite", value = "Genomic_Diversity_cite", br(),
                                                includeMarkdown(system.file("help_files/Genomic_Diversity_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
@@ -106,26 +112,30 @@ mod_help_ui <- function(id){
                                       ))
              ),
              box(title="Predictive Ability", id = "Predictive_Ability_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+                 "This tab provides the predictive ability of a GBLUP model for each trait across all samples within a genomic dataset",
+                 br(), br(),
                  bs4Dash::tabsetPanel(id = "Predictive_Ability_tabset",
-                                      tabPanel("Parameters description", value = "Predictive_Ability_par",
+                                      tabPanel("Parameters description", value = "Predictive_Ability_par", br(),
                                                includeMarkdown(system.file("help_files/Predictive_Ability_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "Predictive_Ability_results",
+                                      tabPanel("Results description", value = "Predictive_Ability_results", br(),
                                                includeMarkdown(system.file("help_files/Predictive_Ability_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "Predictive_Ability_cite",
+                                      tabPanel("How to cite", value = "Predictive_Ability_cite", br(),
                                                includeMarkdown(system.file("help_files/Predictive_Ability_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
              box(title="Genomic Prediction", id = "Genomic_Prediction_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+                 "his tab estimates the trait and estimated-breeding-values (EBVs) for either all individuals in a genomic dataset, or by training the model with one genomic dataset to predict the values in another.",
+                 br(), br(),
                  bs4Dash::tabsetPanel(id = "Genomic_Prediction_tabset",
-                                      tabPanel("Parameters description", value = "Genomic_Prediction_par",
+                                      tabPanel("Parameters description", value = "Genomic_Prediction_par", br(),
                                                includeMarkdown(system.file("help_files/Genomic_Prediction_par.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("Results description", value = "Genomic_Prediction_results",
+                                      tabPanel("Results description", value = "Genomic_Prediction_results", br(),
                                                includeMarkdown(system.file("help_files/Genomic_Prediction_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "Genomic_Prediction_cite",
+                                      tabPanel("How to cite", value = "Genomic_Prediction_cite", br(),
                                                includeMarkdown(system.file("help_files/Genomic_Prediction_cite.Rmd", package = "BIGapp"))
                                       ))
              ),

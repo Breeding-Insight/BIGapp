@@ -4,3 +4,14 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **DArTag Dosage Report**
+
+The DArT Dosage Report is a tab-separated file provided by DArT from a sequencing project. It contains the genotype information for each of the target markers for all samples in the sequencing project. The markers are in rows and the samples are in the columns. There are several summary metric columns that preceed the sample genotype columns. The genotype calls are the count of the reference allele, where 0 is equal to homozygous alternate. 
+ 
+* **DArTag Counts File**
+
+The DArT counts file is a tab-separated file provided by DArT from a sequencing project. It contains the read count information for the referance and alternate allele at each target marker. The marker information are in the rows and the samples are in the columns. There are several information columns that preceed the sample columns. There are two versions of this file. The “collapsed counts” version contains the target markers that includes their multiallic read counts in their total counts. The “Counts” file contains the read counts for the target markers only (excluding the multiallelic read count information). 
+ 
+* **Species Ploidy**
+
+Specifies the ploidy level of the species. The current analysis supports both diploids and autopolyploids. 

@@ -6,6 +6,7 @@ context("Dosage Calling")
 test_that("Dosage Calling from MADC file",{
 
   madc_file <- system.file("iris_DArT_MADC.csv", package="BIGapp")
+
   output_name <- "output"
   ploidy <- 2
   cores <- 2
