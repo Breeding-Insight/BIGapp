@@ -11,7 +11,8 @@ date: "2024-08-29"
   * **VCF file**: 
 Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is required for the analysis in this tab. For more details about the VCF format, see this document: https://samtools.github.io/hts-specs/VCFv4.2.pdf. 
  
-* **Passport File**: A comma-separated values (CSV) file containing individual names (Sample_ID) in the first column and phenotype values in the subsequent columns. The phenotype column names should correspond to the phenotype ID. 
+* **Passport File**: 
+A comma-separated values (CSV) file containing individual names (Sample_ID) in the first column and phenotype values in the subsequent columns. The phenotype column names should correspond to the phenotype ID. 
 
   * **Select Category Subset**: After loading the passport file, this option will be available. You can select the column name to base the subsetting for the samples 
   
@@ -45,6 +46,7 @@ The following information is from the Updog manual. Possible values of the genot
 `f1` This prior assumes the individuals are all full-siblings resulting from one generation of a bi-parental cross. This model assumes a particular type of meiotic behavior: polysomic inheritance with bivalent, non-preferential pairing. `f1pp` This prior allows for double reduction and preferential pairing in an F1 population of tretraploids. `s1pp` This prior allows for double reduction and preferential pairing in an S1 population of tretraploids.  `flex` Generically any categorical distribution. Theoretically, this works well if you have a lot of individuals. In practice, it seems to be much less robust to violations in modeling assumptions.`uniform` A discrete uniform distribution. This should never be used in practice." 
  
   * **Parent**: If “s1” or “s1pp” model is selected you must define which sample is correspondent to the parent including the sample ID in this box. The input sample ID must match to the sample ID in the input genotype file 
+  
   * **Parent1 and Parent2**: if “f1” or “f1pp” model is selected you must define which samples correspondent to the parent1 and parent2 including the samples ID in the respective boxes. The input sample ID must match to the sample ID in the input genotype file 
  
 * **Number of CPU Cores**: Number of cores to be used in the multidog function paralelization 

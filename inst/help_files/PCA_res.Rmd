@@ -4,3 +4,8 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **3D PCA plot**
+
+* **2D PCA plot**
+
+* **Scree plot**

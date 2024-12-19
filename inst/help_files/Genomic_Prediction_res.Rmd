@@ -4,3 +4,25 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **Predicted Trait table**: The trait values are predicted for all samples in either the input VCF file (if only one provided), or for all of the samples in the predictive VCF file. It is in the format of samples IDs in the first column, and each subsequent column being the information for the traits selected by the user. 
+
+| Sample ID  | Sepal Length | Sepal Width |
+|------------|--------------|-------------|
+| Sample_1   | 4.8          | 3.5         |
+| Sample_2   | 4.9          | 3.0         |
+| Sample_3   | 4.7          | 3.2         |
+| Sample_4   | 4.6          | 3.1         |
+| Sample_5   | 5.0          | 3.6         |
+| Sample_6   | 5.4          | 3.9         |
+
+ 
+* **EBV table**: Estimated Breeding Values (EBVs) from genomic prediction are statistical estimates of an individual's genetic potential for a specific trait, calculated by combining genomic information with phenotypic and pedigree data. These values help predict an organism's ability to pass on desirable traits to its offspring, allowing for more accurate selection in breeding programs. The EBVs are predicted for all samples in either the input VCF file (if only one provided), or for all of the samples in the predictive VCF file. It is in the format of samples IDs in the first column, and each subsequent column being the information for the traits selected by the user. 
+
+| Sample ID  | Sepal Length | Sepal Width |
+|------------|--------------|-------------|
+| Sample_1   | 0.32         | 0.48        |
+| Sample_2   | -0.12        | -0.28       |
+| Sample_3   | 0.14         | 0.31        |
+| Sample_4   | 1.21         | 1.03        |
+| Sample_5   | 0.43         | 0.33        |
+| Sample_6   | 0.03         | 0.91        |
