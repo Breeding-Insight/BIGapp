@@ -97,12 +97,11 @@ mod_DosageCall_ui <- function(id){
             tooltip = tooltipOptions(title = "Click to see info!")
           ))
         ),
-        valueBoxOutput(ns("MADCsnps"))
-      ),
-
-      fluidRow(
-        box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+        column(width=4,
+          valueBoxOutput(ns("MADCsnps"), width=12),
+          box(title = "Status", width = 12, collapsible = TRUE, status = "info",
             progressBar(id = ns("pb_madc"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+          )
         )
       )
     )

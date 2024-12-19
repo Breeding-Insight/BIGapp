@@ -164,7 +164,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       selectInput(
         inputId = ns('pred_model'),
         label = 'Model Choice',
-        choices = c("rrBLUP", "GBLUP"),
+        choices = c("GBLUP"),
         selected = advanced_options$pred_model  # Initialize with stored value
       ),
       conditionalPanel(

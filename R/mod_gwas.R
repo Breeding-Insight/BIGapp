@@ -23,8 +23,8 @@ mod_gwas_ui <- function(id){
                  fileInput(ns("phenotype_file"), "Choose Trait File", accept = ".csv"),
                  numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  numericInput(ns("bp_window_before"), "Base pair window (Mb)", min = 0, value = 2),
-                 selectInput(ns('gwas_threshold'), label='Significance Threshold Method', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
-                 selectInput(ns('trait_info'), label = 'Select Trait (eg. Color):', choices = NULL),
+                 selectInput(ns('gwas_threshold'), label='Significance Threshold', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
+                 selectInput(ns('trait_info'), label = 'Select Trait', choices = NULL),
                  virtualSelectInput(
                    inputId = ns("fixed_info"),
                    label = "Select Fixed Effects (optional):",

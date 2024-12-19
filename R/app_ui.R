@@ -68,11 +68,11 @@ app_ui <- function(request) {
                    menuItem("GWASpoly", tabName = "gwas", icon = icon("think-peaks")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genomic Selection"),
                   menuItem(
-                    span("Predictive Ability", bs4Badge("beta", position = "right", color = "success")),
+                    span("Predictive Ability"),
                            tabName = "prediction_accuracy",
                            icon = icon("right-left")),
                   menuItem(
-                    span("Genomic Prediction", bs4Badge("beta", position = "right", color = "success")),
+                    span("Genomic Prediction"),
                       tabName = "prediction",
                       icon = icon("angles-right")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Information"),
