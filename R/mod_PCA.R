@@ -26,7 +26,7 @@ mod_PCA_ui <- function(id){
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
                p("* Required"),
                fileInput(ns("dosage_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
-               fileInput(ns("passport_file"), "Choose Passport File (Sample IDs in first column)", accept = c(".csv")),
+               fileInput(ns("passport_file"), "Choose Trait File (IDs in first column)", accept = c(".csv")),
                #Dropdown will update after passport upload
                numericInput(ns("pca_ploidy"), "Species Ploidy*", min = 2, value = NULL),
                actionButton(ns("pca_start"), "Run Analysis"),
@@ -35,7 +35,7 @@ mod_PCA_ui <- function(id){
                      tags$h3("PCA Inputs"),
                      "You can download examples of the expected files here: \n",
                      downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                     downloadButton(ns('download_pheno'), "Download Passport Example File"),hr(),
+                     downloadButton(ns('download_pheno'), "Download Trait Example File"),hr(),
                      actionButton(ns("pca_summary"), "Summary"),
                      circle = FALSE,
                      status = "warning",
@@ -46,9 +46,8 @@ mod_PCA_ui <- function(id){
              ),
              box(
                title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
-               "Change the PCA plot parameters", br(),
-               selectInput(ns('group_info'), label = 'Color Variable (eg, Taxon)', choices = NULL),
-               materialSwitch(ns('use_cat'), label = "Color Specific Category Within Variable?", status = "success"),
+               selectInput(ns('group_info'), label = 'Color Variable', choices = NULL),
+               materialSwitch(ns('use_cat'), label = "Color Category", status = "success"),
                conditionalPanel(condition = "input.use_cat",
                                 ns = ns,
                                 virtualSelectInput(
@@ -89,7 +88,7 @@ mod_PCA_ui <- function(id){
              )
       ),
       column(width = 8,
-             box(title = "Passport Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
+             box(title = "Trait Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
                  DTOutput(ns('passport_table')),
                  style = "overflow-y: auto; height: 480px"
              ),

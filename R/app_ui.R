@@ -34,6 +34,12 @@ app_ui <- function(request) {
               href = "#",
               "Session Info",
               onclick = "Shiny.setInputValue('session_info_button', Math.random())"
+            ),
+            tags$a(
+              class = "dropdown-item",
+              href = "#",
+              "Check for Updates",
+              onclick = "Shiny.setInputValue('updates_info_button', Math.random())"
             )
           )
         )
@@ -62,19 +68,19 @@ app_ui <- function(request) {
                    menuItem("GWASpoly", tabName = "gwas", icon = icon("think-peaks")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genomic Selection"),
                   menuItem(
-                    span("Predictive Ability", bs4Badge("beta", position = "right", color = "success")),
+                    span("Predictive Ability"),
                            tabName = "prediction_accuracy",
                            icon = icon("right-left")),
                   menuItem(
-                    span("Genomic Prediction", bs4Badge("beta", position = "right", color = "success")),
+                    span("Genomic Prediction"),
                       tabName = "prediction",
                       icon = icon("angles-right")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Information"),
           menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
-          menuItem(
-            span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
-            tabName = "slurm",
-            icon = icon("clock")),
+          #menuItem(
+          #  span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
+          #  tabName = "slurm",
+          #  icon = icon("clock")),
           menuItem("Help", tabName = "help", icon = icon("circle-question"))
         )
       ),
@@ -98,7 +104,7 @@ app_ui <- function(request) {
         ),
         left = div(
           style = "display: flex; align-items: center; height: 100%;",  # Center the version text vertically
-          "v0.6.2")
+          "v1.0.0")
       ),
       dashboardBody(
         disconnectMessage(), #Adds generic error message for any error if not already accounted for
