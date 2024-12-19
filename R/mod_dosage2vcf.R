@@ -14,48 +14,51 @@ mod_dosage2vcf_ui <- function(id){
   tagList(
     fluidPage(
       fluidRow(
-        box(
-          title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-          selectInput(ns('file_type'), label = 'Select File Format', choices = c("DArT Dosage Reports","AgriSeq")),
-          conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
-                           ns = ns,
-                           fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
-                           fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
-          ),
-          conditionalPanel(condition = "input.file_type == 'AgriSeq'",
-                           ns = ns,
-                           "Support for this file type is in-progress",
-                           "",
-                           #fileInput(ns("agriseq_file"), "Choose Input File", accept = c(".csv"))
-          ),
-          textInput(ns("d2v_output_name"), "Output File Name"),
-          numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
-          #actionButton(ns("run_analysis"), "Run Analysis"),
-          useShinyjs(),
-          downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
-          div(style="display:inline-block; float:right",dropdownButton(
-            HTML("<b>Input files</b>"),
-            p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
-            p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
-            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            actionButton(ns("d2vcf_summary"), "Summary"),
-            circle = FALSE,
-            status = "warning",
-            icon = icon("info"), width = "500px",
-            tooltip = tooltipOptions(title = "Click to see info!")
-          ))
-        ),
-        valueBoxOutput(ns("ReportSnps"))
+        column(width = 5,
+          box(
+            title = "Inputs", width=12, status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
+            selectInput(ns('file_type'), label = 'Select File Format', choices = c("DArT Dosage Reports","AgriSeq")),
+            conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
+                             ns = ns,
+                             fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
+                             fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+            ),
+            conditionalPanel(condition = "input.file_type == 'AgriSeq'",
+                             ns = ns,
+                             "Support for this file type is in-progress",
+                             "",
+                             #fileInput(ns("agriseq_file"), "Choose Input File", accept = c(".csv"))
+            ),
+            textInput(ns("d2v_output_name"), "Output File Name"),
+            numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
+            #actionButton(ns("run_analysis"), "Run Analysis"),
+            useShinyjs(),
+            downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
+            div(style="display:inline-block; float:right",dropdownButton(
+              HTML("<b>Input files</b>"),
+              p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
+              p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
+              p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+              p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+              p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+              actionButton(ns("d2vcf_summary"), "Summary"),
+              circle = FALSE,
+              status = "warning",
+              icon = icon("info"), width = "500px",
+              tooltip = tooltipOptions(title = "Click to see info!")
+            ))
+          )
       ),
-      fluidRow(
-        box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+      column(width = 4,  
+        valueBoxOutput(ns("ReportSnps"), width=12),
+        box(title = "Status", width = 12, collapsible = TRUE, status = "info",
             progressBar(id = ns("dosage2vcf_pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+          )
+          ),
+      column(width = 1),
         )
       )
     )
-  )
 }
 
 #' dosage2vcf Server Functions

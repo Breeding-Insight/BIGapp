@@ -21,7 +21,7 @@ mod_GS_ui <- function(id){
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("pred_known_file"), "Choose Training VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("pred_trait_file"), "Choose Passport File", accept = ".csv"),
+                 fileInput(ns("pred_trait_file"), "Choose Trait File", accept = ".csv"),
                  fileInput(ns("pred_est_file"), "Choose Prediction VCF File", accept = c(".csv",".vcf",".gz")),
                  numericInput(ns("pred_est_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  virtualSelectInput(
@@ -52,7 +52,14 @@ mod_GS_ui <- function(id){
                    status = "warning",
                    icon = icon("info"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see info!")
-                 ))
+                 )),
+                 tags$hr(style="border-color: #d3d3d3; margin-top: 20px; margin-bottom: 20px;"),  # Lighter grey line
+                 div(style="text-align: left; margin-top: 10px;",
+                     actionButton(ns("advanced_options_pred"),
+                                  label = HTML(paste(icon("cog", style = "color: #007bff;"), "Advanced Options (beta)")),
+                                  style = "background-color: transparent; border: none; color: #007bff; font-size: smaller; text-decoration: underline; padding: 0;"
+                     )
+                 )
 
              )
       ),
@@ -105,6 +112,78 @@ mod_GS_ui <- function(id){
 mod_GS_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+  
+  #Default model choices
+  advanced_options_pred <- reactiveValues(
+    pred_model = "GBLUP",
+    pred_matrix = "Gmatrix",
+    ped_file = NULL
+  )
+  
+  pred_outputs <- reactiveValues(corr_output = NULL,
+                                 comb_output = NULL,
+                                 all_GEBVs = NULL,
+                                 avg_GEBVs = NULL)
+  
+  #List the ped file name if previously uploaded
+  output$uploaded_file_name <- renderText({
+    if (!is.null(advanced_options_pred$ped_file)) {
+      paste("Previously uploaded file:", advanced_options_pred$ped_file$name)
+    } else {
+      ""  # Return an empty string if no file has been uploaded
+    }
+  })
+  
+  #UI popup window for input
+  observeEvent(input$advanced_options_pred, {
+    showModal(modalDialog(
+      title = "Advanced Options (beta)",
+      selectInput(
+        inputId = ns('pred_model'),
+        label = 'Model Choice',
+        choices = c("GBLUP"),
+        selected = advanced_options_pred$pred_model  # Initialize with stored value
+      ),
+      conditionalPanel(
+        condition = "input.pred_model == 'GBLUP'", ns = ns,
+        div(
+          selectInput(
+            inputId = ns('pred_matrix'),
+            label = 'GBLUP Matrix Choice',
+            choices = c("Gmatrix", "Amatrix", "Hmatrix"),
+            selected = advanced_options_pred$pred_matrix  # Initialize with stored value
+          )
+        )
+      ),
+      conditionalPanel(
+        condition = "input.pred_matrix != 'Gmatrix'", ns = ns,
+        div(
+          fileInput(ns("ped_file"), "Choose Pedigree File", accept = ".csv"),
+          conditionalPanel(
+            condition = "output.uploaded_file_name !== ''", # Show only if there's content
+            textOutput(ns("uploaded_file_name"))  # Display the uploaded file name
+          )
+        )
+      ),
+      footer = tagList(
+        modalButton("Close"),
+        actionButton(ns("save_advanced_options"), "Save")
+      )
+    ))
+  })
+  
+  
+  
+  #Close popup window when user "saves options"
+  observeEvent(input$save_advanced_options, {
+    advanced_options$pred_model <- input$pred_model
+    advanced_options$pred_matrix <- input$pred_matrix
+    advanced_options$ped_file <- input$ped_file
+    # Save other inputs as needed
+    
+    removeModal()  # Close the modal after saving
+  })
+  
   ###Genomic Prediction
   #This tab involved 3 observeEvents
   #1) to get the traits listed in the phenotype file
