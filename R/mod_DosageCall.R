@@ -19,8 +19,9 @@ mod_DosageCall_ui <- function(id){
       fluidRow(
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-          fileInput(ns("madc_file"), "Choose MADC or VCF File", accept = c(".csv",".vcf",".gz")),
-          fileInput(ns("madc_passport"), "Choose Passport File (optional)", accept = c(".csv")),
+          "* Required",
+          fileInput(ns("madc_file"), "Choose MADC or VCF File*", accept = c(".csv",".vcf",".gz")),
+          fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
           conditionalPanel(
             condition = "output.passportTablePopulated",
             ns = ns,
@@ -96,12 +97,11 @@ mod_DosageCall_ui <- function(id){
             tooltip = tooltipOptions(title = "Click to see info!")
           ))
         ),
-        valueBoxOutput(ns("MADCsnps"))
-      ),
-
-      fluidRow(
-        box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+        column(width=4,
+          valueBoxOutput(ns("MADCsnps"), width=12),
+          box(title = "Status", width = 12, collapsible = TRUE, status = "info",
             progressBar(id = ns("pb_madc"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+          )
         )
       )
     )
@@ -161,7 +161,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   # Update dropdown menu choices based on uploaded passport file
   passport_table <- reactive({
     validate(
-      need(!is.null(input$madc_passport), "Upload passport file to access results in this section."),
+      need(!is.null(input$madc_passport), "Upload Trait File to access results in this section."),
     )
     info_df <- read.csv(input$madc_passport$datapath, header = TRUE, check.names = FALSE)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
