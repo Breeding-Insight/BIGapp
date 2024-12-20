@@ -4,3 +4,21 @@ output: html_document
 date: "2024-08-29"
 ---
 
+This tab provides the predictive ability of a GBLUP model for each trait across all samples within a genomic dataset. The model is based on a 5-fold cross validation, where the samples are evenly grouped into 5 groups, and 4 of the groups are used to train the GBLUP model, while the trait is predicted for the 5th group. This continues until each group has had their trait information predicted, and the predictive ability is the pearson correlation between the known trait values and the predicted values. Each 5-fold cross-validation can be performed multiple times (iterations) to get a more confident estimate in the predictive ability of the model. This supports the use of genomic and pedigree information. 
+
+
+* **VCF file**: Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is required for the analysis in this tab. For more details about the VCF format, see this document: https://samtools.github.io/hts-specs/VCFv4.2.pdf. 
+
+* **Passport file**: A comma-separated values (CSV) file containing individual names (Sample_ID) in the first column and phenotype values in the subsequent columns. The phenotype column names should correspond to the phenotype ID. Example: 
+
+* **Species ploidy**: Specifies the ploidy level of the species. The current analysis supports both diploids and autopolyploids. 
+
+* **Iterations**: This is the number of runs of five-fold cross-validation that you would like to perform to estimate predictive ability. The accuracy results are averaged over all iterations. The more iterations that are performed, the higher confidence in the final predictive ability estimates.  
+
+* **Matrix type**: Specifies the matrix type to use for the GBLUP prediction model. The choices are: 
+  
+  * **Gmatrix**: An additive relationship matrix between all samples is created using the genotype information from the VCF file 
+
+  * **Amatrix**: An additive relationship matrix between all samples is created using a user supplied pedigree file 
+
+  * **Hmatrix**: An additive relationship matrix between all samples is created by using the information from both the VCF file and the pedigree file 

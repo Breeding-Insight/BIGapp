@@ -3,3 +3,23 @@ title: "VCF_Filtering_par"
 output: html_document
 date: "2024-08-29"
 ---
+
+
+* **VCF file**: Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is required for the analysis in this tab. For more details about the VCF format, see this document: https://samtools.github.io/hts-specs/VCFv4.2.pdf. 
+
+* **Species Ploidy**: Specifies the ploidy level of the species. The current analysis supports both diploids and autopolyploids. 
+
+* **Minor-Allele-Frequency**: The frequency of the minor allele within the population for each SNP. SNPs with a very low MAF (MAF < 0.01) are typically removed since they could be due to sequencing errors and could bias the GWAS and PCA analyses.
+
+* **Read Depth per marker/sample**: This the read depth for each marker at each sample. A low read depth suggests that a given marker at a sample had poor genotyping performance, and should be assigned as missing. Typical read depth thresholds are set so that genotypes with a read depth per marker/sample of less than 10 are assigned as missing data. 
+
+* **SNP missing data**: The ratio of missing data across all samples for each SNP. Low missing data (minimum <= 50%) is necessary to not bias and have confidence in the downstream results. 
+
+* **Sample missing data**: The ratio of missing data across all SNPs for each sample. Low missing data (minimum <= 50%) is necessary to not bias and have confidence in the downstream results. 
+
+* **Updog parameters**: 
+
+  * **OD**: The estimated overdispersion parameter of the SNP from updog 
+  * **Bias**: The estimated allele bias of the SNP from updog 
+  * **Prop_mis**: The estimated proportion of individuals misclassified in the SNP from updog 
+  * **Maxpostprob**: Maximum posterior probability for that dosage call from updog 

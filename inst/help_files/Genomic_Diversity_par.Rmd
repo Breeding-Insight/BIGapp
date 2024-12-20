@@ -4,3 +4,6 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **VCF file**: Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is required for the analysis in this tab. For more details about the VCF format, see this document: https://samtools.github.io/hts-specs/VCFv4.2.pdf. 
+
+* **Species Ploidy**: Specifies the ploidy level of the species. The current analysis supports both diploids and autopolyploids. 

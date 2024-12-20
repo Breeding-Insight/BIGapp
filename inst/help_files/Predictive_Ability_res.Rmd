@@ -4,3 +4,19 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **Violin plot**
+
+* **Box plot**
+
+* **Predictive ability table**
+
+
+|Iter       | Sepal.Length | Sepal.Width | 
+|:---------:|:------------:|:-----------:|
+|1          |         0.728|        0.571|
+|2          |         0.721|        0.568|
+|3          |         0.724|        0.543|   
+
+
+
+&nbsp;

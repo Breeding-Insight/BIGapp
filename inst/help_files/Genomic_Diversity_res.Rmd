@@ -4,3 +4,14 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **MAF plot**
+
+* **OHet plot**
+
+* **Dosage Ratio plot**
+
+* **Marker distribution plot**
+
+* **MAF table** 
+
+* **OHet table**
