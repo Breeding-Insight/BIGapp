@@ -40,9 +40,9 @@ mod_Filtering_ui <- function(id){
                      numericInput(ns("maxpostprob_filter"), "Minimum maxpostprob (Updog filter)", min = 0, value = 0.5, step = 0.1)
                    )
                  ),
-                 actionButton(ns("run_filters"), "Apply filters"),
+                 actionButton(ns("run_filters"), "Apply Filters"),
                  useShinyjs(),
-                 downloadButton(ns("start_updog_filter"), "Download Filtered VCF", icon = icon("download"), class = "butt"),
+                 downloadButton(ns("start_updog_filter"), "Download", icon = icon("download"), class = "butt"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Updog Filter Parameters"),
                    "You can download examples of the expected file here: \n",
