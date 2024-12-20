@@ -4,3 +4,22 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **Cluster assignments table**
+
+
+
+|K          |       BIC    | 
+|:---------:|:------------:|
+|Sample_1   |           5.1|  
+|Sample_2   |           4.9|  
+|Sample_3   |           4.7|  
+|Sample_4   |           4.6|  
+|Sample_5   |           5.0|  
+|Sample_6   |           5.4|  
+
+
+&nbsp;
+
+* **BIC plot**
+
+* **DAPC plot**

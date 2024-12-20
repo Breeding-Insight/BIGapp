@@ -35,3 +35,7 @@ date: "2024-08-29"
 
 * **Number of CPU Cores**: Defines the number of CPU cores to be used for the GWAS analysis, enabling faster processing by splitting the workload across multiple cores.
 
+BIGapp uses GWASpoly random polygenic effect to control for population structure. By default, all markers are used to calculate a single covariance matrix (parameter LOCO = FALSE in GWASpoly set.k function). 
+ 
+BIGapp tests the inclusion of principal components as fixed effects (P + K model). For that, the BIC is calculated for models including 1 to 10 of the first principal components and the kinship matrix. In this step, the mixed model for GWAS is fitted using mixed.solve function of rrBLUP. Then, using the estimated parameters, log-likelihood is calculated by using the equation (2) in Kang et al., 2008. Finally, BIC is calculated by using the standard formula (BIC = K * log(N) - 2 * LL). 
+

@@ -4,3 +4,16 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **BIGapp**
+
+* **BIGr**
+
+* **vcfR**
+
+Knaus BJ, Grünwald NJ (2017). “VCFR: a package to manipulate and visualize variant call format data in R.” Molecular Ecology Resources, 17(1), 44–53. ISSN 757, https://dx.doi.org/10.1111/1755-0998.12549.
+
+Knaus BJ, Grünwald NJ (2016). “VcfR: an R package to manipulate and visualize VCF format data.” BioRxiv. https://dx.doi.org/10.1101/041277.
+
+* **AGHmatrix**
+
+R Amadeu R, Franco Garcia A, Munoz P, V Ferrao L (2023). “AGHmatrix: genetic relationship matrices in R .” Bioinformatics, 39(7).
