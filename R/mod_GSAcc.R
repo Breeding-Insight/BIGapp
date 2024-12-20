@@ -34,7 +34,7 @@ mod_GSAcc_ui <- function(id){
                  ),
                  virtualSelectInput(
                    inputId = ns("pred_fixed_info"),
-                   label = "Select Fixed Effects (optional) (not validated):",
+                   label = span("Select Fixed Effects", bs4Badge("beta", position = "right", color = "success")),
                    choices = NULL,
                    showValueAsTags = TRUE,
                    search = TRUE,
@@ -42,10 +42,11 @@ mod_GSAcc_ui <- function(id){
                  ),
                  conditionalPanel(
                    condition = "input.pred_fixed_info.length > 0", ns = ns,
+                   "(unselected will be considered covariates)",
                    div(
                      virtualSelectInput(
                        inputId = ns("pred_fixed_cat"),
-                       label = "Select Categorical Fixed Effects (unselected will be considered covariates)",
+                       label = "Select Categorical Fixed Effects",
                        choices = NULL,
                        showValueAsTags = TRUE,
                        search = TRUE,
@@ -81,7 +82,7 @@ mod_GSAcc_ui <- function(id){
                bs4Dash::tabsetPanel(
                  tabPanel("Violin Plot", plotOutput(ns("pred_violin_plot"), height = "500px")),
                  tabPanel("Box Plot", plotOutput(ns("pred_box_plot"), height = "500px")),
-                 tabPanel("Accuracy Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px")
+                 tabPanel("P.A. Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px")
                )
 
              )
@@ -163,7 +164,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       title = "Advanced Options (beta)",
       selectInput(
         inputId = ns('pred_model'),
-        label = 'Model Choice',
+        label = 'Method Choice',
         choices = c("GBLUP"),
         selected = advanced_options$pred_model  # Initialize with stored value
       ),
@@ -172,7 +173,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         div(
           selectInput(
             inputId = ns('pred_matrix'),
-            label = 'GBLUP Matrix Choice',
+            label = 'Relationship Matrix Choice',
             choices = c("Gmatrix", "Amatrix", "Hmatrix"),
             selected = advanced_options$pred_matrix  # Initialize with stored value
           )

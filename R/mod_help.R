@@ -13,7 +13,7 @@ mod_help_ui <- function(id){
     fluidPage(
       column(width=12),
       column(width=12,
-             box(title="DArT Report2VCF", id = "DArT_Report2VCF_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+             box(title="Convert to VCF", id = "DArT_Report2VCF_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
                  "This tab converts the processed genotype and counts files from DArT into a VCF file (v4.3). This file can then be used as the genotype input for the analyses within BIGapp or used with other genomics applications.",
                  br(), br(),
                  bs4Dash::tabsetPanel(id = "DArT_Report2VCF_tabset",
@@ -27,7 +27,7 @@ mod_help_ui <- function(id){
                                                includeMarkdown(system.file("help_files/DArT_Report2VCF_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
-             box(title="Updog Dosage Calling", id = "Updog_Dosage_Calling_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
+             box(title="Dosage Calling", id = "Updog_Dosage_Calling_box",width = 12, collapsible = TRUE, collapsed = TRUE, status = "info", solidHeader = TRUE,
                  "This tab is designed to handle the process of dosage calling in genomic data. Dosage calling is essential for determining the number of copies of a particular allele at each genomic location.",
                  br(), br(),
                  bs4Dash::tabsetPanel(id = "Updog_Dosage_Calling_tabset",

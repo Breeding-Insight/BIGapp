@@ -311,9 +311,9 @@ GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits,
         results[(((r-1)*5)+fold), (length(traits)+2)] <- fold
 
         # Extract GEBVs
-        GEBVs_fold[, trait_idx] <- traitpred$g[test] #Confirm it is accuract to calculate the GEBVs for testing group from the trained model
+        GEBVs_fold[, trait_idx] <- traitpred$g[test]
 
-        # Calculate heritability (these are wrong)
+        # Calculate heritability (*confirm this calculation* - either way will not report to user)
         Vu <- traitpred$Vg
         Ve <- traitpred$Ve
         heritability_scores[(((r-1)*5)+fold), trait_idx] <- Vu / (Vu + Ve)
