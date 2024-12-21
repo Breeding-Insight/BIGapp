@@ -93,7 +93,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
       het_df = NULL,
       maf_df = NULL,
       pos_df = NULL,
-      markerPlot = NULL
+      markerPlot = NULL,
+      snp_stats = NULL
     )
 
     #Reactive boxes
@@ -165,15 +166,15 @@ mod_diversity_server <- function(input, output, session, parent_session){
       geno_mat <- apply(geno_mat, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
 
-      print(class(geno_mat))
+      #print(class(geno_mat))
       #Convert genotypes to alternate counts if they are the reference allele counts
       #Importantly, the dosage plot is based on the input format NOT the converted genotypes
-      is_reference <- TRUE #(input$zero_value == "Reference Allele Counts")
+      is_reference <- FALSE #(input$zero_value == "Reference Allele Counts")
 
-      print("Genotype file successfully imported")
+      #print("Genotype file successfully imported")
       ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate)
 
-      print("Starting percentage calc")
+      #print("Starting percentage calc")
       #Status
       updateProgressBar(session = session, id = "pb_diversity", value = 70, title = "Calculating...")
       # Calculate percentages for both genotype matrices
@@ -182,7 +183,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       percentages1_df <- as.data.frame(t(percentages1))
       percentages1_df$Data <- "Dosages"
       # Assuming my_data is your dataframe
-      print("Percentage Complete: melting dataframe")
+      #print("Percentage Complete: melting dataframe")
       melted_data <- percentages1_df %>%
         pivot_longer(cols = -(Data),names_to = "Dosage", values_to = "Percentage")
 
@@ -197,12 +198,32 @@ mod_diversity_server <- function(input, output, session, parent_session){
       # Calculating heterozygosity
       diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
 
-      print("Heterozygosity success")
+      #print("Heterozygosity success")
       diversity_items$maf_df <- calculateMAF(geno_mat, ploidy = ploidy)
       diversity_items$maf_df <- diversity_items$maf_df[, c(1,3)]
 
-      print("MAF success")
-
+      #Calculate PIC
+      Fre <-calc_allele_frequencies(geno_mat,as.numeric(ploidy))
+      calc_pic <- function(x) {
+        freq_squared <- x^2
+        outer_matrix <- outer(freq_squared, freq_squared)
+        upper_tri_sum <- sum(outer_matrix[upper.tri(outer_matrix)])
+        pic <- 1 - sum(freq_squared) - 2*upper_tri_sum
+        return(pic)
+      }
+      
+      print(Fre[1:5,])
+      
+      PIC_results <- apply(Fre[, c("p1", "p2")], 1, calc_pic)
+      PIC_df <- data.frame(SNP_ID = Fre$SNP, PIC = PIC_results)
+      rownames(PIC_df) <- NULL
+      
+      print(PIC_df[1:5,])
+      print(diversity_items$maf_df[1:5,])
+      
+      diversity_items$snp_stats <- (merge(diversity_items$maf_df, PIC_df, by = "SNP_ID", all = TRUE))[,c("SNP_ID","MAF","PIC")]
+      colnames(diversity_items$snp_stats)[1] <- "SNP"
+      
       #Updating value boxes
       output$mean_het_box <- renderValueBox({
         valueBox(
@@ -336,9 +357,9 @@ mod_diversity_server <- function(input, output, session, parent_session){
 
     snp_table <- reactive({
       validate(
-        need(!is.null(diversity_items$maf_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+        need(!is.null(diversity_items$snp_stats), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
-      diversity_items$maf_df
+      diversity_items$snp_stats
     })
 
     output$snp_table <- renderDT({snp_table()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
@@ -404,10 +425,10 @@ mod_diversity_server <- function(input, output, session, parent_session){
           temp_files <- c(temp_files, het_file)
         }
 
-        if (!is.null(diversity_items$maf_df)) {
+        if (!is.null(diversity_items$snp_stats)) {
           # Create a temporary file for BIC data frame
           maf_file <- file.path(temp_dir, paste0("SNP-statistics-", Sys.Date(), ".csv"))
-          write.csv(diversity_items$maf_df, maf_file, row.names = FALSE)
+          write.csv(diversity_items$snp_stats, maf_file, row.names = FALSE)
           temp_files <- c(temp_files, maf_file)
         }
 

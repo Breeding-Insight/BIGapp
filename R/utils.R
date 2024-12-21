@@ -210,7 +210,7 @@ calculate_heterozygosity <- function(genotype_matrix, ploidy = 2) {
   # Create a dataframe with Sample ID and Observed Heterozygosity
   result_df <- data.frame(
     SampleID = colnames(genotype_matrix),
-    ObservedHeterozygosity = heterozygosity_proportion,
+    Ho = heterozygosity_proportion,
     row.names = NULL,
     check.names = FALSE
   )
