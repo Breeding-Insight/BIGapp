@@ -70,7 +70,7 @@ test_that("test diversity",{
       axis.title = element_text(size = 14)
     )
 
-  hist(diversity_items$het_df$Ho, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+  hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
        xlab = "Observed Heterozygosity",
        ylab = "Number of Samples",
        main = "Sample Observed Heterozygosity")
