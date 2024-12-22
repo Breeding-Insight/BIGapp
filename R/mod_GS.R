@@ -12,12 +12,22 @@
 #' @importFrom bs4Dash valueBox
 #' @importFrom shiny NS tagList
 #' @importFrom shinyWidgets virtualSelectInput progressBar
+#' @import shinydisconnect
 #'
 #'
 mod_GS_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidRow(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  "* Required",
@@ -56,11 +66,13 @@ mod_GS_ui <- function(id){
                  ),
                  actionButton(ns("prediction_est_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
-                   tags$h3("GP Parameters"),
-                   "You can download examples of the expected input input files here: \n",
-                   downloadButton(ns('download_vcft'), "Download Training VCF Example File"),
-                   downloadButton(ns('download_pheno'), "Download Passport Example File"),
-                   downloadButton(ns('download_vcfp'), "Download Prediction VCF Example File"),hr(),
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(downloadButton(ns('download_pheno'),""), "Trait Example File"),
+                   p(downloadButton(ns('download_vcfp'), ""), "Download Prediction VCF Example File"),hr(),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    actionButton(ns("pred_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
@@ -126,6 +138,43 @@ mod_GS_ui <- function(id){
 mod_GS_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Genomic_Prediction_tabset",
+                      selected = "Genomic_Prediction_par")
+    # expand specific box
+    updateBox(id = "Genomic_Prediction_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Genomic_Prediction_tabset",
+                      selected = "Genomic_Prediction_results")
+    # expand specific box
+    updateBox(id = "Genomic_Prediction_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Genomic_Prediction_tabset",
+                      selected = "Genomic_Prediction_cite")
+    # expand specific box
+    updateBox(id = "Genomic_Prediction_box", action = "toggle", session = parent_session)
+  })
   
   #Default model choices
   advanced_options_pred <- reactiveValues(
@@ -573,7 +622,7 @@ mod_GS_server <- function(input, output, session, parent_session){
     }
 
     #Save to reactive values
-    pred_inputs2$shared_snps <- length(common_markers)
+    #pred_inputs2$shared_snps <- length(common_markers)
     pred_inputs2$matrix <- Kin_mat
     pred_inputs2$pheno_input <- pheno2
   })

@@ -7,6 +7,7 @@
 #' @export
 #' @importFrom shiny shinyApp
 #' @importFrom golem with_golem_options
+#' 
 run_app <- function(
   onStart = NULL,
   options = list(),
@@ -14,6 +15,10 @@ run_app <- function(
   uiPattern = "/",
   ...
 ) {
+  #Uncomment the sink command to allow console output
+  sink(file = tempfile())
+  options(warn = -1)
+  
   with_golem_options(
     app = shinyApp(
       ui = app_ui,
