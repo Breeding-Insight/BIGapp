@@ -12,12 +12,22 @@
 #' @importFrom bs4Dash valueBox
 #' @importFrom shiny NS tagList
 #' @importFrom shinyWidgets virtualSelectInput progressBar
+#' @import shinydisconnect
 #'
 #'
 mod_GS_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidRow(
+      disconnectMessage(
+        text = "An input file error occurred, please reload the application and check the file.",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  "* Required",
@@ -126,6 +136,7 @@ mod_GS_ui <- function(id){
 mod_GS_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+
   
   #Default model choices
   advanced_options_pred <- reactiveValues(

@@ -7,11 +7,21 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @import shinydisconnect
 mod_diversity_ui <- function(id){
   ns <- NS(id)
   tagList(
     # Add GWAS content here
     fluidRow(
+      disconnectMessage(
+        text = "An input file error occurred, please reload the application and check the file.",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("diversity_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
@@ -84,6 +94,7 @@ mod_diversity_ui <- function(id){
 mod_diversity_server <- function(input, output, session, parent_session){
 
     ns <- session$ns
+    
     #######Genomic Diversity analysis
 
     #Genomic Diversity output files

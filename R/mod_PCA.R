@@ -18,6 +18,15 @@ mod_PCA_ui <- function(id){
   tagList(
     # Add PCA content here
     fluidRow(
+      disconnectMessage(
+        text = "An input file error occurred, please reload the application and check the file.",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       useShinyjs(),
       inlineCSS(list(.borderred = "border-color: red", .redback = "background: red")),
 
@@ -113,12 +122,14 @@ mod_PCA_ui <- function(id){
 #' @importFrom plotly layout plotlyOutput renderPlotly add_markers plot_ly
 #' @importFrom RColorBrewer brewer.pal
 #' @importFrom shinyjs toggleClass
+#' @import shinydisconnect
 #'
 #' @noRd
 mod_PCA_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-
+  options(warn = -1) #Uncomment to suppress warnings
+  
   #PCA reactive values
   pca_data <- reactiveValues(
     pc_df_pop = NULL,

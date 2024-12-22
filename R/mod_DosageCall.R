@@ -10,12 +10,22 @@
 #' @importFrom shiny NS tagList
 #' @importFrom future availableCores
 #' @importFrom bs4Dash renderValueBox
+#' @import shinydisconnect
 #'
 #'
 mod_DosageCall_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidPage(
+      disconnectMessage(
+        text = "An input file error occurred, please reload the application and check the file.",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       fluidRow(
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,

@@ -13,12 +13,22 @@
 #' @importFrom shinyjs enable disable useShinyjs
 #'
 #' @import dplyr
+#' @import shinydisconnect
 #'
 #'
 mod_Filtering_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidRow(
+      disconnectMessage(
+        text = "An input file error occurred, please reload the application and check the file.",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(width = 12,
                  title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
