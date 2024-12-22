@@ -34,43 +34,53 @@ app_ui <- function(request) {
               href = "#",
               "Session Info",
               onclick = "Shiny.setInputValue('session_info_button', Math.random())"
+            ),
+            tags$a(
+              class = "dropdown-item",
+              href = "#",
+              "Check for Updates",
+              onclick = "Shiny.setInputValue('updates_info_button', Math.random())"
             )
           )
         )
       ),
       help = NULL, #This is the default bs4Dash button to control the presence of tooltips and popovers, which can be added as a user help/info feature.
       bs4DashSidebar(
-        skin="light", status = "info",
+        skin="light",
+        status = "info",
+        fixed=TRUE,
+        #minified = F,
+        expandOnHover = TRUE,
         sidebarMenu(id = "MainMenu",
           flat = FALSE,
           tags$li(class = "header", style = "color: grey; margin-top: 10px; margin-bottom: 10px; padding-left: 15px;", "Menu"),
-          menuItem("Home", tabName = "welcome", icon = icon("house")),
+                   menuItem("Home", tabName = "welcome", icon = icon("house"),startExpanded = FALSE),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genotype Processing"),
-                   menuItem("DArT Report2VCF", tabName = "dosage2vcf", icon = icon("share-from-square")),
-                   menuItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
+                   menuItem("Convert to VCF", tabName = "dosage2vcf", icon = icon("share-from-square")),
+                   menuItem("Dosage Calling", tabName = "updog", icon = icon("list-ol")),
                    menuItem("VCF Filtering", tabName = "filtering", icon = icon("filter")),
+          tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Summary Metrics"),
+                   menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Population Structure"),
                    menuItem("PCA", tabName = "pca", icon = icon("chart-simple")),
                    menuItem("DAPC", tabName = "dapc", icon = icon("circle-nodes")),
-          tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Summary Metrics"),
-          menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "GWAS"),
-          menuItem("GWASpoly", tabName = "gwas", icon = icon("think-peaks")),
+                   menuItem("GWASpoly", tabName = "gwas", icon = icon("think-peaks")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genomic Selection"),
                   menuItem(
-                    span("Predictive Ability", bs4Badge("beta", position = "right", color = "success")),
+                    span("Predictive Ability"),
                            tabName = "prediction_accuracy",
                            icon = icon("right-left")),
                   menuItem(
-                    span("Genomic Prediction", bs4Badge("beta", position = "right", color = "success")),
+                    span("Genomic Prediction"),
                       tabName = "prediction",
                       icon = icon("angles-right")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Information"),
           menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
-          menuItem(
-            span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
-            tabName = "slurm",
-            icon = icon("clock")),
+          #menuItem(
+          #  span("Job Queue", bs4Badge("demo", position = "right", color = "warning")),
+          #  tabName = "slurm",
+          #  icon = icon("clock")),
           menuItem("Help", tabName = "help", icon = icon("circle-question"))
         )
       ),
@@ -94,7 +104,7 @@ app_ui <- function(request) {
         ),
         left = div(
           style = "display: flex; align-items: center; height: 100%;",  # Center the version text vertically
-          "v0.6.1")
+          "v1.0.0")
       ),
       dashboardBody(
         disconnectMessage(), #Adds generic error message for any error if not already accounted for

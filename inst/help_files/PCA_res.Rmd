@@ -4,3 +4,20 @@ output: html_document
 date: "2024-08-29"
 ---
 
+#### 3D PCA Plot
+
+- **Description**: The 3D PCA plot visualizes the first three principal components of genomic data, displayed in a three-dimensional space.
+- **Interpretation**: Each point represents an individual sample or genome, positioned according to its scores on the first three principal components. Clusters may indicate genetic similarities or groupings within the population.
+- **Use**: In the context of breeding decisions, this plot helps identify genetic diversity and potential outliers within a gene pool, facilitating the evaluation of genetic relationships between individuals. In broader population genetics, it aids in visualizing population structure and sub-structure.
+
+#### 2D PCA Plot
+
+- **Description**: The 2D PCA plot represents two principal components of the genomic data in a two-dimensional view.
+- **Interpretation**: Points on the plot correspond to individual genetic samples, with the axes signifying the most significant components capturing data variance. Patterns or grouping may suggest genetic linkage or divergence.
+- **Use**: For breeding applications, this plot offers a straightforward view to quickly assess genetic variance and clustering among candidate individuals. In population genetics, it helps in examining genetic differentiation or affinity among populations.
+
+#### Scree Plot
+
+- **Description**: The scree plot displays the eigenvalues of each principal component, in descending order, providing a visual summary of variance explained by each component.
+- **Interpretation**: The x-axis lists the principal components, while the y-axis shows associated eigenvalues. A significant drop in eigenvalues, or "elbow", indicates where additional components provide diminishing returns in explaining data variance.
+- **Use**: This plot assists in deciding the optimal number of principal components for analysis, striking a balance between data simplification and variance preservation. For breeding decisions, it informs which components capture most genetic variation, aiding in selection strategies. In population genetics, it helps determine the dimensional analysis required to understand genetic structure comprehensively.

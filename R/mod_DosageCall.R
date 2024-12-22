@@ -10,17 +10,28 @@
 #' @importFrom shiny NS tagList
 #' @importFrom future availableCores
 #' @importFrom bs4Dash renderValueBox
+#' @import shinydisconnect
 #'
 #'
 mod_DosageCall_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidPage(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       fluidRow(
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-          fileInput(ns("madc_file"), "Choose MADC or VCF File", accept = c(".csv",".vcf",".gz")),
-          fileInput(ns("madc_passport"), "Choose Passport File (optional)", accept = c(".csv")),
+          "* Required",
+          fileInput(ns("madc_file"), "Choose MADC or VCF File*", accept = c(".csv",".vcf",".gz")),
+          fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
           conditionalPanel(
             condition = "output.passportTablePopulated",
             ns = ns,
@@ -88,19 +99,19 @@ mod_DosageCall_ui <- function(id){
             p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            p(HTML("<b>Updog tutorial:</b>"), actionButton(ns("goUpdog"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://dcgerard.github.io/updog/', '_blank')" )),
+            p(HTML("<b>Updog tutorial:</b>"), actionButton(ns("goUpdog"), icon("arrow-up-right-from-square", verify_fa = FALSE), onclick ="window.open('https://dcgerard.github.io/updog/', '_blank')" )), hr(),
+            actionButton(ns("dosage_summary"), "Summary"),
             circle = FALSE,
             status = "warning",
             icon = icon("info"), width = "500px",
             tooltip = tooltipOptions(title = "Click to see info!")
           ))
         ),
-        valueBoxOutput(ns("MADCsnps"))
-      ),
-
-      fluidRow(
-        box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+        column(width=4,
+          valueBoxOutput(ns("MADCsnps"), width=12),
+          box(title = "Status", width = 12, collapsible = TRUE, status = "info",
             progressBar(id = ns("pb_madc"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+          )
         )
       )
     )
@@ -160,7 +171,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   # Update dropdown menu choices based on uploaded passport file
   passport_table <- reactive({
     validate(
-      need(!is.null(input$madc_passport), "Upload passport file to access results in this section."),
+      need(!is.null(input$madc_passport), "Upload Trait File to access results in this section."),
     )
     info_df <- read.csv(input$madc_passport$datapath, header = TRUE, check.names = FALSE)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
@@ -363,6 +374,25 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
 
       return()
     }
+    
+    if (nrow(matrices$ref_matrix) == 0 || nrow(matrices$size_matrix) == 0) {
+      shinyalert(
+        title = "Data Warning!",
+        text = "All markers are missing read count information for reference and alternate alleles",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      
+      return()
+    }
 
     #Run Updog
     #I am also taking the ploidy from the max value in the
@@ -392,7 +422,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
 
   output$download_updog_vcf <- downloadHandler(
     filename = function() {
-      paste0(input$output_name, ".vcf.gz")
+      output_name <- gsub("\\.vcf$", "", input$output_name)
+      paste0(output_name, ".vcf.gz")
     },
     content = function(file) {
       #Save Updog output as VCF file
@@ -428,6 +459,68 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
       file.copy(ex, file)
     })
+  
+  ##Summary Info
+  dosage_summary_info <- function() {
+    #Handle possible NULL values for inputs
+    genotype_file_name <- if (!is.null(input$madc_file$name)) input$madc_file$name else "No file selected"
+    report_file_name <- if (!is.null(input$madc_passport$name)) input$madc_passport$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$ploidy)) as.character(input$ploidy) else "Not selected"
+    
+    #Print the summary information
+    cat(
+      "BIGapp Dosage Calling Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", genotype_file_name), "\n",
+      paste("Input Passport File:", report_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      paste("Selected Updog Model:", input$updog_model), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("BIGr:", packageVersion("BIGr")), "\n",
+      paste("Updog:", packageVersion("updog")), "\n",
+      paste("dplyr:", packageVersion("dplyr")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$dosage_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_dosage_info", "Download")
+      ),
+      pre(
+        paste(capture.output(dosage_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_dosage_info <- downloadHandler(
+    filename = function() {
+      paste("DosageCalling_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(dosage_summary_info()), collapse = "\n"), file)
+    }
+  )
 }
 
 ## To be copied in the UI

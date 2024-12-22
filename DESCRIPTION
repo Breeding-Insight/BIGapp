@@ -1,6 +1,6 @@
 Package: BIGapp
 Title: Breeding Insight Genomics Shiny Application
-Version: 0.6.1
+Version: 1.0.0
 Authors@R: 
     c(
               person(c("Alexander", "M."), "Sandercock",
@@ -20,10 +20,9 @@ Authors@R:
                     role = "aut"),
               person("Breeding Insight Team",
                     role = "aut"))
-Description: This R shiny app provides a web-based user friendly way for our internal and 
-             external collaborators to analyze genomic data without needing to use command-line tools.
+Description: This R shiny app provides a web-based user friendly way for researchers to analyze genomic data without needing to use command-line tools.
              Initial supported analyses will include the mature genomics/bioinformatics pipelines developed 
-             within Breeding Insight, with additional analyses continuing to be added.
+             within Breeding Insight, with additional analyses continuing to be added. Both diploid and polyploid species are supported.
 License: Apache License (== 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -32,6 +31,7 @@ biocViews:
 Imports: 
     vcfR (>= 1.15.0),
     adegenet,
+    curl,
     DT,
     dplyr,
     bs4Dash,
@@ -51,6 +51,7 @@ Imports:
     GWASpoly,
     AGHmatrix,
     factoextra,
+    httr,
     future,
     shinycssloaders,
     RColorBrewer,

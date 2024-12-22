@@ -7,20 +7,33 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @import shinydisconnect
 mod_diversity_ui <- function(id){
   ns <- NS(id)
   tagList(
     # Add GWAS content here
     fluidRow(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("diversity_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
                  numericInput(ns("diversity_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  actionButton(ns("diversity_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
-                   tags$h3("Diversity Parameters"),
-                   "You can download an examples of the expected input file here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   actionButton(ns("diversity_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -51,7 +64,7 @@ mod_diversity_ui <- function(id){
       ),
       column(width = 6,
              box(
-               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550,
+               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                bs4Dash::tabsetPanel(
                  tabPanel("Dosage Plot", plotOutput(ns('dosage_plot')),style = "overflow-y: auto; height: 500px"),
                  tabPanel("MAF Plot", plotOutput(ns('maf_plot')),style = "overflow-y: auto; height: 500px"),
@@ -83,6 +96,44 @@ mod_diversity_ui <- function(id){
 mod_diversity_server <- function(input, output, session, parent_session){
 
     ns <- session$ns
+    
+    # Help links
+    observeEvent(input$goPar, {
+      # change to help tab
+      updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                        selected = "help")
+      
+      # select specific tab
+      updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
+                        selected = "Genomic_Diversity_par")
+      # expand specific box
+      updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
+    })
+    
+    observeEvent(input$goRes, {
+      # change to help tab
+      updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                        selected = "help")
+      
+      # select specific tab
+      updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
+                        selected = "Genomic_Diversity_results")
+      # expand specific box
+      updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
+    })
+    
+    observeEvent(input$goCite, {
+      # change to help tab
+      updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                        selected = "help")
+      
+      # select specific tab
+      updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
+                        selected = "Genomic_Diversity_cite")
+      # expand specific box
+      updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
+    })
+    
     #######Genomic Diversity analysis
 
     #Genomic Diversity output files
@@ -92,7 +143,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
       het_df = NULL,
       maf_df = NULL,
       pos_df = NULL,
-      markerPlot = NULL
+      markerPlot = NULL,
+      snp_stats = NULL
     )
 
     #Reactive boxes
@@ -144,7 +196,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       updateProgressBar(session = session, id = "pb_diversity", value = 20, title = "Importing VCF")
 
       #Import genotype information if in VCF format
-      vcf <- read.vcfR(geno)
+      vcf <- read.vcfR(geno, verbose = FALSE)
 
       #Save position information
       diversity_items$pos_df <- data.frame(vcf@fix[, 1:2])
@@ -163,17 +215,16 @@ mod_diversity_server <- function(input, output, session, parent_session){
       geno_mat <- extract.gt(vcf, element = "GT")
       geno_mat <- apply(geno_mat, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
-    
 
-      print(class(geno_mat))
+      #print(class(geno_mat))
       #Convert genotypes to alternate counts if they are the reference allele counts
       #Importantly, the dosage plot is based on the input format NOT the converted genotypes
-      is_reference <- TRUE #(input$zero_value == "Reference Allele Counts")
+      is_reference <- FALSE #(input$zero_value == "Reference Allele Counts")
 
-      print("Genotype file successfully imported")
+      #print("Genotype file successfully imported")
       ######Get MAF plot (Need to remember that the VCF genotypes are likely set as 0 = homozygous reference, where the dosage report is 0 = homozygous alternate)
 
-      print("Starting percentage calc")
+      #print("Starting percentage calc")
       #Status
       updateProgressBar(session = session, id = "pb_diversity", value = 70, title = "Calculating...")
       # Calculate percentages for both genotype matrices
@@ -182,7 +233,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       percentages1_df <- as.data.frame(t(percentages1))
       percentages1_df$Data <- "Dosages"
       # Assuming my_data is your dataframe
-      print("Percentage Complete: melting dataframe")
+      #print("Percentage Complete: melting dataframe")
       melted_data <- percentages1_df %>%
         pivot_longer(cols = -(Data),names_to = "Dosage", values_to = "Percentage")
 
@@ -197,16 +248,46 @@ mod_diversity_server <- function(input, output, session, parent_session){
       # Calculating heterozygosity
       diversity_items$het_df <- calculate_heterozygosity(geno_mat, ploidy = ploidy)
 
-      print("Heterozygosity success")
+      #print("Heterozygosity success")
       diversity_items$maf_df <- calculateMAF(geno_mat, ploidy = ploidy)
       diversity_items$maf_df <- diversity_items$maf_df[, c(1,3)]
 
-      print("MAF success")
-
+      #Calculate PIC
+      calc_allele_frequencies <- function(d_diplo_t, ploidy) {
+        allele_frequencies <- apply(d_diplo_t, 1, function(x) {
+          count_sum <- sum(!is.na(x))  
+          allele_sum <- sum(x, na.rm = TRUE) 
+          if (count_sum != 0) {allele_sum / (ploidy * count_sum)} else {NA}
+        })
+        
+        all_allele_frequencies <- data.frame(SNP = rownames(d_diplo_t), p1= allele_frequencies, p2= 1-allele_frequencies)
+        return(all_allele_frequencies)
+      }
+      Fre <-calc_allele_frequencies(geno_mat,as.numeric(ploidy))
+      calc_pic <- function(x) {
+        freq_squared <- x^2
+        outer_matrix <- outer(freq_squared, freq_squared)
+        upper_tri_sum <- sum(outer_matrix[upper.tri(outer_matrix)])
+        pic <- 1 - sum(freq_squared) - 2*upper_tri_sum
+        return(pic)
+      }
+      
+      print(Fre[1:5,])
+      
+      PIC_results <- apply(Fre[, c("p1", "p2")], 1, calc_pic)
+      PIC_df <- data.frame(SNP_ID = Fre$SNP, PIC = PIC_results)
+      rownames(PIC_df) <- NULL
+      
+      print(PIC_df[1:5,])
+      print(diversity_items$maf_df[1:5,])
+      
+      diversity_items$snp_stats <- (merge(diversity_items$maf_df, PIC_df, by = "SNP_ID", all = TRUE))[,c("SNP_ID","MAF","PIC")]
+      colnames(diversity_items$snp_stats)[1] <- "SNP"
+      
       #Updating value boxes
       output$mean_het_box <- renderValueBox({
         valueBox(
-          value = round(mean(diversity_items$het_df$ObservedHeterozygosity),3),
+          value = round(mean(diversity_items$het_df$Ho),3),
           subtitle = "Mean Heterozygosity",
           icon = icon("dna"),
           color = "info"
@@ -248,44 +329,15 @@ mod_diversity_server <- function(input, output, session, parent_session){
       box_plot()
     })
 
-    #Het plot
-    het_plot <- reactive({
+    output$het_plot <- renderPlot({
       validate(
         need(!is.null(diversity_items$het_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
-      hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+      hist(diversity_items$het_df$Ho, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
            xlab = "Observed Heterozygosity",
            ylab = "Number of Samples",
            main = "Sample Observed Heterozygosity")
-
       axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
-    })
-
-    output$het_plot <- renderPlot({
-      het_plot()
-    })
-
-    #AF Plot
-    #af_plot <- reactive({
-    #  validate(
-    #    need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
-    #  )
-    #  hist(diversity_items$maf_df$AF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Alternate Allele Frequency",
-    #       ylab = "Frequency", main = "Alternate Allele Frequency Distribution")
-    #})
-
-    #output$af_plot <- renderPlot({
-    #  af_plot()
-    #})
-
-    #MAF plot
-    maf_plot <- reactive({
-      validate(
-        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
-      )
-
-      hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
-           ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
 
     #Marker plot
@@ -297,8 +349,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
       diversity_items$pos_df$POS <- as.numeric(diversity_items$pos_df$POS)
       # Sort the dataframe and pad with a 0 if only a single digit is provided
       diversity_items$pos_df$CHROM <- ifelse(
-        nchar(diversity_items$pos_df$CHROM) == 1, 
-        paste0("0", diversity_items$pos_df$CHROM), 
+        nchar(diversity_items$pos_df$CHROM) == 1,
+        paste0("0", diversity_items$pos_df$CHROM),
         diversity_items$pos_df$CHROM
       )
       diversity_items$pos_df <- diversity_items$pos_df[order(diversity_items$pos_df$CHROM), ]
@@ -346,7 +398,12 @@ mod_diversity_server <- function(input, output, session, parent_session){
     })
 
     output$maf_plot <- renderPlot({
-      maf_plot()
+      validate(
+        need(!is.null(diversity_items$maf_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+      )
+
+      hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
+           ylab = "Frequency", main = "Minor Allele Frequency Distribution")
     })
 
     sample_table <- reactive({
@@ -360,9 +417,9 @@ mod_diversity_server <- function(input, output, session, parent_session){
 
     snp_table <- reactive({
       validate(
-        need(!is.null(diversity_items$maf_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
+        need(!is.null(diversity_items$snp_stats), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
-      diversity_items$maf_df
+      diversity_items$snp_stats
     })
 
     output$snp_table <- renderDT({snp_table()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
@@ -393,12 +450,15 @@ mod_diversity_server <- function(input, output, session, parent_session){
         # Conditional plotting based on input selection
         if (input$div_figure == "Dosage Plot") {
           print(box_plot())
-        } else if (input$div_figure == "AF Histogram") {
-          af_plot()
         } else if (input$div_figure == "MAF Histogram") {
-          maf_plot()
+          hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
+               ylab = "Frequency", main = "Minor Allele Frequency Distribution")
         } else if (input$div_figure == "OHet Histogram") {
-          het_plot()
+          hist(diversity_items$het_df$Ho, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+               xlab = "Observed Heterozygosity",
+               ylab = "Number of Samples",
+               main = "Sample Observed Heterozygosity")
+          axis(1, at = seq(0, 1, by = 0.1), labels = TRUE)
         } else if (input$div_figure == "Marker Plot") {
           print(marker_plot())
         }
@@ -425,10 +485,10 @@ mod_diversity_server <- function(input, output, session, parent_session){
           temp_files <- c(temp_files, het_file)
         }
 
-        if (!is.null(diversity_items$maf_df)) {
+        if (!is.null(diversity_items$snp_stats)) {
           # Create a temporary file for BIC data frame
           maf_file <- file.path(temp_dir, paste0("SNP-statistics-", Sys.Date(), ".csv"))
-          write.csv(diversity_items$maf_df, maf_file, row.names = FALSE)
+          write.csv(diversity_items$snp_stats, maf_file, row.names = FALSE)
           temp_files <- c(temp_files, maf_file)
         }
 
@@ -450,6 +510,65 @@ mod_diversity_server <- function(input, output, session, parent_session){
         ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
         file.copy(ex, file)
       })
+    
+    ##Summary Info
+    diversity_summary_info <- function() {
+      # Handle possible NULL values for inputs
+      dosage_file_name <- if (!is.null(input$diversity_file$name)) input$diversity_file$name else "No file selected"
+      selected_ploidy <- if (!is.null(input$diversity_ploidy)) as.character(input$diversity_ploidy) else "Not selected"
+      
+      # Print the summary information
+      cat(
+        "BIGapp Summary Metrics Summary\n",
+        "\n",
+        paste0("Date: ", Sys.Date()), "\n",
+        paste(R.Version()$version.string), "\n",
+        "\n",
+        "### Input Files ###\n",
+        "\n",
+        paste("Input Genotype File:", dosage_file_name), "\n",
+        "\n",
+        "### User Selected Parameters ###\n",
+        "\n",
+        paste("Selected Ploidy:", selected_ploidy), "\n",
+        "\n",
+        "### R Packages Used ###\n",
+        "\n",
+        paste("BIGapp:", packageVersion("BIGapp")), "\n",
+        paste("BIGr:", packageVersion("BIGr")), "\n",
+        paste("ggplot2:", packageVersion("ggplot2")), "\n",
+        paste("vcfR:", packageVersion("vcfR")), "\n",
+        sep = ""
+      )
+    }
+    
+    # Popup for analysis summary
+    observeEvent(input$diversity_summary, {
+      showModal(modalDialog(
+        title = "Summary Information",
+        size = "l",
+        easyClose = TRUE,
+        footer = tagList(
+          modalButton("Close"),
+          downloadButton("download_diversity_info", "Download")
+        ),
+        pre(
+          paste(capture.output(diversity_summary_info()), collapse = "\n")
+        )
+      ))
+    })
+    
+    
+    # Download Summary Info
+    output$download_diversity_info <- downloadHandler(
+      filename = function() {
+        paste("diversity_summary_", Sys.Date(), ".txt", sep = "")
+      },
+      content = function(file) {
+        # Write the summary info to a file
+        writeLines(paste(capture.output(diversity_summary_info()), collapse = "\n"), file)
+      }
+    )
 }
 
 ## To be copied in the UI

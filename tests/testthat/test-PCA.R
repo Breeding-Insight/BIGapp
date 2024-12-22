@@ -67,6 +67,11 @@ test_that("test PCA",{
   # Print the modified dataframe
   row.names(info_df) <- info_df[,1]
 
+  # Check ploidy
+  if(input$pca_ploidy != max(genomat)){
+    stop("Wrong ploidy")
+  }
+
   #Plotting
   #First build a relationship matrix using the genotype values
   G.mat.updog <- AGHmatrix::Gmatrix(t(genomat), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")

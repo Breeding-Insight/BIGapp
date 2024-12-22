@@ -12,16 +12,26 @@
 #' @importFrom bs4Dash valueBox
 #' @importFrom shiny NS tagList
 #' @importFrom shinyWidgets virtualSelectInput
+#' @import shinydisconnect
 #'
 mod_GSAcc_ui <- function(id){
   ns <- NS(id)
   tagList(
     # Add GWAS content here
     fluidRow(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("pred_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("trait_file"), "Choose Passport File", accept = ".csv"),
+                 fileInput(ns("trait_file"), "Choose Trait File", accept = ".csv"),
                  numericInput(ns("pred_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  numericInput(ns("pred_cv"), "Iterations", min = 1, max=20, value = 5),
                  virtualSelectInput(
@@ -34,7 +44,7 @@ mod_GSAcc_ui <- function(id){
                  ),
                  virtualSelectInput(
                    inputId = ns("pred_fixed_info"),
-                   label = "Select Fixed Effects (optional) (not validated):",
+                   label = span("Select Fixed Effects", bs4Badge("beta", position = "right", color = "success")),
                    choices = NULL,
                    showValueAsTags = TRUE,
                    search = TRUE,
@@ -42,10 +52,11 @@ mod_GSAcc_ui <- function(id){
                  ),
                  conditionalPanel(
                    condition = "input.pred_fixed_info.length > 0", ns = ns,
+                   "(unselected will be considered covariates)",
                    div(
                      virtualSelectInput(
                        inputId = ns("pred_fixed_cat"),
-                       label = "Select Categorical Fixed Effects (unselected will be considered covariates)",
+                       label = "Select Categorical Fixed Effects",
                        choices = NULL,
                        showValueAsTags = TRUE,
                        search = TRUE,
@@ -55,10 +66,13 @@ mod_GSAcc_ui <- function(id){
                  ),
                  actionButton(ns("prediction_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right", dropdownButton(
-                   tags$h3("GP Parameters"),
-                   "You can download examples of the expected input input files here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"),
-                   downloadButton(ns('download_pheno'), "Download Passport Example File"),
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(downloadButton(ns('download_pheno'),""), "Trait Example File"), hr(),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   actionButton(ns("predAcc_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
                    icon = icon("info"), width = "300px",
@@ -76,11 +90,11 @@ mod_GSAcc_ui <- function(id){
 
       column(width = 6,
              box(
-               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600,
+               title = "Plots", status = "info", solidHeader = FALSE, width = 12, height = 600, maximizable = T,
                bs4Dash::tabsetPanel(
                  tabPanel("Violin Plot", plotOutput(ns("pred_violin_plot"), height = "500px")),
                  tabPanel("Box Plot", plotOutput(ns("pred_box_plot"), height = "500px")),
-                 tabPanel("Accuracy Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px")
+                 tabPanel("P.A. Table", DTOutput(ns("pred_acc_table")), style = "overflow-y: auto; height: 500px")
                )
 
              )
@@ -135,6 +149,43 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
 
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Predictive_Ability_tabset",
+                      selected = "Predictive_Ability_par")
+    # expand specific box
+    updateBox(id = "Predictive_Ability_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Predictive_Ability_tabset",
+                      selected = "Predictive_Ability_results")
+    # expand specific box
+    updateBox(id = "Predictive_Ability_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "Predictive_Ability_tabset",
+                      selected = "Predictive_Ability_cite")
+    # expand specific box
+    updateBox(id = "Predictive_Ability_box", action = "toggle", session = parent_session)
+  })
+
   #Default model choices
   advanced_options <- reactiveValues(
     pred_model = "GBLUP",
@@ -162,8 +213,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       title = "Advanced Options (beta)",
       selectInput(
         inputId = ns('pred_model'),
-        label = 'Model Choice',
-        choices = c("rrBLUP", "GBLUP"),
+        label = 'Method Choice',
+        choices = c("GBLUP"),
         selected = advanced_options$pred_model  # Initialize with stored value
       ),
       conditionalPanel(
@@ -171,7 +222,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         div(
           selectInput(
             inputId = ns('pred_matrix'),
-            label = 'GBLUP Matrix Choice',
+            label = 'Relationship Matrix Choice',
             choices = c("Gmatrix", "Amatrix", "Hmatrix"),
             selected = advanced_options$pred_matrix  # Initialize with stored value
           )
@@ -638,7 +689,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
       labs(title = "Predictive Ability by Trait",
            x = " ",
-           y = "Pearson Correlation") +
+           y = "Predictive Ability") +
       #theme_minimal() +                      # Using a minimal theme
       theme(legend.position = "none",
             strip.text = element_text(size = 12),
@@ -655,7 +706,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       facet_wrap(~ Trait, nrow = 1) +  # Facet by trait, allowing different y-scales
       labs(title = "Predictive Ability by Trait",
            x = " ",  # x-label is blank because it's not relevant per facet
-           y = "Pearson Correlation") +
+           y = "Predictive Ability") +
       theme(legend.position = "none",
             strip.text = element_text(size = 12),
             axis.text = element_text(size = 12),
@@ -783,6 +834,74 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
     })
+  
+  ##Summary Info
+  predAcc_summary_info <- function() {
+    # Handle possible NULL values for inputs
+    dosage_file_name <- if (!is.null(input$pred_file$name)) input$pred_file$name else "No file selected"
+    passport_file_name <- if (!is.null(input$trait_file$name)) input$trait_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$pred_ploidy)) as.character(input$pred_ploidy) else "Not selected"
+    
+    # Print the summary information
+    cat(
+      "BIGapp Selection Model CV Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Genotype File:", dosage_file_name), "\n",
+      paste("Input Passport File:", passport_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      paste("Selected Trait(s):", input$pred_trait_info), "\n",
+      paste("Selected Fixed Effects:", input$pred_fixed_info), "\n",
+      paste("Selected Model:", advanced_options$pred_model), "\n",
+      paste("Selected Matrix:", advanced_options$pred_matrix), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("AGHmatrix:", packageVersion("AGHmatrix")), "\n",
+      paste("ggplot2:", packageVersion("ggplot2")), "\n",
+      paste("rrBLUP:", packageVersion("rrBLUP")), "\n",
+      paste("vcfR:", packageVersion("vcfR")), "\n",
+      paste("dplyr:", packageVersion("dplyr")), "\n",
+      paste("tidyr:", packageVersion("tidyr")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$predAcc_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_predAcc_info", "Download")
+      ),
+      pre(
+        paste(capture.output(predAcc_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_predAcc_info <- downloadHandler(
+    filename = function() {
+      paste("predAcc_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(predAcc_summary_info()), collapse = "\n"), file)
+    }
+  )
 }
 
 ## To be copied in the UI

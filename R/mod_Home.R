@@ -20,17 +20,17 @@ mod_Home_ui <- function(id){
                box(
                  title = "Breeding Insight Genomics App", status = "info", solidHeader = FALSE, width = 12, collapsible = FALSE,
                  HTML(
-                   "<strong>The app is under development</strong>
-              <p>Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app provides a web-based user friendly way for users to analyze genomic data without needing to use command-line tools.</p>
+              "<p>The BIGapp is a user-friendly tool for processing low to mid-density genotyping data for diploid and polyploid species. This R shiny app provides a web-based user friendly way for users to analyze genomic data without needing to use command-line tools.
+              Additional analysis will be added, with the initial focus on a core set of features for supporting breeding decisions.</p>
 
               <p><b>Supported Analyses</b></p>
               Initial supported analyses includes the mature genomics/bioinformatics pipelines developed within Breeding Insight:
               <ul>
-                <li>Genotype processing</li>
-                <li>Summary metrics</li>
+                <li>Genotype Processing</li>
+                <li>Summary Metrics</li>
                 <li>Population Structure</li>
                 <li>GWAS</li>
-                <li>GS</li>
+                <li>Genomic Selection</li>
               </ul>"
                  ),
                  style = "overflow-y: auto; height: 500px"

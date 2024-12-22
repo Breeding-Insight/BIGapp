@@ -4,3 +4,32 @@ output: html_document
 date: "2024-08-29"
 ---
 
+#### Violin Plot
+
+- **Description**: The violin plot showcases the distribution of Pearson correlation coefficients between predicted and known phenotype values for each group in a five-fold cross-validation, repeated across the user selected number of iterations.
+- **Interpretation**: The shape and width of the violins illustrate the distribution and density of correlation values, while individual points represent specific correlation outcomes for each cross-validation split (total points = 5*# of iters).
+- **Use**: This plot is vital for assessing the variability and robustness of predictive models in genomic selection, highlighting how well genotype data can predict phenotypes.
+
+#### Box Plot
+
+- **Description**: The box plot is similar to the violin plot, summarizing the Pearson correlation coefficients without displaying individual data points.
+- **Interpretation**: The box plot shows the median, interquartile range, and potential outliers of the correlation values, providing a concise view of prediction accuracy across all cross-validation folds.
+- **Use**: This visualization is useful for quickly comparing the central tendency and variability of predictive performance across different traits or models, facilitating quick assessments of model reliability and effectiveness in genomic selection.
+
+#### Predictive Ability Table
+
+- **Description**: The predictive ability table summarizes the Pearson correlations (Predictive Ability) for each iteration, organized by specific traits of interest, such as Sepal Length and Sepal Width.
+- **Interpretation**: Each row represents a different iteration, with columns providing correlation values for each phenotypic trait. Higher values indicate better predictive performance of the genomic selection model.
+- **Use**: This table serves as a detailed summary of predictive ability across iterations, allowing researchers to evaluate model performance over repeated trials. It is crucial for determining model reliability and can be used to generate custom figures.
+
+- **Example**:
+
+<center>
+
+|Iter       | Sepal.Length | Sepal.Width | 
+|:---------:|:------------:|:-----------:|
+|1          |         0.728|        0.571|
+|2          |         0.721|        0.568|
+|3          |         0.724|        0.543|   
+
+<center>

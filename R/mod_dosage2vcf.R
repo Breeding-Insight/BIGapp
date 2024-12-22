@@ -8,43 +8,67 @@
 #'
 #' @importFrom shiny NS tagList
 #' @importFrom shinyjs enable disable useShinyjs
+#' @import shinydisconnect
 #'
 mod_dosage2vcf_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidPage(
-      fluidRow(
-        box(
-          title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
-          fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
-          fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
-          textInput(ns("d2v_output_name"), "Output File Name"),
-          numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
-          actionButton(ns("run_analysis"), "Run Analysis"),
-          useShinyjs(),
-          downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
-          div(style="display:inline-block; float:right",dropdownButton(
-            HTML("<b>Input files</b>"),
-            p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
-            p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
-            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-            circle = FALSE,
-            status = "warning",
-            icon = icon("info"), width = "500px",
-            tooltip = tooltipOptions(title = "Click to see info!")
-          ))
-        ),
-        valueBoxOutput(ns("ReportSnps"))
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
       ),
       fluidRow(
-        box(title = "Status", width = 3, collapsible = TRUE, status = "info",
+        column(width = 5,
+          box(
+            title = "Inputs", width=12, status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
+            selectInput(ns('file_type'), label = 'Select File Format', choices = c("DArT Dosage Reports","AgriSeq")),
+            conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
+                             ns = ns,
+                             fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
+                             fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+            ),
+            conditionalPanel(condition = "input.file_type == 'AgriSeq'",
+                             ns = ns,
+                             "Support for this file type is in-progress",
+                             "",
+                             #fileInput(ns("agriseq_file"), "Choose Input File", accept = c(".csv"))
+            ),
+            textInput(ns("d2v_output_name"), "Output File Name"),
+            numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
+            #actionButton(ns("run_analysis"), "Run Analysis"),
+            useShinyjs(),
+            downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
+            div(style="display:inline-block; float:right",dropdownButton(
+              HTML("<b>Input files</b>"),
+              p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
+              p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
+              p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+              p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+              p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+              actionButton(ns("d2vcf_summary"), "Summary"),
+              circle = FALSE,
+              status = "warning",
+              icon = icon("info"), width = "500px",
+              tooltip = tooltipOptions(title = "Click to see info!")
+            ))
+          )
+      ),
+      column(width = 4,  
+        valueBoxOutput(ns("ReportSnps"), width=12),
+        box(title = "Status", width = 12, collapsible = TRUE, status = "info",
             progressBar(id = ns("dosage2vcf_pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+          )
+          ),
+      column(width = 1),
         )
       )
     )
-  )
 }
 
 #' dosage2vcf Server Functions
@@ -162,7 +186,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
   ##This is for the DArT files conversion to VCF
   output$download_d2vcf <- downloadHandler(
     filename = function() {
-      paste0(input$d2v_output_name, ".vcf.gz")
+      output_name <- gsub("\\.vcf$", "", input$d2v_output_name)
+      paste0(output_name, ".vcf.gz")
     },
     content = function(file) {
       # Ensure the files are uploaded
@@ -224,6 +249,65 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+    }
+  )
+  
+  ##Summary Info
+  d2vcf_summary_info <- function() {
+    #Handle possible NULL values for inputs
+    report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
+    counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
+    selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
+    
+    #Print the summary information
+    cat(
+      "BIGapp Dosage2VCF Summary\n",
+      "\n",
+      paste0("Date: ", Sys.Date()), "\n",
+      paste("R Version:", R.Version()$version.string), "\n",
+      "\n",
+      "### Input Files ###\n",
+      "\n",
+      paste("Input Dosage Report File:", report_file_name), "\n",
+      paste("Input Counts File:", counts_file_name), "\n",
+      "\n",
+      "### User Selected Parameters ###\n",
+      "\n",
+      paste("Selected Ploidy:", selected_ploidy), "\n",
+      "\n",
+      "### R Packages Used ###\n",
+      "\n",
+      paste("BIGapp:", packageVersion("BIGapp")), "\n",
+      paste("BIGr:", packageVersion("BIGr")), "\n",
+      sep = ""
+    )
+  }
+  
+  # Popup for analysis summary
+  observeEvent(input$d2vcf_summary, {
+    showModal(modalDialog(
+      title = "Summary Information",
+      size = "l",
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Close"),
+        downloadButton("download_d2vcf_info", "Download")
+      ),
+      pre(
+        paste(capture.output(d2vcf_summary_info()), collapse = "\n")
+      )
+    ))
+  })
+  
+  
+  # Download Summary Info
+  output$download_d2vcf_info <- downloadHandler(
+    filename = function() {
+      paste("Dosage2VCF_summary_", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      # Write the summary info to a file
+      writeLines(paste(capture.output(d2vcf_summary_info()), collapse = "\n"), file)
     }
   )
 }

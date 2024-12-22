@@ -4,3 +4,6 @@ output: html_document
 date: "2024-08-29"
 ---
 
+* **VCF file (v4.3)**
+
+Variant Call Format (VCF) is a standard file format to store genetic variant information. The genotype (GT) data within the VCF is converted from the numeric dosage call information. Included is the read counts for each marker/sample and the numeric dosage call (UD) data. For more details about the VCF format, see this document: https://samtools.github.io/hts-specs/VCFv4.2.pdf. 

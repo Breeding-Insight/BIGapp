@@ -4,3 +4,36 @@ output: html_document
 date: "2024-08-29"
 ---
 
+#### BIC Table
+
+- **Description**: The BIC table summarizes the association between different numbers of clusters (K) and their Bayesian Information Criterion (BIC) values.
+- **Interpretation**: Each row corresponds to a different number of clusters (K), with the BIC value indicating the model fit. Typically, lower BIC values suggest a better model fit, pointing to the optimal number of genetic clusters. This can be viewed as the "knee", where the BIC values stabilize after decreasing sharply.
+- **Use**: In breeding applications, the table helps identify the most suitable number of genetic clusters, providing insights into genetic diversity and structure that inform breeding choices.
+
+#### BIC Plot
+
+- **Description**: The BIC plot graphically displays the BIC values for different numbers of clusters (K) derived from the data, typically to determine the optimal number of clusters.
+- **Interpretation**: The x-axis presents different cluster numbers (K), while the y-axis indicates corresponding BIC values. The optimal number of clusters is suggested by an "elbow" or point where BIC values level off, indicating diminishing returns for increasing the number of clusters.
+- **Use**: This plot is crucial for deciding how many distinct genetic clusters exist within the population. In breeding, it helps determine the number of genetically distinct groups worth considering in breeding programs. In population genetics, it guides researchers in identifying sub-population structures.
+
+#### DAPC Results Table
+
+- **Description**: The DAPC results table provides a detailed view of sample membership probabilities across different genetic clusters, and identifies the most likely cluster assignment for each sample.
+- **Interpretation**: Each row corresponds to a specific sample, with columns representing the probability of membership in each cluster based on discriminant analysis. The final column, "Cluster_Assignment," indicates the cluster to which a sample is most strongly associated, based on the highest probability value.
+- **Use**: This table is instrumental in both breeding and population genetics. In breeding, it aids in identifying which genetic clusters individuals belong to, helping in the selection of genetically favorable traits. In population genetics, it helps delineate the distribution of genetic diversity across the population, facilitating studies on migration, adaptation, and evolutionary patterns.
+
+- **Example Table**:
+
+  | Sample   | Cluster_1 | Cluster_2 | Cluster_3 | Cluster_Assignment |
+  |:--------:|:---------:|:---------:|:---------:|:------------------:|
+  | Sample_1 |    0.80   |    0.10   |    0.10   |         1          |
+  | Sample_2 |    0.20   |    0.70   |    0.10   |         2          |
+  | Sample_3 |    0.15   |    0.15   |    0.70   |         3          |
+  | Sample_4 |    0.40   |    0.50   |    0.10   |         2          |
+  | Sample_5 |    0.60   |    0.20   |    0.20   |         1          |
+
+#### DAPC Plot
+
+- **Description**: The DAPC plot visualizes the discriminant analysis results, showing genetic sample distribution based on discriminant functions.
+- **Interpretation**: Each point represents a genetic sample, plotted based on its discriminant function scores, which are linear combinations of principal components. Clusters of points suggest genetic similarity or differentiation.
+- **Use**: This plot is instrumental in distinguishing between genetic clusters and assessing population structure. For breeding applications, it facilitates the selection of genetically similar or diverse individuals suited for breeding objectives. In population genetics studies, it provides insights into the genetic differentiation between groups.
