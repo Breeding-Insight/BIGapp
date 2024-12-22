@@ -542,6 +542,30 @@ mod_gwas_server <- function(input, output, session, parent_session){
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 100, status = "success", title = "Finished")
   })
+  
+  #Checking if any QTLs were detected and returning a user notice if not
+  observe({
+    req(gwas_vars$gwas_df)
+    if(dim(gwas_vars$gwas_df)[1] == 0) {
+      shinyalert(
+        title = "No QTL Detected",
+        text = "No QTL detected for this trait.",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "info",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    
+    #Gracefully abort
+    return()
+  })
 
   #Updating value boxes
   output$qtls_detected <- renderValueBox({
@@ -585,12 +609,13 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
 
   observe({
-    req(gwas_vars$gwas_df_filt)
+    req(gwas_vars$gwas_df_filt, nrow(gwas_vars$gwas_df_filt) > 0)
     updatePickerInput(session = session, inputId = "sele_models", choices = unique(gwas_vars$gwas_df_filt$Model), selected = unique(gwas_vars$gwas_df_filt$Model)[1])
   })
 
   observe({
-    req(gwas_vars$gwas_df_filt)
+    req(gwas_vars$gwas_df_filt, nrow(gwas_vars$gwas_df_filt) > 0)
+    
     df <- gwas_vars$gwas_df_filt %>% filter(Model %in% input$sele_models)
     updatePickerInput(session = session, inputId = "sele_qtl", choices = unique(paste0(df$Marker, "_", df$Model)),
                       selected = unique(paste0(df$Marker, "_", df$Model)))
