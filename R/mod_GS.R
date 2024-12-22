@@ -20,7 +20,7 @@ mod_GS_ui <- function(id){
   tagList(
     fluidRow(
       disconnectMessage(
-        text = "An input file error occurred, please reload the application and check the file.",
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
         refresh = "Reload now",
         background = "white",
         colour = "grey",
@@ -584,7 +584,7 @@ mod_GS_server <- function(input, output, session, parent_session){
     }
 
     #Save to reactive values
-    pred_inputs2$shared_snps <- length(common_markers)
+    #pred_inputs2$shared_snps <- length(common_markers)
     pred_inputs2$matrix <- Kin_mat
     pred_inputs2$pheno_input <- pheno2
   })

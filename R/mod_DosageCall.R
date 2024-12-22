@@ -18,7 +18,7 @@ mod_DosageCall_ui <- function(id){
   tagList(
     fluidPage(
       disconnectMessage(
-        text = "An input file error occurred, please reload the application and check the file.",
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
         refresh = "Reload now",
         background = "white",
         colour = "grey",

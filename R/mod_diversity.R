@@ -14,7 +14,7 @@ mod_diversity_ui <- function(id){
     # Add GWAS content here
     fluidRow(
       disconnectMessage(
-        text = "An input file error occurred, please reload the application and check the file.",
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
         refresh = "Reload now",
         background = "white",
         colour = "grey",
@@ -214,6 +214,16 @@ mod_diversity_server <- function(input, output, session, parent_session){
       diversity_items$maf_df <- diversity_items$maf_df[, c(1,3)]
 
       #Calculate PIC
+      calc_allele_frequencies <- function(d_diplo_t, ploidy) {
+        allele_frequencies <- apply(d_diplo_t, 1, function(x) {
+          count_sum <- sum(!is.na(x))  
+          allele_sum <- sum(x, na.rm = TRUE) 
+          if (count_sum != 0) {allele_sum / (ploidy * count_sum)} else {NA}
+        })
+        
+        all_allele_frequencies <- data.frame(SNP = rownames(d_diplo_t), p1= allele_frequencies, p2= 1-allele_frequencies)
+        return(all_allele_frequencies)
+      }
       Fre <-calc_allele_frequencies(geno_mat,as.numeric(ploidy))
       calc_pic <- function(x) {
         freq_squared <- x^2
@@ -238,7 +248,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       #Updating value boxes
       output$mean_het_box <- renderValueBox({
         valueBox(
-          value = round(mean(diversity_items$het_df$ObservedHeterozygosity),3),
+          value = round(mean(diversity_items$het_df$Ho),3),
           subtitle = "Mean Heterozygosity",
           icon = icon("dna"),
           color = "info"
@@ -284,7 +294,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       validate(
         need(!is.null(diversity_items$het_df) & !is.null(input$hist_bins), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
-      hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+      hist(diversity_items$het_df$Ho, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
            xlab = "Observed Heterozygosity",
            ylab = "Number of Samples",
            main = "Sample Observed Heterozygosity")
@@ -405,7 +415,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
           hist(diversity_items$maf_df$MAF, breaks = as.numeric(input$hist_bins), col = "grey", border = "black", xlab = "Minor Allele Frequency (MAF)",
                ylab = "Frequency", main = "Minor Allele Frequency Distribution")
         } else if (input$div_figure == "OHet Histogram") {
-          hist(diversity_items$het_df$ObservedHeterozygosity, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
+          hist(diversity_items$het_df$Ho, breaks = as.numeric(input$hist_bins), col = "tan3", border = "black", xlim= c(0,1),
                xlab = "Observed Heterozygosity",
                ylab = "Number of Samples",
                main = "Sample Observed Heterozygosity")
