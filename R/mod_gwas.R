@@ -48,7 +48,7 @@ mod_gwas_ui <- function(id){
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
                    p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
-                   p(downloadButton(ns('download_pheno'),""), "Passport Example File"), hr(),
+                   p(downloadButton(ns('download_pheno'),""), "Trait Example File"), hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goGWASpar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>Results description:</b>"), actionButton(ns("goGWASgraph"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>How to cite:</b>"), actionButton(ns("goGWAScite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),

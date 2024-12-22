@@ -54,9 +54,11 @@ mod_Filtering_ui <- function(id){
                  useShinyjs(),
                  downloadButton(ns("start_updog_filter"), "Download", icon = icon("download"), class = "butt"),
                  div(style="display:inline-block; float:right",dropdownButton(
-                   tags$h3("Updog Filter Parameters"),
-                   "You can download examples of the expected file here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"), hr(),
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    actionButton(ns("filtering_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
@@ -110,6 +112,43 @@ mod_Filtering_ui <- function(id){
 mod_Filtering_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+  
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
+                      selected = "VCF_Filtering_par")
+    # expand specific box
+    updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
+                      selected = "VCF_Filtering_results")
+    # expand specific box
+    updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
+                      selected = "VCF_Filtering_cite")
+    # expand specific box
+    updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
 
   #vcf
   filtering_files <- reactiveValues(

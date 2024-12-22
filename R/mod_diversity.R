@@ -28,9 +28,11 @@ mod_diversity_ui <- function(id){
                  numericInput(ns("diversity_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  actionButton(ns("diversity_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
-                   tags$h3("Diversity Parameters"),
-                   "You can download an examples of the expected input file here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"),hr(),
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    actionButton(ns("diversity_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
@@ -94,6 +96,43 @@ mod_diversity_ui <- function(id){
 mod_diversity_server <- function(input, output, session, parent_session){
 
     ns <- session$ns
+    
+    # Help links
+    observeEvent(input$goPar, {
+      # change to help tab
+      updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                        selected = "help")
+      
+      # select specific tab
+      updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
+                        selected = "Genomic_Diversity_par")
+      # expand specific box
+      updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
+    })
+    
+    observeEvent(input$goRes, {
+      # change to help tab
+      updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                        selected = "help")
+      
+      # select specific tab
+      updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
+                        selected = "Genomic_Diversity_results")
+      # expand specific box
+      updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
+    })
+    
+    observeEvent(input$goCite, {
+      # change to help tab
+      updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                        selected = "help")
+      
+      # select specific tab
+      updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
+                        selected = "Genomic_Diversity_cite")
+      # expand specific box
+      updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
+    })
     
     #######Genomic Diversity analysis
 

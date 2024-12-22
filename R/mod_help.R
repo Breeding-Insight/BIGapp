@@ -51,7 +51,7 @@ mod_help_ui <- function(id){
                                       tabPanel("Results description", value = "VCF_Filtering_results", br(),
                                                includeMarkdown(system.file("help_files/VCF_Filtering_res.Rmd", package = "BIGapp"))
                                       ),
-                                      tabPanel("How to cite", value = "Updog_Dosage_Calling_cite", br(),
+                                      tabPanel("How to cite", value = "VCF_Filtering_cite", br(),
                                                includeMarkdown(system.file("help_files/VCF_Filtering_cite.Rmd", package = "BIGapp"))
                                       ))
              ),
