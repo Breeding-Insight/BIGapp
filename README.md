@@ -5,7 +5,7 @@
 
 # (B)reeding (I)nsight (G)enomics app <img src="https://github.com/user-attachments/assets/136c5ec4-5093-4129-a41b-233945e54198" align="right" width="250"/>
 
-Currently, Breeding Insight provides bioinformatic processing support for our external collaborators. This R shiny app will provide a web-based user friendly way for our internal and external collaborators to analyze genomic data without needing to use command-line tools.
+The BIGapp is a user-friendly tool for processing low to mid-density genotyping data for diploid and polyploid species. This R shiny app provides a web-based user friendly way for users to analyze genomic data without needing to use command-line tools. Additional analysis will be added, with the initial focus on a core set of features for supporting breeding decisions.
 
 ### Supported Analyses
 
@@ -17,16 +17,17 @@ Supported:
   - SNP filtering
   - Sample filtering
 - Summary metrics
-  - SNP Allele Frequency
+  - SNP Polymorphism Information Content
   - SNP Minor Allele Frequency
   - Sample Observed Heterozygosity
 - Population Structure
   - PCA
   - DAPC
 - GWAS
+  - GWASpoly
 - GS
   - Estimate Model Prediction Accuracy
-  - Predict Trait Values for New Genotypes
+  - Predict Phenotype Values and EBVs for Samples
 
 ### Running the BIG app
 
