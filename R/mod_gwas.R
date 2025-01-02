@@ -11,12 +11,22 @@
 #' @importFrom future availableCores
 #' @importFrom shinycssloaders withSpinner
 #' @importFrom shinyWidgets virtualSelectInput
+#' @import shinydisconnect
 #'
 mod_gwas_ui <- function(id){
   ns <- NS(id)
   tagList(
     # Add GWAS content here
     fluidRow(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
                  fileInput(ns("gwas_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
@@ -38,7 +48,7 @@ mod_gwas_ui <- function(id){
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
                    p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
-                   p(downloadButton(ns('download_pheno'),""), "Passport Example File"), hr(),
+                   p(downloadButton(ns('download_pheno'),""), "Trait Example File"), hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goGWASpar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>Results description:</b>"), actionButton(ns("goGWASgraph"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>How to cite:</b>"), actionButton(ns("goGWAScite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
@@ -140,7 +150,7 @@ mod_gwas_ui <- function(id){
 mod_gwas_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-
+  
   # Help links
   observeEvent(input$goGWASpar, {
     # change to help tab
@@ -532,6 +542,30 @@ mod_gwas_server <- function(input, output, session, parent_session){
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 100, status = "success", title = "Finished")
   })
+  
+  #Checking if any QTLs were detected and returning a user notice if not
+  observe({
+    req(gwas_vars$gwas_df)
+    if(dim(gwas_vars$gwas_df)[1] == 0) {
+      shinyalert(
+        title = "No QTL Detected",
+        text = "No QTL detected for this trait.",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "info",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    
+    #Gracefully abort
+    return()
+  })
 
   #Updating value boxes
   output$qtls_detected <- renderValueBox({
@@ -575,12 +609,13 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
 
   observe({
-    req(gwas_vars$gwas_df_filt)
+    req(gwas_vars$gwas_df_filt, nrow(gwas_vars$gwas_df_filt) > 0)
     updatePickerInput(session = session, inputId = "sele_models", choices = unique(gwas_vars$gwas_df_filt$Model), selected = unique(gwas_vars$gwas_df_filt$Model)[1])
   })
 
   observe({
-    req(gwas_vars$gwas_df_filt)
+    req(gwas_vars$gwas_df_filt, nrow(gwas_vars$gwas_df_filt) > 0)
+    
     df <- gwas_vars$gwas_df_filt %>% filter(Model %in% input$sele_models)
     updatePickerInput(session = session, inputId = "sele_qtl", choices = unique(paste0(df$Marker, "_", df$Model)),
                       selected = unique(paste0(df$Marker, "_", df$Model)))

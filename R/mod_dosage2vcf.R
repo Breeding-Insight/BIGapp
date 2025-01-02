@@ -8,11 +8,21 @@
 #'
 #' @importFrom shiny NS tagList
 #' @importFrom shinyjs enable disable useShinyjs
+#' @import shinydisconnect
 #'
 mod_dosage2vcf_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidPage(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       fluidRow(
         column(width = 5,
           box(

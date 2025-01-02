@@ -73,12 +73,15 @@ app_server <- function(input, output, session) {
   
   #Check for updates from GitHub for BIGapp
   get_latest_github_commit <- function(repo, owner) {
-    url <- paste0("https://api.github.com/repos/", owner, "/", repo, "/commits/main")
+    url <- paste0("https://api.github.com/repos/", owner, "/", repo, "/releases/latest")
     response <- GET(url)
     content <- content(response, "parsed")
     
     if (status_code(response) == 200) {
-      return(content$sha)
+      tag_name <- content$tag_name
+      clean_tag_name <- sub("-.*", "", tag_name)
+      clean_tag_name <- sub("v", "", clean_tag_name)
+      return(clean_tag_name)
     } else {
       return(NULL)
     }

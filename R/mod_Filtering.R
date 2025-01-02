@@ -13,18 +13,28 @@
 #' @importFrom shinyjs enable disable useShinyjs
 #'
 #' @import dplyr
+#' @import shinydisconnect
 #'
 #'
 mod_Filtering_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidRow(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              box(width = 12,
                  title = "Quality Filtering", status = "info", solidHeader = TRUE, collapsible = TRUE, collapsed = FALSE,
                  fileInput(ns("updog_rdata"),"Choose VCF File", accept = c(".vcf",".gz")),
                  textInput(ns("filter_output_name"), "Output File Name"),
-                 numericInput(ns("filter_ploidy"),"Ploidy", min = 0, value = NULL),
+                 numericInput(ns("filter_ploidy"),"Species Ploidy", min = 0, value = NULL),
                  numericInput(ns("filter_maf"),"MAF filter", min = 0, max=1, value = 0.05, step = 0.01),
                  numericInput(ns("size_depth"),"Min Read Depth (Marker per Sample)", min = 0, max = 300, value = 10, step = 1),
                  numericInput(ns("snp_miss"),"Remove SNPs with >= % missing data", min = 0, max = 100, value = 50, step = 1),
@@ -40,13 +50,15 @@ mod_Filtering_ui <- function(id){
                      numericInput(ns("maxpostprob_filter"), "Minimum maxpostprob (Updog filter)", min = 0, value = 0.5, step = 0.1)
                    )
                  ),
-                 actionButton(ns("run_filters"), "Apply filters"),
+                 actionButton(ns("run_filters"), "Apply Filters"),
                  useShinyjs(),
-                 downloadButton(ns("start_updog_filter"), "Download Filtered VCF", icon = icon("download"), class = "butt"),
+                 downloadButton(ns("start_updog_filter"), "Download", icon = icon("download"), class = "butt"),
                  div(style="display:inline-block; float:right",dropdownButton(
-                   tags$h3("Updog Filter Parameters"),
-                   "You can download examples of the expected file here: \n",
-                   downloadButton(ns('download_vcf'), "Download VCF Example File"), hr(),
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    actionButton(ns("filtering_summary"), "Summary"),
                    circle = FALSE,
                    status = "warning",
@@ -100,6 +112,43 @@ mod_Filtering_ui <- function(id){
 mod_Filtering_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
+  
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
+                      selected = "VCF_Filtering_par")
+    # expand specific box
+    updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
+                      selected = "VCF_Filtering_results")
+    # expand specific box
+    updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
+                      selected = "VCF_Filtering_cite")
+    # expand specific box
+    updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
 
   #vcf
   filtering_files <- reactiveValues(

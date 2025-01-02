@@ -8,11 +8,21 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @import shinydisconnect
 mod_dapc_ui <- function(id){
   ns <- NS(id)
   tagList(
     # Add PCA content here
     fluidRow(
+      disconnectMessage(
+        text = "An unexpected error occurred, please reload the application and check the input file(s).",
+        refresh = "Reload now",
+        background = "white",
+        colour = "grey",
+        overlayColour = "grey",
+        overlayOpacity = 0.3,
+        refreshColour = "purple"
+      ),
       column(width = 3,
              bs4Dash::box(
                title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
@@ -23,9 +33,12 @@ mod_dapc_ui <- function(id){
                           numericInput(ns("dapc_ploidy"), "Species Ploidy", min = 1, value = NULL),
                           actionButton(ns("K_start"), "Run Step 1"),
                           div(style="display:inline-block; float:right",dropdownButton(
-                            tags$h3("DAPC Inputs"),
-                            "You can download an examples of the expected input file here: \n",
-                            downloadButton(ns('download_vcf'), "Download VCF Example File"),hr(),
+                            HTML("<b>Input files</b>"),
+                            p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                            p(downloadButton(ns('download_pheno'),""), "Trait Example File"), hr(),
+                            p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                            p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                            p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                             actionButton(ns("dapc_summary"), "Summary"),
                             circle = FALSE,
                             status = "warning",
@@ -112,7 +125,43 @@ mod_dapc_ui <- function(id){
 mod_dapc_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-
+  
+  # Help links
+  observeEvent(input$goPar, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DAPC_tabset",
+                      selected = "DAPC_par")
+    # expand specific box
+    updateBox(id = "DAPC_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goRes, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DAPC_tabset",
+                      selected = "DAPC_results")
+    # expand specific box
+    updateBox(id = "DAPC_box", action = "toggle", session = parent_session)
+  })
+  
+  observeEvent(input$goCite, {
+    # change to help tab
+    updatebs4TabItems(session = parent_session, inputId = "MainMenu",
+                      selected = "help")
+    
+    # select specific tab
+    updateTabsetPanel(session = parent_session, inputId = "DAPC_tabset",
+                      selected = "DAPC_cite")
+    # expand specific box
+    updateBox(id = "DAPC_box", action = "toggle", session = parent_session)
+  })
 
   dapc_items <- reactiveValues(
     grp = NULL,
@@ -144,6 +193,9 @@ mod_dapc_server <- function(input, output, session, parent_session){
       )
     }
     req(input$dosage_file$datapath, input$dapc_ploidy)
+    
+    #PB
+    updateProgressBar(session = session, id = "pb_dapc", value = 5, title = "Importing input files")
 
     ploidy <- as.numeric(input$dapc_ploidy)
     maxK <- as.numeric(input$dapc_kmax)
@@ -171,7 +223,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
       genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
     }
-
+    
+    #PB
+    updateProgressBar(session = session, id = "pb_dapc", value = 30, title = "Calculating K")
+    
     #Perform analysis
     get_k <- findK(genotypeMatrix, maxK, ploidy)
 
@@ -179,6 +234,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
     dapc_items$grp <- get_k$grp
     dapc_items$bestK <- get_k$bestK
     dapc_items$BIC <- get_k$BIC
+    
+    #PB
+    updateProgressBar(session = session, id = "pb_dapc", value = 100, title = "Step 1: Finished!")
+    
   })
 
   observeEvent(input$dapc_start, {
@@ -203,7 +262,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
       )
     }
     req(input$dosage_file$datapath, input$dapc_ploidy, input$dapc_k)
-
+    
+    #Pb
+    updateProgressBar(session = session, id = "pb_dapc", value = 5, title = "Importing input files")
+    
     geno <- input$dosage_file$datapath
     ploidy <- as.numeric(input$dapc_ploidy)
     selected_K <- as.numeric(input$dapc_k)
@@ -216,7 +278,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
 
     # Apply the function to the first INFO string
     info_ids <- extract_info_ids(info[1])
-
+    
+    #Pb
+    updateProgressBar(session = session, id = "pb_dapc", value = 30, title = "Formatting files")
+    
     #Get the genotype values if the updog dosage calls are present
     if ("UD" %in% info_ids) {
       genotypeMatrix <- extract.gt(vcf, element = "UD")
@@ -228,13 +293,20 @@ mod_dapc_server <- function(input, output, session, parent_session){
       genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
     }
-
+    
+    #Pb
+    updateProgressBar(session = session, id = "pb_dapc", value = 60, title = "Performing DAPC")
+    
     #Perform analysis
     clusters <- performDAPC(genotypeMatrix, selected_K, ploidy)
 
     #Assign results to reactive value
     dapc_items$assignments <- clusters$Q
     dapc_items$dapc <- clusters$dapc
+    
+    #Pb
+    updateProgressBar(session = session, id = "pb_dapc", value = 100, title = "Finished!")
+    
   })
 
   ###Outputs from DAPC
