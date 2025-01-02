@@ -16,6 +16,7 @@
 mod_DosageCall_ui <- function(id){
   ns <- NS(id)
   tagList(
+    useShinyjs(),
     fluidPage(
       disconnectMessage(
         text = "An unexpected error occurred, please reload the application and check the input file(s).",
@@ -374,7 +375,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
 
       return()
     }
-    
+
     if (nrow(matrices$ref_matrix) == 0 || nrow(matrices$size_matrix) == 0) {
       shinyalert(
         title = "Data Warning!",
@@ -390,7 +391,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         showCancelButton = FALSE,
         animation = TRUE
       )
-      
+
       return()
     }
 
@@ -459,14 +460,14 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   ##Summary Info
   dosage_summary_info <- function() {
     #Handle possible NULL values for inputs
     genotype_file_name <- if (!is.null(input$madc_file$name)) input$madc_file$name else "No file selected"
     report_file_name <- if (!is.null(input$madc_passport$name)) input$madc_passport$name else "No file selected"
     selected_ploidy <- if (!is.null(input$ploidy)) as.character(input$ploidy) else "Not selected"
-    
+
     #Print the summary information
     cat(
       "BIGapp Dosage Calling Summary\n",
@@ -493,7 +494,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$dosage_summary, {
     showModal(modalDialog(
@@ -509,8 +510,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_dosage_info <- downloadHandler(
     filename = function() {
