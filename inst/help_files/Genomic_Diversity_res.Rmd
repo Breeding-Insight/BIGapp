@@ -4,14 +4,38 @@ output: html_document
 date: "2024-08-29"
 ---
 
-* **MAF plot**
+#### Dosage Ratio Plot
 
-* **OHet plot**
+- **Description**: The dosage ratio box plot illustrates the distribution of different genotypic dosage levels across the genomic dataset.
+- **Interpretation**: Each box in the plot corresponds to a specific dosage level, showing the proportion of samples exhibiting each dosage. These levels typically indicate the number of copies of a particular allele.
+- **Use**: This plot is beneficial in understanding the distribution of allelic dosages in the population.
 
-* **Dosage Ratio plot**
+#### MAF Plot
 
-* **Marker distribution plot**
+- **Description**: The MAF plot shows the minor allele frequency distribution for the SNPs within the dataset.
+- **Interpretation**: The x-axis represents SNPs, while the y-axis depicts the frequency of the less common allele. High MAF values indicate prevalent mutations, whereas low values suggest rarity.
+- **Use**: This visualization helps in assessing allele variation across the population, essential for breeding decisions aiming to maximize genetic diversity. It's crucial for identifying potentially beneficial minor alleles in a population genetics context or ensuring adequate filtering prior to downstream analyses such as GWAS.
 
-* **MAF table** 
+#### OHet Plot
 
-* **OHet table**
+- **Description**: The OHet plot displays the observed heterozygosity for samples, illustrating genetic variability.
+- **Interpretation**: The y-axis may represent heterozygosity levels, with distinct individuals on the x-axis. Variation indicates the degree of genetic diversity within samples.
+- **Use**: High heterozygosity is often associated with genetic health and adaptability, making this plot valuable for breeding insight. In population genetics, it aids understanding of population diversity and potential inbreeding effects.
+
+#### Marker Distribution Plot
+
+- **Description**: This plot provides a spatial distribution of markers across different chromosomes or linkage groups.
+- **Interpretation**: Points correspond to SNPs or markers, plotted along chromosomal positions. Patterns suggest marker density and distribution.
+- **Use**: Insight into marker distribution is critical for genomic selection and breeding strategy, ensuring comprehensive genomic coverage. This is also a good visual to determine if markers were filtered too strictly or sequenced poorly for a given project.
+
+#### Sample Table
+
+- **Description**: The sample table includes a list of sample IDs with associated summary statistics, such as heterozygosity.
+- **Interpretation**: Each row details a specific sample, providing key genetic metrics valuable for assessing sample quality and genetic integrity.
+- **Use**: This table supports the evaluation of sample quality and diversity, crucial for selecting appropriate breeding candidates or conducting robust population analyses.
+
+#### SNP Table
+
+- **Description**: The SNP table features SNP IDs alongside their summary statistics, including metrics like Minor Allele Frequency (MAF) and Polymorphism Information Content (PIC).
+- **Interpretation**: The table provides insight into each SNP's genetic contribution and informativeness, facilitating genome-wide association studies and diversity assessments.
+- **Use**: By highlighting key SNP metrics, this table assists in choosing markers for selection in breeding programs and understanding diversity in population genetics.

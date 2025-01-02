@@ -57,7 +57,7 @@ app_ui <- function(request) {
                    menuItem("Home", tabName = "welcome", icon = icon("house"),startExpanded = FALSE),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Genotype Processing"),
                    menuItem("Convert to VCF", tabName = "dosage2vcf", icon = icon("share-from-square")),
-                   menuItem("Updog Dosage Calling", tabName = "updog", icon = icon("list-ol")),
+                   menuItem("Dosage Calling", tabName = "updog", icon = icon("list-ol")),
                    menuItem("VCF Filtering", tabName = "filtering", icon = icon("filter")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Summary Metrics"),
                    menuItem("Genomic Diversity", tabName = "diversity", icon = icon("chart-pie")),
