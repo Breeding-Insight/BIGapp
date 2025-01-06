@@ -38,7 +38,7 @@ mod_gwas_ui <- function(id){
                  selectInput(ns('trait_info'), label = 'Select Trait*', choices = NULL),
                  virtualSelectInput(
                    inputId = ns("fixed_info"),
-                   label = "Select Fixed Effects (optional):",
+                   label = "Select Fixed Effects:",
                    choices = NULL,
                    showValueAsTags = TRUE,
                    search = TRUE,
@@ -129,7 +129,7 @@ mod_gwas_ui <- function(id){
                      downloadButton(ns("download_gwas_file"), "Save Files")),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save Image",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
              )
