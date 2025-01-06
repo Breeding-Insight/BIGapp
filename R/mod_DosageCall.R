@@ -6,7 +6,6 @@
 #'
 #' @noRd
 #'
-#' @importFrom shinyjs enable disable useShinyjs
 #' @importFrom shiny NS tagList
 #' @importFrom future availableCores
 #' @importFrom bs4Dash renderValueBox
@@ -56,9 +55,9 @@ mod_DosageCall_ui <- function(id){
               )
             )
           ),
-          textInput(ns("output_name"), "Output File Name"),
-          numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
-          selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
+          textInput(ns("output_name"), "Output File Name*"),
+          numericInput(ns("ploidy"), "Species Ploidy*", min = 1, value = NULL),
+          selectInput(ns("updog_model"), "Updog Model*", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
           conditionalPanel(
             condition = "input.updog_model == 'f1' | input.updog_model == 'f1pp'",
             ns = ns,
@@ -66,12 +65,12 @@ mod_DosageCall_ui <- function(id){
               style = "padding-left: 20px;",  # Add padding/indentation
               textInput(
                 inputId = ns("parent1"),
-                label = "Enter parent1 ID:",
+                label = "Enter parent1 ID*:",
                 value = NULL
               ),
               textInput(
                 inputId = ns("parent2"),
-                label = "Enter parent2 ID:",
+                label = "Enter parent2 ID*:",
                 value = NULL
               )
             )
@@ -83,15 +82,14 @@ mod_DosageCall_ui <- function(id){
               style = "padding-left: 20px;",  # Add padding/indentation
               textInput(
                 inputId = ns("parent"),
-                label = "Enter parent ID:",
+                label = "Enter parent ID*:",
                 value = NULL
               )
             )
           ),
-          numericInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
+          numericInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (future::availableCores() - 1), value = 1),
           actionButton(ns("run_analysis"), "Run Analysis"),
-          useShinyjs(),
-          downloadButton(ns('download_updog_vcf'), "Download VCF File", class = "butt"),
+          uiOutput(ns('mybutton')),
 
           div(style="display:inline-block; float:right",dropdownButton(
             HTML("<b>Input files</b>"),
@@ -124,7 +122,6 @@ mod_DosageCall_ui <- function(id){
 #' @import vcfR
 #' @import updog
 #' @importFrom BIGr updog2vcf
-#' @importFrom shinyjs enable disable
 #' @import dplyr
 #'
 #' @noRd
@@ -207,8 +204,6 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   output$MADCsnps <- renderValueBox({
     valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
   })
-
-  disable("download_updog_vcf")
 
   ##This is for performing Updog Dosage Calling
   updog_out <- eventReactive(input$run_analysis,{
@@ -411,14 +406,9 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   })
 
   # Only make available the download button when analysis is finished
-  observe({
-    if (!is.null(updog_out())) {
-      Sys.sleep(1)
-      # enable the download button
-      enable("download_updog_vcf")
-    } else {
-      disable("download_updog_vcf")
-    }
+  output$mybutton <- renderUI({
+    if(isTruthy(updog_out()))
+      downloadButton(ns("download_updog_vcf"), "Download VCF file", class = "butt")
   })
 
   output$download_updog_vcf <- downloadHandler(
@@ -427,6 +417,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       paste0(output_name, ".vcf.gz")
     },
     content = function(file) {
+
       #Save Updog output as VCF file
       temp <- tempfile()
       updog2vcf(
