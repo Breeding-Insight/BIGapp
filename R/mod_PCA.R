@@ -94,7 +94,7 @@ mod_PCA_ui <- function(id){
                    downloadButton(ns("download_pca"), "Save Image"),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save Image",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
                )

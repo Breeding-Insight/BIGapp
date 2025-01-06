@@ -87,7 +87,7 @@ mod_dapc_ui <- function(id){
                        downloadButton(ns("download_dapc_file"), "Save Files")),
                      circle = FALSE,
                      status = "danger",
-                     icon = icon("floppy-disk"), width = "300px",
+                     icon = icon("floppy-disk"), width = "300px", label = "Save Image",
                      tooltip = tooltipOptions(title = "Click to see inputs!")
                    ))
              ),
@@ -105,8 +105,7 @@ mod_dapc_ui <- function(id){
              bs4Dash::box(title = "DAPC Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
                           bs4Dash::tabsetPanel(
                             tabPanel("BIC Plot",withSpinner(plotOutput(ns("BIC_plot"), height = '460px'))),
-                            tabPanel("DAPC Plot", withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))),
-                            tabPanel("STRUCTURE Plot", "Not yet supported"))
+                            tabPanel("DAPC Plot", withSpinner(plotOutput(ns("DAPC_plot"), height = '460px'))))
              )
       ),
       column(width = 1)
@@ -125,37 +124,37 @@ mod_dapc_ui <- function(id){
 mod_dapc_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-  
+
   # Help links
   observeEvent(input$goPar, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "DAPC_tabset",
                       selected = "DAPC_par")
     # expand specific box
     updateBox(id = "DAPC_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goRes, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "DAPC_tabset",
                       selected = "DAPC_results")
     # expand specific box
     updateBox(id = "DAPC_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goCite, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "DAPC_tabset",
                       selected = "DAPC_cite")
@@ -193,7 +192,7 @@ mod_dapc_server <- function(input, output, session, parent_session){
       )
     }
     req(input$dosage_file$datapath, input$dapc_ploidy)
-    
+
     #PB
     updateProgressBar(session = session, id = "pb_dapc", value = 5, title = "Importing input files")
 
@@ -223,10 +222,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
       genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
     }
-    
+
     #PB
     updateProgressBar(session = session, id = "pb_dapc", value = 30, title = "Calculating K")
-    
+
     #Perform analysis
     get_k <- findK(genotypeMatrix, maxK, ploidy)
 
@@ -234,10 +233,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
     dapc_items$grp <- get_k$grp
     dapc_items$bestK <- get_k$bestK
     dapc_items$BIC <- get_k$BIC
-    
+
     #PB
     updateProgressBar(session = session, id = "pb_dapc", value = 100, title = "Step 1: Finished!")
-    
+
   })
 
   observeEvent(input$dapc_start, {
@@ -262,10 +261,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
       )
     }
     req(input$dosage_file$datapath, input$dapc_ploidy, input$dapc_k)
-    
+
     #Pb
     updateProgressBar(session = session, id = "pb_dapc", value = 5, title = "Importing input files")
-    
+
     geno <- input$dosage_file$datapath
     ploidy <- as.numeric(input$dapc_ploidy)
     selected_K <- as.numeric(input$dapc_k)
@@ -278,10 +277,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
 
     # Apply the function to the first INFO string
     info_ids <- extract_info_ids(info[1])
-    
+
     #Pb
     updateProgressBar(session = session, id = "pb_dapc", value = 30, title = "Formatting files")
-    
+
     #Get the genotype values if the updog dosage calls are present
     if ("UD" %in% info_ids) {
       genotypeMatrix <- extract.gt(vcf, element = "UD")
@@ -293,20 +292,20 @@ mod_dapc_server <- function(input, output, session, parent_session){
       genotypeMatrix <- apply(genotypeMatrix, 2, convert_to_dosage)
       rm(vcf) #Remove VCF
     }
-    
+
     #Pb
     updateProgressBar(session = session, id = "pb_dapc", value = 60, title = "Performing DAPC")
-    
+
     #Perform analysis
     clusters <- performDAPC(genotypeMatrix, selected_K, ploidy)
 
     #Assign results to reactive value
     dapc_items$assignments <- clusters$Q
     dapc_items$dapc <- clusters$dapc
-    
+
     #Pb
     updateProgressBar(session = session, id = "pb_dapc", value = 100, title = "Finished!")
-    
+
   })
 
   ###Outputs from DAPC
@@ -497,7 +496,7 @@ mod_dapc_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   ##Summary Info
   dapc_summary_info <- function() {
     #Handle possible NULL values for inputs
