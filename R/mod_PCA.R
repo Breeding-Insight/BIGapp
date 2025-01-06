@@ -17,7 +17,7 @@ mod_PCA_ui <- function(id){
   ns <- NS(id)
   tagList(
     fluidPage(
-    # Add PCA content here
+      # Add PCA content here
       fluidRow(
         disconnectMessage(
           text = "An unexpected error occurred, please reload the application and check the input file(s).",
@@ -30,7 +30,7 @@ mod_PCA_ui <- function(id){
         ),
         useShinyjs(),
         inlineCSS(list(.borderred = "border-color: red", .redback = "background: red")),
-  
+
         column(width = 3,
                box(
                  title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
@@ -42,23 +42,23 @@ mod_PCA_ui <- function(id){
                  br(),
                  actionButton(ns("pca_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
-                       HTML("<b>Input files</b>"),
-                       p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
-                       p(downloadButton(ns('download_pheno'),""), "Trait Example File"), hr(),
-                       p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-                       p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-                       p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-                       actionButton(ns("pca_summary"), "Summary"),
-                       circle = FALSE,
-                       status = "warning",
-                       icon = icon("info"), width = "300px",
-                       tooltip = tooltipOptions(title = "Click to see info!")
-                     ))#,
+                   HTML("<b>Input files</b>"),
+                   p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
+                   p(downloadButton(ns('download_pheno'),""), "Trait Example File"), hr(),
+                   p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   actionButton(ns("pca_summary"), "Summary"),
+                   circle = FALSE,
+                   status = "warning",
+                   icon = icon("info"), width = "300px",
+                   tooltip = tooltipOptions(title = "Click to see info!")
+                 ))#,
                  #style = "overflow-y: auto; height: 480px"
                ),
                box(
                  title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
-                 selectInput(ns('group_info'), label = 'Color Variable', choices = NULL),
+                 selectInput(ns('group_info'), label = 'Color Variable', choices = ""),
                  materialSwitch(ns('use_cat'), label = "Color Category", status = "success"),
                  conditionalPanel(condition = "input.use_cat",
                                   ns = ns,
@@ -132,45 +132,45 @@ mod_PCA_ui <- function(id){
 mod_PCA_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-  options(warn = -1) #Uncomment to suppress warnings
-  
+  #options(warn = -1) #Uncomment to suppress warnings
+
   # Help links
   observeEvent(input$goPar, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "PCA_tabset",
                       selected = "PCA_par")
     # expand specific box
     updateBox(id = "PCA_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goRes, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "PCA_tabset",
                       selected = "PCA_results")
     # expand specific box
     updateBox(id = "PCA_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goCite, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "PCA_tabset",
                       selected = "PCA_cite")
     # expand specific box
     updateBox(id = "PCA_box", action = "toggle", session = parent_session)
   })
-  
+
   #PCA reactive values
   pca_data <- reactiveValues(
     pc_df_pop = NULL,
@@ -329,7 +329,6 @@ mod_PCA_server <- function(input, output, session, parent_session){
     #PCA
     prin_comp <- prcomp(G.mat.updog, scale = TRUE)
     eig <- get_eigenvalue(prin_comp)
-    round(sum(eig$variance.percent[1:3]),1)
 
     ###Simple plots
     # Extract the PC scores
@@ -379,6 +378,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     pca_data$pc_df_pop <- pc_df_pop
     pca_data$variance_explained <- variance_explained
     pca_data$my_palette <- my_palette
+    pca_data$group_info <- input$group_info
 
     #End of PCA section
   })
@@ -390,10 +390,9 @@ mod_PCA_server <- function(input, output, session, parent_session){
       need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
     )
 
-
     # Generate colors
     if (!is.null(pca_data$my_palette)) {
-      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
+      unique_countries <- unique(pca_data$pc_df_pop[[pca_data$group_info]])
       palette <- brewer.pal(length(unique_countries), input$color_choice)
       my_palette <- colorRampPalette(palette)(length(unique_countries))
     } else {
@@ -413,21 +412,22 @@ mod_PCA_server <- function(input, output, session, parent_session){
     #Set factor
     if (!input$use_cat && is.null(my_palette)) {
       print("No Color Info")
-    }else{
-      pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
+    } else {
+      if(pca_data$group_info != "") pca_data$pc_df_pop[[pca_data$group_info]] <- as.factor(pca_data$pc_df_pop[[pca_data$group_info]])
     }
 
     # Similar plotting logic here
 
+    #input$cat_color <- as.character(unique(pca_data$pc_df_pop[[input$group_info]]))
     cat_colors <- c(input$cat_color, "grey")
-    plot <- {if(!is.null(input$group_info) & input$group_info != "")
+    plot <- {if(!is.null(pca_data$group_info) & pca_data$group_info != "")
       ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
                                      y = pca_data$pc_df_pop[[input$pc_Y]],
-                                     color = factor(pca_data$pc_df_pop[[input$group_info]]))) else
+                                     color = factor(pca_data$pc_df_pop[[pca_data$group_info]]))) else
                                        ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
                                                                       y = pca_data$pc_df_pop[[input$pc_Y]]))} +
       geom_point(size = 2, alpha = 0.8) +
-      {if(input$use_cat) scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) else
+      {if(input$use_cat & !is.null(my_palette)) scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) else
         if(!is.null(my_palette)) scale_color_manual(values = my_palette)} +
       guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
       theme_minimal() +
@@ -441,7 +441,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       labs(
         x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
         y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-        color = input$group_info
+        color = pca_data$group_info
       )
 
     plot  # Assign the plot to your reactiveValues
@@ -459,16 +459,22 @@ mod_PCA_server <- function(input, output, session, parent_session){
       need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
     )
 
-    #Generate colors
-    unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-    palette <- brewer.pal(length(unique_countries),input$color_choice)
-    my_palette <- colorRampPalette(palette)(length(unique_countries))
-
     tit = paste0('Total Explained Variance =', sum(pca_data$variance_explained[1:3]))
 
-    fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = as.factor(pca_data$pc_df_pop[[input$group_info]]),
-                   colors = my_palette) %>%
-      add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
+    #Generate colors
+    if(pca_data$group_info!= ""){
+      unique_countries <- unique(pca_data$pc_df_pop[[pca_data$group_info]])
+      palette <- brewer.pal(length(unique_countries),input$color_choice)
+      my_palette <- colorRampPalette(palette)(length(unique_countries))
+
+      fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = as.factor(pca_data$pc_df_pop[[pca_data$group_info]]),
+                     colors = my_palette) %>%
+        add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
+
+    } else {
+      fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3) %>%
+        add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
+    }
 
     fig <- fig %>%
       layout(
