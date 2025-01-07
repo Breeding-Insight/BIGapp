@@ -51,8 +51,7 @@ mod_Filtering_ui <- function(id){
                    )
                  ),
                  actionButton(ns("run_filters"), "Apply Filters"),
-                 useShinyjs(),
-                 downloadButton(ns("start_updog_filter"), "Download", icon = icon("download"), class = "butt"),
+                 uiOutput(ns("mybutton")),
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
                    p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
@@ -75,8 +74,7 @@ mod_Filtering_ui <- function(id){
              valueBoxOutput(ns("snp_removed_box"), width = NULL),
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,
                  sliderInput(ns("hist_bins"),"Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
-                 div(style="display:inline-block; float:left",dropdownButton(
-                   tags$h3("Save Image"),
+                 div(style="display:inline-block; float:left", dropdownButton(
                    selectInput(inputId = ns('filter_hist'), label = 'Figure', choices = c("Bias Histogram",
                                                                                           "OD Histogram",
                                                                                           "Prop_mis Histogram",
@@ -88,7 +86,7 @@ mod_Filtering_ui <- function(id){
                    sliderInput(inputId = ns('image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                    downloadButton(ns("download_filter_hist"), "Save"),
                    circle = FALSE,
-                   status = "danger",
+                   status = "danger", label = "Save Image",
                    icon = icon("floppy-disk"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
@@ -112,37 +110,37 @@ mod_Filtering_ui <- function(id){
 mod_Filtering_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-  
+
   # Help links
   observeEvent(input$goPar, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
                       selected = "VCF_Filtering_par")
     # expand specific box
     updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goRes, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
                       selected = "VCF_Filtering_results")
     # expand specific box
     updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goCite, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "VCF_Filtering_tabset",
                       selected = "VCF_Filtering_cite")
@@ -176,8 +174,6 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       color = "info"
     )
   })
-
-  disable("start_updog_filter")
 
   output$din_tabs <- renderUI({
     tabBox(width =12, collapsible = FALSE, status = "info",
@@ -351,16 +347,10 @@ mod_Filtering_server <- function(input, output, session, parent_session){
   })
 
   # Only make available the download button when analysis is finished
-  observe({
-    if (!is.null(vcf())) {
-      Sys.sleep(1)
-      # enable the download button
-      enable("start_updog_filter")
-    } else {
-      disable("start_updog_filter")
-    }
+  output$mybutton <- renderUI({
+    if(isTruthy(vcf()))
+      downloadButton(ns("start_updog_filter"), "Download VCF file", class = "butt")
   })
-
 
   #Updog filtering
   output$start_updog_filter <- downloadHandler(
@@ -671,13 +661,13 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   ##Summary Info
   filtering_summary_info <- function() {
     #Handle possible NULL values for inputs
     genotype_file_name <- if (!is.null(input$updog_rdata$name)) input$updog_rdata$name else "No file selected"
     selected_ploidy <- if (!is.null(input$filter_ploidy)) as.character(input$filter_ploidy) else "Not selected"
-    
+
     #Print the summary information
     cat(
       "BIGapp VCF Filtering Summary\n",
@@ -711,7 +701,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$filtering_summary, {
     showModal(modalDialog(
@@ -727,8 +717,8 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_filtering_info <- downloadHandler(
     filename = function() {

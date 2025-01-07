@@ -41,7 +41,6 @@ mod_dosage2vcf_ui <- function(id){
             ),
             textInput(ns("d2v_output_name"), "Output File Name"),
             numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
-            #actionButton(ns("run_analysis"), "Run Analysis"),
             useShinyjs(),
             downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
             div(style="display:inline-block; float:right",dropdownButton(
@@ -59,7 +58,7 @@ mod_dosage2vcf_ui <- function(id){
             ))
           )
       ),
-      column(width = 4,  
+      column(width = 4,
         valueBoxOutput(ns("ReportSnps"), width=12),
         box(title = "Status", width = 12, collapsible = TRUE, status = "info",
             progressBar(id = ns("dosage2vcf_pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
@@ -126,45 +125,6 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     valueBox(snp_number(), "Number of Markers", icon = icon("dna"), color = "info")
   })
 
-  observeEvent(input$run_analysis, {
-    # Missing input with red border and alerts
-    toggleClass(id = "d2v_output_name", class = "borderred", condition = (is.na(input$d2v_output_name) | is.null(input$d2v_output_name) | input$d2v_output_name == ""))
-    toggleClass(id = "dosage2vcf_ploidy", class = "borderred", condition = (is.na(input$dosage2vcf_ploidy) | is.null(input$dosage2vcf_ploidy) | input$dosage2vcf_ploidy == ""))
-
-    if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath)) {
-      shinyalert(
-        title = "Missing input!",
-        text = "Upload Dose Report and Counts Files",
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "error",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
-      )
-    }
-    req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
-
-    updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Input files evaluated.")
-
-    dosage_file_df <- read.csv(input$report_file$datapath)
-    snp_number <- length(dosage_file_df$X.[-c(1:7)])
-
-    #SNP counts value box
-    output$ReportSnps <- renderValueBox({
-      valueBox(snp_number, "Number of Markers", icon = icon("dna"), color = "info")
-    })
-
-    enable("download_d2vcf")
-
-    updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Click in Download to continue.")
-
-  })
-
   output$download_dose <- downloadHandler(
     filename = function() {
       paste0("BIGapp_Dose_Report_Example_file.csv")
@@ -191,8 +151,24 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     },
     content = function(file) {
       # Ensure the files are uploaded
+      # Missing input with red border and alerts
+      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload Dose Report and Counts Files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
       req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
-
       # Get the uploaded file paths
       dosage_file <- input$report_file$datapath
       counts_file <- input$counts_file$datapath
@@ -251,14 +227,14 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
     }
   )
-  
+
   ##Summary Info
   d2vcf_summary_info <- function() {
     #Handle possible NULL values for inputs
     report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
     counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
     selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
-    
+
     #Print the summary information
     cat(
       "BIGapp Dosage2VCF Summary\n",
@@ -282,7 +258,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$d2vcf_summary, {
     showModal(modalDialog(
@@ -298,8 +274,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_d2vcf_info <- downloadHandler(
     filename = function() {
