@@ -86,7 +86,7 @@ mod_Filtering_ui <- function(id){
                    sliderInput(inputId = ns('image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                    downloadButton(ns("download_filter_hist"), "Save"),
                    circle = FALSE,
-                   status = "danger", label = "Save Image",
+                   status = "danger", label = "Save",
                    icon = icon("floppy-disk"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
