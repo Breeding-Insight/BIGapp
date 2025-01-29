@@ -112,7 +112,7 @@ mod_GS_ui <- function(id){
                      downloadButton(ns("download_pred_results_file"), "Save Files")),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px", label = "Save Image",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
              )
