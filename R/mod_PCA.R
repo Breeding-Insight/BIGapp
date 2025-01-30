@@ -59,7 +59,7 @@ mod_PCA_ui <- function(id){
                box(
                  title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
                  selectInput(ns('group_info'), label = 'Color Variable', choices = ""),
-                 materialSwitch(ns('use_cat'), label = "Color Category", status = "success"),
+                 materialSwitch(ns('use_cat'), label = "Color Category (2D-Plot only)", status = "success"),
                  conditionalPanel(condition = "input.use_cat",
                                   ns = ns,
                                   virtualSelectInput(
@@ -378,7 +378,6 @@ mod_PCA_server <- function(input, output, session, parent_session){
     pca_data$pc_df_pop <- pc_df_pop
     pca_data$variance_explained <- variance_explained
     pca_data$my_palette <- my_palette
-    pca_data$group_info <- input$group_info
 
     #End of PCA section
   })
@@ -392,7 +391,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     # Generate colors
     if (!is.null(pca_data$my_palette)) {
-      unique_countries <- unique(pca_data$pc_df_pop[[pca_data$group_info]])
+      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
       palette <- brewer.pal(length(unique_countries), input$color_choice)
       my_palette <- colorRampPalette(palette)(length(unique_countries))
     } else {
@@ -413,17 +412,17 @@ mod_PCA_server <- function(input, output, session, parent_session){
     if (!input$use_cat && is.null(my_palette)) {
       print("No Color Info")
     } else {
-      if(pca_data$group_info != "") pca_data$pc_df_pop[[pca_data$group_info]] <- as.factor(pca_data$pc_df_pop[[pca_data$group_info]])
+      if(input$group_info != "") pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
     }
 
     # Similar plotting logic here
 
     #input$cat_color <- as.character(unique(pca_data$pc_df_pop[[input$group_info]]))
     cat_colors <- c(input$cat_color, "grey")
-    plot <- {if(!is.null(pca_data$group_info) & pca_data$group_info != "")
+    plot <- {if(!is.null(input$group_info) & input$group_info != "")
       ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
                                      y = pca_data$pc_df_pop[[input$pc_Y]],
-                                     color = factor(pca_data$pc_df_pop[[pca_data$group_info]]))) else
+                                     color = factor(pca_data$pc_df_pop[[input$group_info]]))) else
                                        ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
                                                                       y = pca_data$pc_df_pop[[input$pc_Y]]))} +
       geom_point(size = 2, alpha = 0.8) +
@@ -441,7 +440,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       labs(
         x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
         y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-        color = pca_data$group_info
+        color = input$group_info
       )
 
     plot  # Assign the plot to your reactiveValues
@@ -462,12 +461,12 @@ mod_PCA_server <- function(input, output, session, parent_session){
     tit = paste0('Total Explained Variance =', sum(pca_data$variance_explained[1:3]))
 
     #Generate colors
-    if(pca_data$group_info!= ""){
-      unique_countries <- unique(pca_data$pc_df_pop[[pca_data$group_info]])
+    if(input$group_info!= ""){
+      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
       palette <- brewer.pal(length(unique_countries),input$color_choice)
       my_palette <- colorRampPalette(palette)(length(unique_countries))
 
-      fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = as.factor(pca_data$pc_df_pop[[pca_data$group_info]]),
+      fig <- plot_ly(pca_data$pc_df_pop, x = ~PC1, y = ~PC2, z = ~PC3, color = as.factor(pca_data$pc_df_pop[[input$group_info]]),
                      colors = my_palette) %>%
         add_markers(size = 12, text = paste0("Sample:",pca_data$pc_df_pop$Row.names))
 
