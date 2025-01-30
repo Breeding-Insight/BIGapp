@@ -528,7 +528,10 @@ mod_gwas_server <- function(input, output, session, parent_session){
                                      traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))
 
         data3 <- set.threshold(data.loco.scan_2,method="M.eff",level=0.05)
-        manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
+        manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+
+          theme(text = element_text(size = 25),
+                strip.text = element_text(face = "bold"),
+                axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
       }
 
       #Save manhattan plots
