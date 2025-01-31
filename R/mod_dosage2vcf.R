@@ -257,9 +257,6 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
           updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
           madc2vcf(input$madc_file$datapath, output_name)
 
-          print(input$madc_file$datapath)
-          print(output_name)
-
           updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
           bgzip_compress(output_name, file)
         }
