@@ -84,6 +84,7 @@ mod_dosage2vcf_ui <- function(id){
 #'
 #' @import BIGr
 #' @importFrom shinyjs enable disable
+#' @importFrom Rsamtools bgzip
 #'
 #' @noRd
 mod_dosage2vcf_server <- function(input, output, session, parent_session){
@@ -205,101 +206,62 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
         updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writting vcf.")
 
-        # Check if the VCF file was created
-        if (file.exists(output_name)) {
-          cat("VCF file created successfully.\n")
-
-          # Compress the VCF file using gzip
-          gzip_file <- paste0(output_name, ".gz")
-          gz <- gzfile(gzip_file, "w")
-          writeLines(readLines(output_name), gz)
-          close(gz)
-
-          # Check if the gzip file was created
-          if (file.exists(gzip_file)) {
-            cat("Gzip file created successfully.\n")
-
-            # Move the compressed file to the path specified by 'file'
-            file.copy(gzip_file, file)
-
-            # Delete the temporary files
-            unlink(gzip_file)
-            unlink(output_name)
-
-            cat("Temporary files deleted successfully.\n")
-          } else {
-            stop("Error: Failed to create the gzip file.")
-          }
-        } else {
-          stop("Error: Failed to create the VCF file.")
-        }
-
-        #Status
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+        bgzip_compress(output_name, file)
 
       } else if(input$file_type == "DArT MADC file"){
-        if (is.null(input$madc_file$datapath) | input$hapDB_file$datapath == "" | input$botloci_file$datapath == "" | input$d2v_output_name == "") {
-          shinyalert(
-            title = "Missing input!",
-            text = "Upload MADC, HaplotypeDB and BOTLOCI files",
-            size = "s",
-            closeOnEsc = TRUE,
-            closeOnClickOutside = FALSE,
-            html = TRUE,
-            type = "error",
-            showConfirmButton = TRUE,
-            confirmButtonText = "OK",
-            confirmButtonCol = "#004192",
-            showCancelButton = FALSE,
-            animation = TRUE
-          )
-        }
-        req(input$madc_file, input$hapDB_file, input$botloci_file)
-
-        # Use a temporary file path without appending .vcf
-        temp_base <- tempfile()
-        # The output file should be temp_base.vcf
-        output_name <- paste0(temp_base, ".vcf")
-
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
-
-        get_OffTargets(madc = input$madc_file$datapath,
-                       botloci = input$botloci_file$datapath,
-                       hap_seq = input$hapDB_file$datapath,
-                       n.cores= input$cores,
-                       rm_multiallelic_SNP = TRUE,
-                       out_vcf = output_name,
-                       verbose = FALSE)
-
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
-
-        # Check if the VCF file was created
-        if (file.exists(output_name)) {
-          cat("VCF file created successfully.\n")
-
-          # Compress the VCF file using gzip
-          gzip_file <- paste0(output_name, ".gz")
-          gz <- gzfile(gzip_file, "w")
-          writeLines(readLines(output_name), gz)
-          close(gz)
-
-          # Check if the gzip file was created
-          if (file.exists(gzip_file)) {
-            cat("Gzip file created successfully.\n")
-
-            # Move the compressed file to the path specified by 'file'
-            file.copy(gzip_file, file)
-
-            # Delete the temporary files
-            unlink(gzip_file)
-            unlink(output_name)
-
-            cat("Temporary files deleted successfully.\n")
-          } else {
-            stop("Error: Failed to create the gzip file.")
+        if(input$snp_type == "target_off"){
+          if (is.null(input$madc_file$datapath) | input$hapDB_file$datapath == "" | input$botloci_file$datapath == "" | input$d2v_output_name == "") {
+            shinyalert(
+              title = "Missing input!",
+              text = "Upload MADC, HaplotypeDB and BOTLOCI files",
+              size = "s",
+              closeOnEsc = TRUE,
+              closeOnClickOutside = FALSE,
+              html = TRUE,
+              type = "error",
+              showConfirmButton = TRUE,
+              confirmButtonText = "OK",
+              confirmButtonCol = "#004192",
+              showCancelButton = FALSE,
+              animation = TRUE
+            )
           }
-        } else {
-          stop("Error: Failed to create the VCF file.")
+          req(input$madc_file, input$hapDB_file, input$botloci_file)
+
+          # Use a temporary file path without appending .vcf
+          temp_base <- tempfile()
+          # The output file should be temp_base.vcf
+          output_name <- paste0(temp_base, ".vcf")
+
+          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
+
+          get_OffTargets(madc = input$madc_file$datapath,
+                         botloci = input$botloci_file$datapath,
+                         hap_seq = input$hapDB_file$datapath,
+                         n.cores= input$cores,
+                         rm_multiallelic_SNP = TRUE,
+                         out_vcf = output_name,
+                         verbose = FALSE)
+
+          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
+
+          bgzip_compress(output_name, file)
+
+        } else if(input$snp_type == "target"){
+
+          # Use a temporary file path without appending .vcf
+          temp_base <- tempfile()
+          # The output file should be temp_base.vcf
+          output_name <- paste0(temp_base, ".vcf")
+
+          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
+          madc2vcf(input$madc_file$datapath, output_name)
+
+          print(input$madc_file$datapath)
+          print(output_name)
+
+          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
+          bgzip_compress(output_name, file)
         }
 
         #Status

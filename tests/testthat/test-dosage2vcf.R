@@ -2,6 +2,7 @@ context("Convert DArT files to VCF")
 
 # Imports
 #library(vcfR)
+#library Rsamtools
 
 test_that("Convert DArT files to VCF",{
   # Get the uploaded file paths
@@ -52,4 +53,33 @@ test_that("Convert DArT files to VCF",{
   } else {
     stop("Error: Failed to create the VCF file.")
   }
+
+  ## Convert MADC to VCF - target SNPs
+  input <- list()
+  input$madc_file$datapath = system.file("iris_DArT_MADC.csv", package = "BIGapp")
+  output_name = "example_targets.vcf"
+
+  madc2vcf(input$madc_file$datapath, output_name)
+
+  bgzip(output_name, dest = paste0(output_name, ".gz"))
+
+  ## Convert MADC to VCF - target + off-target SNPs
+  # input <- list()
+  # input$madc_file$datapath = paste0(path,"")
+  # input$botloci_file$datapath = paste0(path,"")
+  # input$hapDB_file$datapath = paste0(path,"")
+  # input$cores = 5
+  # output_name = "example_off_targets.vcf"
+  #
+  # get_OffTargets(madc = input$madc_file$datapath,
+  #                botloci = input$botloci_file$datapath,
+  #                hap_seq = input$hapDB_file$datapath,
+  #                n.cores= input$cores,
+  #                rm_multiallelic_SNP = TRUE,
+  #                out_vcf = output_name,
+  #                verbose = FALSE)
+
+  # bgzip(output_name, dest = paste0(output_name, ".gz"), overwrite = TRUE)
+  # file.remove(output_name)
+
 })

@@ -377,3 +377,32 @@ read_geno_file <- function(file_path, requires = c("GT")){
 }
 
 
+##' bgzip compress with checks
+##'
+##' @param output_name file to be compressed
+##' @param file location to be saved
+##' @importFrom Rsamtools bgzip
+##'
+bgzip_compress <- function(output_name, file){
+  # Check if the VCF file was created
+  if (file.exists(output_name)) {
+    # Compress the VCF file using gzip
+    bgzip_file <- paste0(output_name, ".gz")
+    bgzip(output_name, dest = bgzip_file)
+
+    # Check if the gzip file was created
+    if (file.exists(bgzip_file)) {
+      # Move the compressed file to the path specified by 'file'
+      file.copy(bgzip_file, file)
+
+      # Delete the temporary files
+      unlink(bgzip_file)
+      unlink(output_name)
+
+    } else {
+      stop("Error: Failed to create the bgzip file.")
+    }
+  } else {
+    stop("Error: Failed to create the VCF file.")
+  }
+}
