@@ -82,4 +82,13 @@ test_that("Convert DArT files to VCF",{
   # bgzip(output_name, dest = paste0(output_name, ".gz"), overwrite = TRUE)
   # file.remove(output_name)
 
+
+  # # Test merge MADC function
+  # madc1 <- ""
+  # madc2 <- ""
+  # madc3 <- ""
+  #
+  # merge_MADCs(madc1, madc2, madc3, out_madc = "merged_MADCs2.csv")
+  # merge_MADCs(madc_list = as.list(c(madc1, madc2, madc3)), out_madc = "merged_MADCs2_named.csv",run_ids = c("run1", "run2","run3"))
+
 })

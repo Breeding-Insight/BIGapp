@@ -34,10 +34,11 @@ mod_dosage2vcf_ui <- function(id){
                                   ns = ns,
                                   fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
                                   fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
                  ),
                  conditionalPanel(condition = "input.file_type == 'DArT MADC file'",
                                   ns = ns,
-                                  fileInput(ns("madc_file"), "Choose DArT MADC File*", accept = c(".csv")),
+                                  fileInput(ns("madc_file"), "Choose DArT MADC File*", accept = c(".csv"), multiple = TRUE),
                                   radioButtons(ns("snp_type"),
                                                label = "Select Marker Type",
                                                choices = list("Target"= "target", "Target + Off-Target" = "target_off"),
@@ -50,7 +51,6 @@ mod_dosage2vcf_ui <- function(id){
                                   )
                  ),
                  textInput(ns("d2v_output_name"), "Output File Name"),
-                 numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL),
                  useShinyjs(),
                  downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
                  div(style="display:inline-block; float:right",dropdownButton(
@@ -230,12 +230,26 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
           # Use a temporary file path without appending .vcf
           temp_base <- tempfile()
+
+          # merge MADC if multiple
+          if(length(input$madc_file$datapath) >1){
+            updateProgressBar(session = session, id = "dosage2vcf_pb", value = 15, title = "Merging MADC files")
+
+            merged_madc <- paste0(temp_base, ".csv")
+
+            run_ids <- sapply(strsplit(input$madc_file$name, "_"), "[[",1)
+            if(length(run_ids) == 0) run_ids <- NULL
+
+            merge_MADCs(madc_list = as.list(input$madc_file$datapath), out_madc = merged_madc,run_ids = run_ids)
+            read_madc <- merged_madc
+          } else read_madc <- input$madc_file$datapath
+
           # The output file should be temp_base.vcf
           output_name <- paste0(temp_base, ".vcf")
 
           updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
 
-          get_OffTargets(madc = input$madc_file$datapath,
+          get_OffTargets(madc = read_madc,
                          botloci = input$botloci_file$datapath,
                          hap_seq = input$hapDB_file$datapath,
                          n.cores= input$cores,
@@ -251,11 +265,26 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
           # Use a temporary file path without appending .vcf
           temp_base <- tempfile()
+
+          # merge MADC if multiple
+          if(length(input$madc_file$datapath) >1){
+            updateProgressBar(session = session, id = "dosage2vcf_pb", value = 15, title = "Merging MADC files")
+
+            merged_madc <- paste0(temp_base, ".csv")
+
+            run_ids <- sapply(strsplit(input$madc_file$name, "_"), "[[",1)
+            if(length(run_ids) == 0) run_ids <- NULL
+
+            merge_MADCs(madc_list = as.list(input$madc_file$datapath), out_madc = merged_madc,run_ids = run_ids)
+            read_madc <- merged_madc
+          } else read_madc <- input$madc_file$datapath
+
+
           # The output file should be temp_base.vcf
           output_name <- paste0(temp_base, ".vcf")
 
           updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
-          madc2vcf(input$madc_file$datapath, output_name)
+          madc2vcf(read_madc, output_name)
 
           updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
           bgzip_compress(output_name, file)
