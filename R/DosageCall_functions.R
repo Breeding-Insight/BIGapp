@@ -234,9 +234,12 @@ polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, 
     dosage_matrix <- as.matrix(dosage_matrix)
     genotype_strings <- precompute_genotype_strings(ploidy)
     
+    # Create missing GT
+    missing_gt_string <- paste(rep(".", ploidy), collapse = "/")
+    
     # Handle missing values separately
     genotype_matrix <- matrix(genotype_strings[dosage_matrix + 1], nrow = nrow(dosage_matrix), ncol = ncol(dosage_matrix))
-    genotype_matrix[is.na(dosage_matrix)] <- "./." # Handle missing values
+    genotype_matrix[is.na(dosage_matrix)] <- missing_gt_string # Handle missing values
     
     # Retain row and column names
     rownames(genotype_matrix) <- rownames(dosage_matrix)
