@@ -127,7 +127,6 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
 #' @import tidyr
 #' @import tibble
 #' @importFrom BIGr flip_dosage
-#' @importFrom reshape2 melt dcast
 #' @importFrom vcfR read.vcfR extract.gt
 #'
 polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, session) {
