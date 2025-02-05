@@ -248,46 +248,56 @@ polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, 
   
   # Convert the dosage matrix to genotypes
   gt_df <- convert_dosage2gt(gt, ploidy)
+  # Replace NA values in the data frame with "."
+  gt[is.na(gt)] <- "."
   
   #Combine info from the matrices to form the VCF information for each sample
   # Combine the matrices into a single matrix with elements separated by ":"
-  make_vcf_format <- function(..., separator = ":") {
-    matrices <- list(...)
-    n <- length(matrices)
-    
-    # Convert matrices to long form
-    long_forms <- lapply(matrices, function(mat) {
-      suppressMessages(reshape2::melt(mat, varnames = c("Row", "Col"), value.name = "Value"))
-    })
-    
-    # Concatenate the elements
-    combined_long <- long_forms[[1]]
-    combined_long$Combined <- combined_long$Value
-    
-    for (i in 2:n) {
-      combined_long$Combined <- paste(combined_long$Combined, long_forms[[i]]$Value, sep = separator)
+  make_vcf_format <- function(matrix1, matrix2, matrix3) {
+    # Check if input are matrices (optional, but good practice)
+    if (!is.matrix(matrix1) || !is.matrix(matrix2) || !is.matrix(matrix3)) {
+      stop("All inputs must be matrices.")
     }
     
-    # Convert back to wide form
-    combined_wide <- suppressMessages(reshape2::dcast(combined_long, Row ~ Col, value.var = "Combined"))
+    # Check if matrices have the same dimensions (optional, but recommended)
+    if (!all(dim(matrix1) == dim(matrix2), dim(matrix1) == dim(matrix3))) {
+      stop("Input matrices must have the same dimensions.")
+    }
     
-    # Restore row and column names
-    rownames(combined_wide) <- combined_wide$Row
-    combined_wide$Row <- NULL
-    colnames(combined_wide) <- colnames(matrices[[1]])
+    # Check if matrices have row and column names (optional, based on problem description)
+    if (is.null(rownames(matrix1)) || is.null(colnames(matrix1)) ||
+        is.null(rownames(matrix2)) || is.null(colnames(matrix2)) ||
+        is.null(rownames(matrix3)) || is.null(colnames(matrix3))) {
+      stop("Input matrices must have row and column names.")
+    }
     
-    return(as.matrix(combined_wide))
+    # 1. Convert matrices to vectors
+    vector1 <- as.vector(matrix1)
+    vector2 <- as.vector(matrix2)
+    vector3 <- as.vector(matrix3)
+    
+    # 2. Combine the vectors element-wise with ":" as separator
+    combined_vector <- paste(vector1, vector2, vector3, sep = ":")
+    
+    # 3. Reshape the combined vector back into a matrix with the original dimensions
+    combined_matrix <- matrix(combined_vector, nrow = nrow(matrix1), ncol = ncol(matrix1))
+    
+    # 4. Convert the combined matrix to a dataframe
+    combined_dataframe <- as.data.frame(combined_matrix)
+    
+    # 5. Set the row and column names for the dataframe
+    rownames(combined_dataframe) <- rownames(matrix1)
+    colnames(combined_dataframe) <- colnames(matrix1)
+    
+    return(combined_dataframe)
   }
-  
-  # Replace NA values in the data frame with "."
-  gt[is.na(gt)] <- "."
   
   # Combine the matrices
   # First get each item that exists in the VCF FORMAT
   #format_fields <- strsplit(og_vcf@gt[1, "FORMAT"], ":")[[1]]
   geno_df <- make_vcf_format(gt_df,
-                             gt,
-                             as.matrix(format_df)
+                             as.matrix(gt),
+                             format_df
                              )
   
   #Combine the dataframes together
