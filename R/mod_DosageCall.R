@@ -98,7 +98,8 @@ mod_DosageCall_ui <- function(id){
             ns = ns,
             textInput(ns("output_name"), "Output File Name"),
             numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
-            selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","Iterate_LD","IteratePopStruct","IteratePopStruct_LD","PipelineMapping2Parents"), selected = "IterateHWE"),
+            #selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","Iterate_LD","IteratePopStruct","IteratePopStruct_LD","PipelineMapping2Parents"), selected = "IterateHWE"),
+            selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","IteratePopStruct","PipelineMapping2Parents"), selected = "IterateHWE"),
             conditionalPanel(
               condition = "input.polyRAD_model == 'PipelineMapping2Parents'",
               ns = ns,
@@ -106,13 +107,28 @@ mod_DosageCall_ui <- function(id){
                 style = "padding-left: 20px;",  # Add padding/indentation
                 textInput(
                   inputId = ns("parent1"),
-                  label = "Enter parent1 ID:",
+                  label = "Donor Parent ID:",
                   value = NULL
                 ),
                 textInput(
                   inputId = ns("parent2"),
-                  label = "Enter parent2 ID:",
+                  label = "Recurrent Parent ID:",
                   value = NULL
+                ),
+                numericInput(
+                  inputId = ns("bx.gen"),
+                  label = "No. of Backcross Generations:",
+                  value = 0
+                ),
+                numericInput(
+                  inputId = ns("inter.gen"),
+                  label = "No. of Intermating Generations:",
+                  value = 0
+                ),
+                numericInput(
+                  inputId = ns("self.gen"),
+                  label = "No. of Selfing Geneerations:",
+                  value = 0
                 )
               )
             )
@@ -439,7 +455,14 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     } else {
       # PolyRAD
       updateProgressBar(session = session, id = "pb_madc", value = 35, title = "Performing Dosage Calling")
-      polyrad_items <- polyRAD_dosage_call(vcf = input$madc_file$datapath, ploidy = input$ploidy, model = input$polyRAD_model)
+      polyrad_items <- polyRAD_dosage_call(vcf = input$madc_file$datapath,
+                                           ploidy = input$ploidy,
+                                           model = input$polyRAD_model,
+                                           p1 = input$parent1,
+                                           p2 = input$parent2,
+                                           backcross.gen = input$bx.gen,
+                                           intercross.gen = input$inter.gen,
+                                           selfing.gen = input$self.gen)
       updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
       polyrad_items
     }

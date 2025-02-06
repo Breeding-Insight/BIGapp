@@ -8,7 +8,7 @@
 #' @importFrom vcfR read.vcfR is.biallelic write.vcf
 #' @importFrom R.utils gunzip
 #'
-polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcross.gen = 0, intercross.gen = 0, selfing.gen = 0,  session) {
+polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcross.gen = 0, intercross.gen = 0, selfing.gen = 0, contamRate = 0.001, session) {
   
   # Variables
   vcf_path <- vcf
@@ -40,7 +40,7 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
                                       min.ind.with.reads = 1,
                                       min.ind.with.minor.allele = 0,
                                       taxaPloidy = ploidy,
-                                      contamRate = 0.001,
+                                      contamRate = contamRate,
                                       phaseSNPs = FALSE
                                       
   )
