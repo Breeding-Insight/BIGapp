@@ -30,71 +30,115 @@ mod_DosageCall_ui <- function(id){
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
           "* Required",
-          fileInput(ns("vcf_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
-          fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
+          selectInput(ns("Rpackage"), "Dosage Calling Method", choices = c("Updog", "polyRAD"), selected = "Updog"),
+          fileInput(ns("madc_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
           conditionalPanel(
-            condition = "output.passportTablePopulated",
+            condition = "input.Rpackage == 'Updog'",
             ns = ns,
-            tags$div(
-              style = "padding-left: 20px;",  # Add padding/indentation
-              virtualSelectInput(
-                inputId = ns("cat_madc"),
-                label = "Select Category Subset:",
-                choices = NULL,
-                showValueAsTags = TRUE,
-                search = TRUE,
-                multiple = FALSE
-              ),
-              virtualSelectInput(
-                inputId = ns("item_madc"),
-                label = "Select Subset Values:",
-                choices = NULL,
-                showValueAsTags = TRUE,
-                search = TRUE,
-                multiple = TRUE
+            fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
+            conditionalPanel(
+              condition = "output.passportTablePopulated",
+              ns = ns,
+              tags$div(
+                style = "padding-left: 20px;",  # Add padding/indentation
+                virtualSelectInput(
+                  inputId = ns("cat_madc"),
+                  label = "Select Category Subset:",
+                  choices = NULL,
+                  showValueAsTags = TRUE,
+                  search = TRUE,
+                  multiple = FALSE
+                ),
+                virtualSelectInput(
+                  inputId = ns("item_madc"),
+                  label = "Select Subset Values:",
+                  choices = NULL,
+                  showValueAsTags = TRUE,
+                  search = TRUE,
+                  multiple = TRUE
+                )
+              )
+            ),
+            textInput(ns("output_name"), "Output File Name"),
+            numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
+            selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
+            conditionalPanel(
+              condition = "input.updog_model == 'f1' | input.updog_model == 'f1pp'",
+              ns = ns,
+              tags$div(
+                style = "padding-left: 20px;",  # Add padding/indentation
+                textInput(
+                  inputId = ns("parent1"),
+                  label = "Enter parent1 ID:",
+                  value = NULL
+                ),
+                textInput(
+                  inputId = ns("parent2"),
+                  label = "Enter parent2 ID:",
+                  value = NULL
+                )
+              )
+            ),
+            conditionalPanel(
+              condition = "input.updog_model == 's1' | input.updog_model == 's1pp'",
+              ns = ns,
+              tags$div(
+                style = "padding-left: 20px;",  # Add padding/indentation
+                textInput(
+                  inputId = ns("parent"),
+                  label = "Enter parent ID:",
+                  value = NULL
+                )
+              )
+            ),
+            numericInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
+          ),
+          conditionalPanel(
+            condition = "input.Rpackage == 'polyRAD'",
+            ns = ns,
+            textInput(ns("output_name"), "Output File Name"),
+            numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
+            #selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","Iterate_LD","IteratePopStruct","IteratePopStruct_LD","PipelineMapping2Parents"), selected = "IterateHWE"),
+            selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","IteratePopStruct","PipelineMapping2Parents"), selected = "IterateHWE"),
+            conditionalPanel(
+              condition = "input.polyRAD_model == 'PipelineMapping2Parents'",
+              ns = ns,
+              tags$div(
+                style = "padding-left: 20px;",  # Add padding/indentation
+                textInput(
+                  inputId = ns("parent1"),
+                  label = "Donor Parent ID:",
+                  value = NULL
+                ),
+                textInput(
+                  inputId = ns("parent2"),
+                  label = "Recurrent Parent ID:",
+                  value = NULL
+                ),
+                numericInput(
+                  inputId = ns("bx.gen"),
+                  label = "No. of Backcross Generations:",
+                  value = 0
+                ),
+                numericInput(
+                  inputId = ns("inter.gen"),
+                  label = "No. of Intermating Generations:",
+                  value = 0
+                ),
+                numericInput(
+                  inputId = ns("self.gen"),
+                  label = "No. of Selfing Geneerations:",
+                  value = 0
+                )
               )
             )
           ),
-          textInput(ns("output_name"), "Output File Name*"),
-          numericInput(ns("ploidy"), "Species Ploidy*", min = 1, value = NULL),
-          selectInput(ns("updog_model"), "Updog Model*", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
-          conditionalPanel(
-            condition = "input.updog_model == 'f1' | input.updog_model == 'f1pp'",
-            ns = ns,
-            tags$div(
-              style = "padding-left: 20px;",  # Add padding/indentation
-              textInput(
-                inputId = ns("parent1"),
-                label = "Enter parent1 ID*:",
-                value = NULL
-              ),
-              textInput(
-                inputId = ns("parent2"),
-                label = "Enter parent2 ID*:",
-                value = NULL
-              )
-            )
-          ),
-          conditionalPanel(
-            condition = "input.updog_model == 's1' | input.updog_model == 's1pp'",
-            ns = ns,
-            tags$div(
-              style = "padding-left: 20px;",  # Add padding/indentation
-              textInput(
-                inputId = ns("parent"),
-                label = "Enter parent ID*:",
-                value = NULL
-              )
-            )
-          ),
-          numericInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (future::availableCores() - 1), value = 1),
           actionButton(ns("run_analysis"), "Run Analysis"),
           uiOutput(ns('mybutton')),
 
           div(style="display:inline-block; float:right",dropdownButton(
             HTML("<b>Input files</b>"),
-            p(downloadButton(ns('download_vcf'),""), "VCF Example File"),
-            p(downloadButton(ns('download_madc'),""), "MADC Example File"), hr(),
+            p(downloadButton(ns('download_vcf'),""), "VCF Example File"),hr(),
             p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
             p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
@@ -205,123 +249,24 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
   })
 
-  ##This is for performing Updog Dosage Calling
+  disable("download_updog_vcf")
+
+  ##This is for performing Dosage Calling
+
   updog_out <- eventReactive(input$run_analysis,{
-
-    # Missing input with red border and alerts
-    toggleClass(id = "ploidy", class = "borderred", condition = (is.na(input$ploidy) | is.null(input$ploidy)))
-    toggleClass(id = "output_name", class = "borderred", condition = (is.na(input$output_name) | is.null(input$output_name) | input$output_name == ""))
-    toggleClass(id = "parent", class = "borderred", condition = ((input$updog_model == "s1" | input$updog_model == "s1pp") & (is.null(input$parent) | input$parent == "")))
-    toggleClass(id = "parent1", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent1) | input$parent1 == "")))
-    toggleClass(id = "parent2", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent2) | input$parent2 == "")))
-
-    if (is.null(input$vcf_file$datapath)) {
-      shinyalert(
-        title = "Missing input!",
-        text = "Upload VCF File",
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "error",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
-      )
-    }
-    req(input$vcf_file$datapath, input$output_name, input$ploidy)
-
-    # Get inputs
-    vcf_file <- input$vcf_file$datapath
-    output_name <- input$output_name
-    ploidy <- input$ploidy
-    cores <- input$cores
-
-    # Status
-    updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
-    #Import genotype info if genotype matrix format
-    if (grepl("\\.csv$", vcf_file)) {
-      # Call the get_counts function with the specified MADC file path and output file path
-      #Status
-      result_df <- get_counts(vcf_file, output_name)
-
-      #Call the get_matrices function
-      matrices <- get_matrices(result_df)
-
-      #Number of SNPs
-      snp_number <- (nrow(result_df) / 2)
-
-      #SNP counts value box
-      output$MADCsnps <- renderValueBox({
-        valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
-      })
-
-    } else {
-
-      #Initialize matrices list
-      matrices <- list()
-
-      #Import genotype information if in VCF format
-      vcf <- read.vcfR(vcf_file, verbose = FALSE)
-
-      #Get items in FORMAT column
-      info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-      chrom <- vcf@fix[,1]
-      pos <- vcf@fix[,2]
-
-      info_ids <- extract_info_ids(info[1])
-
-      if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
-        #Extract DP and RA and convert to matrices
-        matrices$size_matrix <- extract.gt(vcf, element = "DP")
-        if("RA" %in% info_ids){
-          matrices$ref_matrix <- extract.gt(vcf, element = "RA")
-        } else {
-          ad_matrix <- extract.gt(vcf, element = "AD")
-          matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
-          colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
-          rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
-        }
-
-        class(matrices$size_matrix) <- "numeric"
-        class(matrices$ref_matrix) <- "numeric"
-        rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
-
-        rm(vcf) #Remove VCF
-
-        snp_number <- (nrow(matrices$size_matrix))
-
-        #SNP counts value box
-        output$MADCsnps <- renderValueBox({
-          valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
-        })
-
-      }else{
-        ##Add user warning about read depth and allele read depth not found
-        stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
-      }
-    }
-
-    #Subset samples from the matrices if the user selected items in the passport file
-    if (!is.null(input$item_madc) && length(input$item_madc) > 0){
-
-      #First getting the samples that are both in the passport and the MADC/VCF file
-      #**Assuming the first column of the passport table is the sample IDs
-      shared_samples <- intersect(passport_table()[[1]], colnames(matrices$ref_matrix))
-
-      # Filter the passport dataframe
-      filtered_shared_samples <- passport_table() %>%
-        filter(passport_table()[[1]] %in% shared_samples,
-               passport_table()[[input$cat_madc]] %in% input$item_madc) %>%
-        pull(1)
-
-      #Give warning if no samples were subset
-      if (length(filtered_shared_samples) < 1) {
+    # Updog
+    if (input$Rpackage == "Updog") {
+      # Missing input with red border and alerts
+      toggleClass(id = "ploidy", class = "borderred", condition = (is.na(input$ploidy) | is.null(input$ploidy)))
+      toggleClass(id = "output_name", class = "borderred", condition = (is.na(input$output_name) | is.null(input$output_name) | input$output_name == ""))
+      toggleClass(id = "parent", class = "borderred", condition = ((input$updog_model == "s1" | input$updog_model == "s1pp") & (is.null(input$parent) | input$parent == "")))
+      toggleClass(id = "parent1", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent1) | input$parent1 == "")))
+      toggleClass(id = "parent2", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent2) | input$parent2 == "")))
+  
+      if (is.null(input$madc_file$datapath)) {
         shinyalert(
-          title = "Data Warning!",
-          text = "No samples remain after subsetting options",
+          title = "Missing input!",
+          text = "Upload VCF File",
           size = "s",
           closeOnEsc = TRUE,
           closeOnClickOutside = FALSE,
@@ -333,76 +278,193 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           showCancelButton = FALSE,
           animation = TRUE
         )
-
+      }
+      req(input$madc_file$datapath, input$output_name, input$ploidy)
+  
+      # Get inputs
+      madc_file <- input$madc_file$datapath
+      output_name <- input$output_name
+      ploidy <- input$ploidy
+      cores <- input$cores
+  
+      # Status
+      updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
+      #Import genotype info if genotype matrix format
+      if (grepl("\\.csv$", madc_file)) {
+        # Call the get_counts function with the specified MADC file path and output file path
+        #Status
+        result_df <- get_counts(madc_file, output_name)
+  
+        #Call the get_matrices function
+        matrices <- get_matrices(result_df)
+  
+        #Number of SNPs
+        snp_number <- (nrow(result_df) / 2)
+  
+        #SNP counts value box
+        output$MADCsnps <- renderValueBox({
+          valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+        })
+  
+      } else {
+  
+        #Initialize matrices list
+        matrices <- list()
+  
+        #Import genotype information if in VCF format
+        vcf <- read.vcfR(madc_file, verbose = FALSE)
+  
+        #Get items in FORMAT column
+        info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
+        chrom <- vcf@fix[,1]
+        pos <- vcf@fix[,2]
+  
+        info_ids <- extract_info_ids(info[1])
+  
+        if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
+          #Extract DP and RA and convert to matrices
+          matrices$size_matrix <- extract.gt(vcf, element = "DP")
+          if("RA" %in% info_ids){
+            matrices$ref_matrix <- extract.gt(vcf, element = "RA")
+          } else {
+            ad_matrix <- extract.gt(vcf, element = "AD")
+            matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
+            colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
+            rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
+          }
+  
+          class(matrices$size_matrix) <- "numeric"
+          class(matrices$ref_matrix) <- "numeric"
+          rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
+  
+          rm(vcf) #Remove VCF
+  
+          snp_number <- (nrow(matrices$size_matrix))
+  
+          #SNP counts value box
+          output$MADCsnps <- renderValueBox({
+            valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
+          })
+  
+        }else{
+          ##Add user warning about read depth and allele read depth not found
+          stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
+        }
+      }
+  
+      #Subset samples from the matrices if the user selected items in the passport file
+      if (!is.null(input$item_madc) && length(input$item_madc) > 0){
+  
+        #First getting the samples that are both in the passport and the MADC/VCF file
+        #**Assuming the first column of the passport table is the sample IDs
+        shared_samples <- intersect(passport_table()[[1]], colnames(matrices$ref_matrix))
+  
+        # Filter the passport dataframe
+        filtered_shared_samples <- passport_table() %>%
+          filter(passport_table()[[1]] %in% shared_samples,
+                 passport_table()[[input$cat_madc]] %in% input$item_madc) %>%
+          pull(1)
+  
+        #Give warning if no samples were subset
+        if (length(filtered_shared_samples) < 1) {
+          shinyalert(
+            title = "Data Warning!",
+            text = "No samples remain after subsetting options",
+            size = "s",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "error",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            animation = TRUE
+          )
+  
+          return()
+        }
+  
+        #Subset the matrices
+        matrices$ref_matrix <- matrices$ref_matrix[, filtered_shared_samples]
+        matrices$size_matrix <- matrices$size_matrix[, filtered_shared_samples]
+  
+      }
+  
+      # Select parents
+      if(input$updog_model == "s1" | input$updog_model == "s1pp"){
+        parents <- c(input$parent, NULL)
+      } else if(input$updog_model == "f1" | input$updog_model == "f1pp"){
+        parents <- c(input$parent1, input$parent2)
+      } else {
+        parents <- c(NULL, NULL)
+      }
+  
+      if (!all(parents %in% colnames(matrices$size_matrix))) {
+        shinyalert(
+          title = "Data Warning!",
+          text = "Parent(s) not found. Check the genotype input file parent(s) ID, make sure they match with the input parent(s) ID.",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+  
         return()
       }
-
-      #Subset the matrices
-      matrices$ref_matrix <- matrices$ref_matrix[, filtered_shared_samples]
-      matrices$size_matrix <- matrices$size_matrix[, filtered_shared_samples]
-
-    }
-
-    # Select parents
-    if(input$updog_model == "s1" | input$updog_model == "s1pp"){
-      parents <- c(input$parent, NULL)
-    } else if(input$updog_model == "f1" | input$updog_model == "f1pp"){
-      parents <- c(input$parent1, input$parent2)
+      
+      if (nrow(matrices$ref_matrix) == 0 || nrow(matrices$size_matrix) == 0) {
+        shinyalert(
+          title = "Data Warning!",
+          text = "All markers are missing read count information for reference and alternate alleles",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+        
+        return()
+      }
+  
+      #Run Updog
+      #I am also taking the ploidy from the max value in the
+      updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
+      mout <- multidog(refmat = matrices$ref_matrix,
+                       sizemat = matrices$size_matrix,
+                       ploidy = as.numeric(ploidy),
+                       p1_id = parents[1],
+                       p2_id = parents[2],
+                       model = input$updog_model,
+                       nc = cores)
+      #Status
+      updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
+      mout
     } else {
-      parents <- c(NULL, NULL)
+      # PolyRAD
+      updateProgressBar(session = session, id = "pb_madc", value = 35, title = "Performing Dosage Calling")
+      polyrad_items <- polyRAD_dosage_call(vcf = input$madc_file$datapath,
+                                           ploidy = input$ploidy,
+                                           model = input$polyRAD_model,
+                                           p1 = input$parent1,
+                                           p2 = input$parent2,
+                                           backcross.gen = input$bx.gen,
+                                           intercross.gen = input$inter.gen,
+                                           selfing.gen = input$self.gen)
+      updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
+      polyrad_items
     }
-
-    if (!all(parents %in% colnames(matrices$size_matrix))) {
-      shinyalert(
-        title = "Data Warning!",
-        text = "Parent(s) not found. Check the genotype input file parent(s) ID, make sure they match with the input parent(s) ID.",
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "error",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
-      )
-
-      return()
-    }
-
-    if (nrow(matrices$ref_matrix) == 0 || nrow(matrices$size_matrix) == 0) {
-      shinyalert(
-        title = "Data Warning!",
-        text = "All markers are missing read count information for reference and alternate alleles",
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "error",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
-      )
-
-      return()
-    }
-
-    #Run Updog
-    #I am also taking the ploidy from the max value in the
-    updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
-    mout <- multidog(refmat = matrices$ref_matrix,
-                     sizemat = matrices$size_matrix,
-                     ploidy = as.numeric(ploidy),
-                     p1_id = parents[1],
-                     p2_id = parents[2],
-                     model = input$updog_model,
-                     nc = cores)
-    #Status
-    updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
-    mout
   })
 
   # Only make available the download button when analysis is finished
@@ -414,21 +476,40 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   output$download_updog_vcf <- downloadHandler(
     filename = function() {
       output_name <- gsub("\\.vcf$", "", input$output_name)
-      paste0(output_name, ".vcf.gz")
+      if (input$Rpackage == "Updog") {
+        paste0(output_name, ".vcf.gz")
+      }else {
+        paste0(output_name, ".vcf")
+      }
+      
     },
     content = function(file) {
 
       #Save Updog output as VCF file
       temp <- tempfile()
-      updog2vcf(
-        multidog.object = updog_out(),
-        output.file = temp,
-        updog_version = packageVersion("updog"),
-        compress = TRUE
-      )
-
-      # Move the file to the path specified by 'file'
-      file.copy(paste0(temp, ".vcf.gz"), file)
+      if (input$Rpackage == "Updog") {
+        updog2vcf(
+          multidog.object = updog_out(),
+          output.file = temp,
+          updog_version = packageVersion("updog"),
+          compress = TRUE
+        )
+        
+        # Move the file to the path specified by 'file'
+        file.copy(paste0(temp, ".vcf.gz"), file)
+        
+      } else {
+        polyRAD2vcf(updog_out()$Genos,
+                    model = input$polyRAD_model,
+                    vcf_path = input$madc_file$datapath,
+                    hindhe.obj = updog_out()$RADHindHe,
+                    ploidy = input$ploidy,
+                    output.file = temp
+                    )
+        
+        # Move the file to the path specified by 'file'
+        file.copy(paste0(temp, ".vcf"), file)
+      }
 
       # Delete the temporary file
       unlink(temp)
@@ -481,6 +562,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       paste("BIGapp:", packageVersion("BIGapp")), "\n",
       paste("BIGr:", packageVersion("BIGr")), "\n",
       paste("Updog:", packageVersion("updog")), "\n",
+      paste("PolyRAD:", packageVersion("polyRAD")), "\n",
       paste("dplyr:", packageVersion("dplyr")), "\n",
       sep = ""
     )
