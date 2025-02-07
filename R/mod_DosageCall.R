@@ -536,7 +536,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   ##Summary Info
   dosage_summary_info <- function() {
     #Handle possible NULL values for inputs
-    genotype_file_name <- if (!is.null(input$madc_file$name)) input$madc_file$name else "No file selected"
+    genotype_file_name <- if (!is.null(input$vcf_file$name)) input$vcf_file$name else "No file selected"
     report_file_name <- if (!is.null(input$madc_passport$name)) input$madc_passport$name else "No file selected"
     selected_ploidy <- if (!is.null(input$ploidy)) as.character(input$ploidy) else "Not selected"
 
