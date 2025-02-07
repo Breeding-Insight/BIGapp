@@ -67,6 +67,6 @@ Imports:
 Remotes:
     github::jendelman/GWASpoly,
     github::Breeding-Insight/BIGr,
-    bioc::release/Rsamtools
+    bioc::Rsamtools
 Suggests:
     testthat
