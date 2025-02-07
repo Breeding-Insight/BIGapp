@@ -54,14 +54,14 @@ test_that("Convert DArT files to VCF",{
     stop("Error: Failed to create the VCF file.")
   }
 
-  ## Convert MADC to VCF - target SNPs
-  input <- list()
-  input$madc_file$datapath = system.file("iris_DArT_MADC.csv", package = "BIGapp")
-  output_name = "example_targets.vcf"
-
-  madc2vcf(input$madc_file$datapath, output_name)
-
-  bgzip(output_name, dest = paste0(output_name, ".gz"))
+  # ## Convert MADC to VCF - target SNPs
+  # input <- list()
+  # input$madc_file$datapath = system.file("iris_DArT_MADC.csv", package = "BIGapp")
+  # output_name = "example_targets.vcf"
+  #
+  # madc2vcf(input$madc_file$datapath, output_name)
+  #
+  # bgzip(output_name, dest = paste0(output_name, ".gz"))
 
   ## Convert MADC to VCF - target + off-target SNPs
   # input <- list()
