@@ -30,7 +30,7 @@ mod_DosageCall_ui <- function(id){
         box(
           title = "Inputs", status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
           "* Required",
-          fileInput(ns("madc_file"), "Choose MADC or VCF File*", accept = c(".csv",".vcf",".gz")),
+          fileInput(ns("vcf_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
           fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
           conditionalPanel(
             condition = "output.passportTablePopulated",
@@ -215,7 +215,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     toggleClass(id = "parent1", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent1) | input$parent1 == "")))
     toggleClass(id = "parent2", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent2) | input$parent2 == "")))
 
-    if (is.null(input$madc_file$datapath)) {
+    if (is.null(input$vcf_file$datapath)) {
       shinyalert(
         title = "Missing input!",
         text = "Upload VCF File",
@@ -231,10 +231,10 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         animation = TRUE
       )
     }
-    req(input$madc_file$datapath, input$output_name, input$ploidy)
+    req(input$vcf_file$datapath, input$output_name, input$ploidy)
 
     # Get inputs
-    madc_file <- input$madc_file$datapath
+    vcf_file <- input$vcf_file$datapath
     output_name <- input$output_name
     ploidy <- input$ploidy
     cores <- input$cores
@@ -242,10 +242,10 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     # Status
     updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
     #Import genotype info if genotype matrix format
-    if (grepl("\\.csv$", madc_file)) {
+    if (grepl("\\.csv$", vcf_file)) {
       # Call the get_counts function with the specified MADC file path and output file path
       #Status
-      result_df <- get_counts(madc_file, output_name)
+      result_df <- get_counts(vcf_file, output_name)
 
       #Call the get_matrices function
       matrices <- get_matrices(result_df)
@@ -255,7 +255,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
 
       #SNP counts value box
       output$MADCsnps <- renderValueBox({
-        valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
+        valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
       })
 
     } else {
@@ -264,7 +264,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       matrices <- list()
 
       #Import genotype information if in VCF format
-      vcf <- read.vcfR(madc_file, verbose = FALSE)
+      vcf <- read.vcfR(vcf_file, verbose = FALSE)
 
       #Get items in FORMAT column
       info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
@@ -455,7 +455,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   ##Summary Info
   dosage_summary_info <- function() {
     #Handle possible NULL values for inputs
-    genotype_file_name <- if (!is.null(input$madc_file$name)) input$madc_file$name else "No file selected"
+    genotype_file_name <- if (!is.null(input$vcf_file$name)) input$vcf_file$name else "No file selected"
     report_file_name <- if (!is.null(input$madc_passport$name)) input$madc_passport$name else "No file selected"
     selected_ploidy <- if (!is.null(input$ploidy)) as.character(input$ploidy) else "Not selected"
 
