@@ -67,6 +67,7 @@ Imports:
     markdown
 Remotes:
     github::jendelman/GWASpoly,
-    github::Breeding-Insight/BIGr
+    github::Breeding-Insight/BIGr,
+    bioc::release/Rsamtools
 Suggests:
     testthat

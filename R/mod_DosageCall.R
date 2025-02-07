@@ -6,7 +6,6 @@
 #'
 #' @noRd
 #'
-#' @importFrom shinyjs enable disable useShinyjs
 #' @importFrom shiny NS tagList
 #' @importFrom future availableCores
 #' @importFrom bs4Dash renderValueBox
@@ -16,6 +15,7 @@
 mod_DosageCall_ui <- function(id){
   ns <- NS(id)
   tagList(
+    useShinyjs(),
     fluidPage(
       disconnectMessage(
         text = "An unexpected error occurred, please reload the application and check the input file(s).",
@@ -134,8 +134,7 @@ mod_DosageCall_ui <- function(id){
             )
           ),
           actionButton(ns("run_analysis"), "Run Analysis"),
-          useShinyjs(),
-          downloadButton(ns('download_updog_vcf'), "Download VCF File", class = "butt"),
+          uiOutput(ns('mybutton')),
 
           div(style="display:inline-block; float:right",dropdownButton(
             HTML("<b>Input files</b>"),
@@ -167,7 +166,6 @@ mod_DosageCall_ui <- function(id){
 #' @import vcfR
 #' @import updog
 #' @importFrom BIGr updog2vcf
-#' @importFrom shinyjs enable disable
 #' @import dplyr
 #'
 #' @noRd
@@ -254,6 +252,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   disable("download_updog_vcf")
 
   ##This is for performing Dosage Calling
+
   updog_out <- eventReactive(input$run_analysis,{
     # Updog
     if (input$Rpackage == "Updog") {
@@ -469,14 +468,9 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   })
 
   # Only make available the download button when analysis is finished
-  observe({
-    if (!is.null(updog_out())) {
-      Sys.sleep(1)
-      # enable the download button
-      enable("download_updog_vcf")
-    } else {
-      disable("download_updog_vcf")
-    }
+  output$mybutton <- renderUI({
+    if(isTruthy(updog_out()))
+      downloadButton(ns("download_updog_vcf"), "Download VCF file", class = "butt")
   })
 
   output$download_updog_vcf <- downloadHandler(
@@ -490,6 +484,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       
     },
     content = function(file) {
+
       #Save Updog output as VCF file
       temp <- tempfile()
       if (input$Rpackage == "Updog") {
@@ -537,14 +532,14 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   ##Summary Info
   dosage_summary_info <- function() {
     #Handle possible NULL values for inputs
     genotype_file_name <- if (!is.null(input$madc_file$name)) input$madc_file$name else "No file selected"
     report_file_name <- if (!is.null(input$madc_passport$name)) input$madc_passport$name else "No file selected"
     selected_ploidy <- if (!is.null(input$ploidy)) as.character(input$ploidy) else "Not selected"
-    
+
     #Print the summary information
     cat(
       "BIGapp Dosage Calling Summary\n",
@@ -572,7 +567,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$dosage_summary, {
     showModal(modalDialog(
@@ -588,8 +583,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_dosage_info <- downloadHandler(
     filename = function() {
