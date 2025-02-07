@@ -7,11 +7,11 @@
 CalcBIC(y, PC, K)
 }
 \arguments{
-\item{y}{describe documentation}
+\item{y}{length N vector}
 
-\item{PC}{describe documentation}
+\item{PC}{matrix of principal components with N rows and P columns}
 
-\item{K}{describe documentation}
+\item{K}{kinship matrix with N rows and N columns}
 }
 \description{
 function for BIC calculation
