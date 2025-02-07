@@ -20,6 +20,8 @@ get_relationship_mat(
 \item{type}{character defining which type}
 
 \item{ploidy}{numeric indicating species ploidy}
+
+\item{pheno}{ToDo}
 }
 \description{
 Compute relationship matrix

@@ -17,7 +17,23 @@ GBLUP_genomic_prediction(
 )
 }
 \arguments{
-\item{fixed_cat}{categorical fixed effect}
+\item{pheno_dat}{ToDo}
+
+\item{Geno.mat}{ToDo}
+
+\item{cycles}{ToDo}
+
+\item{folds}{ToDo}
+
+\item{traits}{ToDo}
+
+\item{cores}{ToDo}
+
+\item{fixed_cov}{ToDo}
+
+\item{fixed_cat}{ToDo}
+
+\item{session}{ToDo}
 }
 \description{
 Performes GBLUP
