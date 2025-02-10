@@ -59,8 +59,8 @@ mod_DosageCall_ui <- function(id){
                 )
               )
             ),
-            textInput(ns("output_name"), "Output File Name"),
-            numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
+            textInput(ns("output_name"), "Output File Name*"),
+            numericInput(ns("ploidy"), "Species Ploidy*", min = 1, value = NULL),
             selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
             conditionalPanel(
               condition = "input.updog_model == 'f1' | input.updog_model == 'f1pp'",
@@ -91,13 +91,13 @@ mod_DosageCall_ui <- function(id){
                 )
               )
             ),
-            numericInput(ns("cores"), "Number of CPU Cores", min = 1, max = (future::availableCores() - 1), value = 1),
+            numericInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (future::availableCores() - 1), value = 1),
           ),
           conditionalPanel(
             condition = "input.Rpackage == 'polyRAD'",
             ns = ns,
-            textInput(ns("output_name"), "Output File Name"),
-            numericInput(ns("ploidy"), "Species Ploidy", min = 1, value = NULL),
+            textInput(ns("output_name"), "Output File Name*"),
+            numericInput(ns("ploidy"), "Species Ploidy*", min = 1, value = NULL),
             #selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","Iterate_LD","IteratePopStruct","IteratePopStruct_LD","PipelineMapping2Parents"), selected = "IterateHWE"),
             selectInput(ns("polyRAD_model"), "polyRAD Model", choices = c("IterateHWE","IteratePopStruct","PipelineMapping2Parents"), selected = "IterateHWE"),
             conditionalPanel(
@@ -262,7 +262,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       toggleClass(id = "parent", class = "borderred", condition = ((input$updog_model == "s1" | input$updog_model == "s1pp") & (is.null(input$parent) | input$parent == "")))
       toggleClass(id = "parent1", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent1) | input$parent1 == "")))
       toggleClass(id = "parent2", class = "borderred", condition = ((input$updog_model == "f1" | input$updog_model == "f1pp") & (is.null(input$parent2) | input$parent2 == "")))
-  
+
       if (is.null(input$madc_file$datapath)) {
         shinyalert(
           title = "Missing input!",
@@ -280,13 +280,13 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         )
       }
       req(input$madc_file$datapath, input$output_name, input$ploidy)
-  
+
       # Get inputs
       madc_file <- input$madc_file$datapath
       output_name <- input$output_name
       ploidy <- input$ploidy
       cores <- input$cores
-  
+
       # Status
       updateProgressBar(session = session, id = "pb_madc", value = 0, title = "Formatting Input Files")
       #Import genotype info if genotype matrix format
@@ -294,33 +294,33 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         # Call the get_counts function with the specified MADC file path and output file path
         #Status
         result_df <- get_counts(madc_file, output_name)
-  
+
         #Call the get_matrices function
         matrices <- get_matrices(result_df)
-  
+
         #Number of SNPs
         snp_number <- (nrow(result_df) / 2)
-  
+
         #SNP counts value box
         output$MADCsnps <- renderValueBox({
           valueBox(snp_number, "Markers in MADC File", icon = icon("dna"), color = "info")
         })
-  
+
       } else {
-  
+
         #Initialize matrices list
         matrices <- list()
-  
+
         #Import genotype information if in VCF format
         vcf <- read.vcfR(madc_file, verbose = FALSE)
-  
+
         #Get items in FORMAT column
         info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
         chrom <- vcf@fix[,1]
         pos <- vcf@fix[,2]
-  
+
         info_ids <- extract_info_ids(info[1])
-  
+
         if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
           #Extract DP and RA and convert to matrices
           matrices$size_matrix <- extract.gt(vcf, element = "DP")
@@ -332,39 +332,39 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
             colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
             rownames(matrices$ref_matrix) <- rownames(matrices$size_matrix)
           }
-  
+
           class(matrices$size_matrix) <- "numeric"
           class(matrices$ref_matrix) <- "numeric"
           rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
-  
+
           rm(vcf) #Remove VCF
-  
+
           snp_number <- (nrow(matrices$size_matrix))
-  
+
           #SNP counts value box
           output$MADCsnps <- renderValueBox({
             valueBox(snp_number, "Markers in VCF File", icon = icon("dna"), color = "info")
           })
-  
+
         }else{
           ##Add user warning about read depth and allele read depth not found
           stop(safeError("Error: DP and RA/AD FORMAT flags not found in VCF file"))
         }
       }
-  
+
       #Subset samples from the matrices if the user selected items in the passport file
       if (!is.null(input$item_madc) && length(input$item_madc) > 0){
-  
+
         #First getting the samples that are both in the passport and the MADC/VCF file
         #**Assuming the first column of the passport table is the sample IDs
         shared_samples <- intersect(passport_table()[[1]], colnames(matrices$ref_matrix))
-  
+
         # Filter the passport dataframe
         filtered_shared_samples <- passport_table() %>%
           filter(passport_table()[[1]] %in% shared_samples,
                  passport_table()[[input$cat_madc]] %in% input$item_madc) %>%
           pull(1)
-  
+
         #Give warning if no samples were subset
         if (length(filtered_shared_samples) < 1) {
           shinyalert(
@@ -381,16 +381,16 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
             showCancelButton = FALSE,
             animation = TRUE
           )
-  
+
           return()
         }
-  
+
         #Subset the matrices
         matrices$ref_matrix <- matrices$ref_matrix[, filtered_shared_samples]
         matrices$size_matrix <- matrices$size_matrix[, filtered_shared_samples]
-  
+
       }
-  
+
       # Select parents
       if(input$updog_model == "s1" | input$updog_model == "s1pp"){
         parents <- c(input$parent, NULL)
@@ -399,7 +399,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       } else {
         parents <- c(NULL, NULL)
       }
-  
+
       if (!all(parents %in% colnames(matrices$size_matrix))) {
         shinyalert(
           title = "Data Warning!",
@@ -415,10 +415,10 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           showCancelButton = FALSE,
           animation = TRUE
         )
-  
+
         return()
       }
-      
+
       if (nrow(matrices$ref_matrix) == 0 || nrow(matrices$size_matrix) == 0) {
         shinyalert(
           title = "Data Warning!",
@@ -434,10 +434,10 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           showCancelButton = FALSE,
           animation = TRUE
         )
-        
+
         return()
       }
-  
+
       #Run Updog
       #I am also taking the ploidy from the max value in the
       updateProgressBar(session = session, id = "pb_madc", value = 40, title = "Dosage Calling in Progress")
@@ -481,7 +481,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       }else {
         paste0(output_name, ".vcf")
       }
-      
+
     },
     content = function(file) {
 
@@ -494,10 +494,10 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           updog_version = packageVersion("updog"),
           compress = TRUE
         )
-        
+
         # Move the file to the path specified by 'file'
         file.copy(paste0(temp, ".vcf.gz"), file)
-        
+
       } else {
         polyRAD2vcf(updog_out()$Genos,
                     model = input$polyRAD_model,
@@ -506,7 +506,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                     ploidy = input$ploidy,
                     output.file = temp
                     )
-        
+
         # Move the file to the path specified by 'file'
         file.copy(paste0(temp, ".vcf"), file)
       }
