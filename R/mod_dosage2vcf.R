@@ -58,7 +58,7 @@ mod_dosage2vcf_ui <- function(id){
                    p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
                    p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
-                   p(HTML("<b>Graphics description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
+                   p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    actionButton(ns("d2vcf_summary"), "Summary"),
                    circle = FALSE,
