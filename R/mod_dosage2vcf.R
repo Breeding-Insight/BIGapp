@@ -27,6 +27,7 @@ mod_dosage2vcf_ui <- function(id){
         column(width = 5,
                box(
                  title = "Inputs", width=12, status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
+                 "* Required",
                  selectInput(ns('file_type'),
                              label = 'Select File Format',
                              choices = c("DArT Dosage Reports","DArT MADC file"), selected = "DArT MADC file"),
