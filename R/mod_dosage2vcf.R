@@ -57,7 +57,8 @@ mod_dosage2vcf_ui <- function(id){
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
                    p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
-                   p(downloadButton(ns('download_counts'), ""), "Counts Example File"), hr(),
+                   p(downloadButton(ns('download_counts'), ""), "Counts Example File"), 
+                   p(downloadButton(ns('download_madc'), ""), "MADC Example File"),hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>How to cite:</b>"), actionButton(ns("goCite"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
@@ -152,6 +153,15 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     },
     content = function(file) {
       ex <- system.file("iris_DArT_Counts.csv", package = "BIGapp")
+      file.copy(ex, file)
+    })
+  
+  output$download_madc <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_MADC_Example_file.csv")
+    },
+    content = function(file) {
+      ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
       file.copy(ex, file)
     })
 
