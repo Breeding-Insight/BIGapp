@@ -48,7 +48,7 @@ mod_dosage2vcf_ui <- function(id){
                                                    ns = ns,
                                                    fileInput(ns("hapDB_file"), "Upload haplotype database file (fasta)*"),
                                                    fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)*"),
-                                                   numericInput(ns("cores"), "Number of CPU cores*", value =1)
+                                                   sliderInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (availableCores() - 1), value = 1, step = 1)
                                   )
                  ),
                  textInput(ns("d2v_output_name"), "Output File Name"),

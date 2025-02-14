@@ -91,7 +91,7 @@ mod_DosageCall_ui <- function(id){
                 )
               )
             ),
-            numericInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (future::availableCores() - 1), value = 1),
+            sliderInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (availableCores() - 1), value = 1, step = 1),
           ),
           conditionalPanel(
             condition = "input.Rpackage == 'polyRAD'",
