@@ -46,11 +46,11 @@ File Structure:
 
 Dosage Interpretation (Example: Tetraploid Species - 4x)
 
-* 0 → Homozygous for the reference allele (AAAA)
-*	1 → Heterozygous with three reference alleles and one alternative (AAAB)
+* 4 → Homozygous for the reference allele (AAAA)
+*	3 → Heterozygous with three reference alleles and one alternative (AAAB)
 *	2 → Heterozygous with two reference and two alternative alleles (AABB)
-*	3 → Heterozygous with one reference allele and three alternative (ABBB)
-*	4 → Homozygous for the alternative allele (BBBB)
+*	1 → Heterozygous with one reference allele and three alternative (ABBB)
+*	0 → Homozygous for the alternative allele (BBBB)
 
 This codification is commonly used as input for various software, including AGHmatrix, rrBLUP, and mappoly. However, some programs require not only dosage information but also read counts (see description below).
 
