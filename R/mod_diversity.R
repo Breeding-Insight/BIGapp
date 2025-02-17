@@ -48,7 +48,7 @@ mod_diversity_ui <- function(id){
                                                                                          "MAF Histogram",
                                                                                          "OHet Histogram",
                                                                                          "Marker Plot")),
-                   selectInput(inputId = ns('div_image_type'), label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                   selectInput(inputId = ns('div_image_type'), label = 'File Type', choices = c("jpeg","tiff","png","svg"), selected = "jpeg"),
                    sliderInput(inputId = ns('div_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('div_image_width'), label = 'Width', value = 8, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('div_image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
@@ -437,6 +437,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
           paste("genomic-diversity-", Sys.Date(), ".jpg", sep="")
         } else if (input$div_image_type == "png") {
           paste("genomic-diversity-", Sys.Date(), ".png", sep="")
+        } else if (input$div_image_type == "svg") {
+          paste("genomic-diversity-", Sys.Date(), ".svg", sep="")
         } else {
           paste("genomic-diversity-", Sys.Date(), ".tiff", sep="")
         }
@@ -448,6 +450,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
           jpeg(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
         } else if (input$div_image_type == "png") {
           png(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
+        } else if (input$div_image_type == "svg") {
+          svg(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height))
         } else {
           tiff(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
         }

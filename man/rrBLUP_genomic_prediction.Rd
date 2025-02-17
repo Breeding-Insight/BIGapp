@@ -27,11 +27,13 @@ rrBLUP_genomic_prediction(
 
 \item{fixed_cat}{categorial fixed effects}
 
+\item{folds}{ToDo}
+
 \item{iters}{ToDo}
 
 \item{cores}{ToDo}
 
-\item{fold}{ToDo}
+\item{session}{ToDo}
 }
 \description{
 Function to perform genomic prediction

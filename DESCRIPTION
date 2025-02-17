@@ -1,6 +1,6 @@
 Package: BIGapp
 Title: Breeding Insight Genomics Shiny Application
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: 
     c(
               person(c("Alexander", "M."), "Sandercock",
@@ -27,6 +27,7 @@ License: Apache License (== 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Depends: R (>= 4.4.0)
 biocViews:
 Imports: 
     vcfR (>= 1.15.0),
@@ -35,6 +36,8 @@ Imports:
     DT,
     dplyr,
     bs4Dash,
+    polyRAD,
+    R.utils,
     golem,
     ggplot2,
     purrr,
@@ -62,10 +65,11 @@ Imports:
     config,
     Matrix,
     matrixcalc,
-    markdown
+    markdown,
+    Rsamtools
 Remotes:
     github::jendelman/GWASpoly,
     github::Breeding-Insight/BIGr,
-    bioc::release/Rsamtools
+    bioc::Rsamtools
 Suggests:
     testthat
