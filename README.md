@@ -58,7 +58,8 @@ Try out a live demo of BIGapp here: [BIGapp Demo](https://big-demo.shinyapps.io/
 3. **Install and Run:**
     ```R
     if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+        install.packages("BiocManager")
+        install.packages("remotes")
     
     BiocManager::install("Breeding-Insight/BIGapp", dependencies = TRUE)
     BIGapp::run_app()
