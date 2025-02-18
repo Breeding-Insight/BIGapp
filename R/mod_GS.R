@@ -112,7 +112,7 @@ mod_GS_ui <- function(id){
                      downloadButton(ns("download_pred_results_file"), "Save Files")),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
              )
@@ -144,38 +144,38 @@ mod_GS_server <- function(input, output, session, parent_session){
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "Genomic_Prediction_tabset",
                       selected = "Genomic_Prediction_par")
     # expand specific box
     updateBox(id = "Genomic_Prediction_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goRes, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "Genomic_Prediction_tabset",
                       selected = "Genomic_Prediction_results")
     # expand specific box
     updateBox(id = "Genomic_Prediction_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goCite, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "Genomic_Prediction_tabset",
                       selected = "Genomic_Prediction_cite")
     # expand specific box
     updateBox(id = "Genomic_Prediction_box", action = "toggle", session = parent_session)
   })
-  
+
   #Default model choices
   advanced_options_pred <- reactiveValues(
     pred_model = "GBLUP",
@@ -183,12 +183,12 @@ mod_GS_server <- function(input, output, session, parent_session){
     pred_est_file = NULL,
     ped_file = NULL
   )
-  
+
   pred_outputs <- reactiveValues(corr_output = NULL,
                                  comb_output = NULL,
                                  all_GEBVs = NULL,
                                  avg_GEBVs = NULL)
-  
+
   #List the ped file name if previously uploaded
   output$uploaded_file_name <- renderText({
     if (!is.null(advanced_options_pred$ped_file)) {
@@ -197,7 +197,7 @@ mod_GS_server <- function(input, output, session, parent_session){
       ""  # Return an empty string if no file has been uploaded
     }
   })
-  
+
   output$uploaded_file_name_pred <- renderText({
     if (!is.null(advanced_options_pred$pred_est_file)) {
       paste("Previously uploaded file:", advanced_options_pred$pred_est_file$name)
@@ -205,7 +205,7 @@ mod_GS_server <- function(input, output, session, parent_session){
       ""  # Return an empty string if no file has been uploaded
     }
   })
-  
+
   #UI popup window for input
   observeEvent(input$advanced_options_pred, {
     showModal(modalDialog(
@@ -254,9 +254,9 @@ mod_GS_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
-  
+
+
+
   #Close popup window when user "saves options"
   observeEvent(input$save_advanced_options_pred, {
     advanced_options_pred$pred_model <- input$pred_model
@@ -264,10 +264,10 @@ mod_GS_server <- function(input, output, session, parent_session){
     advanced_options_pred$pred_est_file <- input$pred_est_file
     advanced_options_pred$ped_file <- input$ped_file
     # Save other inputs as needed
-    
+
     removeModal()  # Close the modal after saving
   })
-  
+
   ###Genomic Prediction
   #This tab involved 3 observeEvents
   #1) to get the traits listed in the phenotype file
@@ -283,7 +283,7 @@ mod_GS_server <- function(input, output, session, parent_session){
     updateVirtualSelect("pred_fixed_info2", choices = trait_var2, session = session)
     updateVirtualSelect("pred_trait_info2", choices = trait_var2, session = session)
   })
-  
+
   observeEvent(input$pred_fixed_info2, {
     updateVirtualSelect("pred_fixed_cat2", choices = input$pred_fixed_info2, session = session)
   })
@@ -592,22 +592,22 @@ mod_GS_server <- function(input, output, session, parent_session){
         }
       }
     )
-    
+
     #Status
     updateProgressBar(session = session, id = "pb_gp", value = 40, title = "Generating Matrices")
-    
+
     #Create relationship matrix depending on the input VCF files
     if (is.null(advanced_options_pred$pred_est_file)) {
       #Subset phenotype file by common IDs
       pheno2 <- pheno2[common_ids, ]
-      
+
       #Matrix
       Kin_mat <- A.mat(t(train_geno_adj_init), max.missing=NULL,impute.method="mean",return.imputed=FALSE)
-      
+
     } else{
       #Subset phenotype file and training file by common IDs
       pheno2 <- pheno2[common_ids, ]
-      
+
       #Match training and testing genotype file SNPs
       common_markers <- intersect(rownames(train_geno_adj_init), rownames(est_geno_adj_init))
       #first remove samples from training genotype matrix that are not in the phenotype file
@@ -615,10 +615,10 @@ mod_GS_server <- function(input, output, session, parent_session){
       #Merge the training and prediction genotype matrices
       est_geno_adj_init <- est_geno_adj_init[common_markers, ]
       train_pred_geno <- cbind(train_geno_adj, est_geno_adj_init)
-      
+
       #Matrix
       Kin_mat <- A.mat(t(train_pred_geno), max.missing=NULL,impute.method="mean",return.imputed=FALSE)
-      
+
     }
 
     #Save to reactive values
@@ -663,13 +663,13 @@ mod_GS_server <- function(input, output, session, parent_session){
 
     #Status
     updateProgressBar(session = session, id = "pb_gp", value = 90, title = "Generating Results")
-    
+
     #initialize dataframe
     results_GEBVs <- matrix(nrow = ncol(gmat), ncol = length(traits) + 1)
     results_TRAITs <- matrix(nrow = ncol(gmat), ncol = length(traits) + 1)
     colnames(results_TRAITs) <- c("Sample",paste0(traits))  # Set the column names to be the traits
     colnames(results_GEBVs) <- c("Sample",paste0(traits))  # Set the column names to be the traits
-    
+
     #GBLUP for each trait
     for (trait_idx in 1:length(traits)) {
       traitpred <- kin.blup(data = pheno2,
@@ -679,24 +679,24 @@ mod_GS_server <- function(input, output, session, parent_session){
                             covariate = fixed_cov,
                             K=gmat,
                             n.core = cores)
-      
+
       results_GEBVs[, (trait_idx+1)] <- traitpred$g
       results_TRAITs[, (trait_idx+1)] <- traitpred$pred
     }
     #Organize dataframes
     results_GEBVs[,1] <- row.names(data.frame(traitpred$g))
     results_TRAITs[,1] <- row.names(data.frame(traitpred$pred))
-    
+
     #Label the samples that already had phenotype information
     results_GEBVs <- data.frame(results_GEBVs)
     results_TRAITs <- data.frame(results_TRAITs)
     exists_in_df <- results_GEBVs[[1]] %in% pheno2[[1]]
     results_GEBVs <- cbind(results_GEBVs[1], "w/Pheno" = exists_in_df, results_GEBVs[-1])
     results_TRAITs <- cbind(results_TRAITs[1], "w/Pheno" = exists_in_df, results_TRAITs[-1])
-    
+
     #Status
     updateProgressBar(session = session, id = "pb_gp", value = 100, title = "Finished!")
-    
+
     ##Make output tables depending on 1 or 2 VCF/pedigree files used.
     #GEBVs
     if (!is.null(advanced_options_pred$pred_est_file)) {
@@ -705,7 +705,7 @@ mod_GS_server <- function(input, output, session, parent_session){
     } else{
       pred_outputs2$all_GEBVs <- results_GEBVs
     }
-    
+
     #BLUPs of genetic values
     if (!is.null(advanced_options_pred$pred_est_file)) {
       # Subset rows where 'w/Pheno' is FALSE and drop the 'w/Pheno' column
@@ -765,7 +765,7 @@ mod_GS_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   #Download files for GP
   output$download_pred_results_file <- downloadHandler(
     filename = function() {
@@ -780,21 +780,21 @@ mod_GS_server <- function(input, output, session, parent_session){
       ebv_file <- file.path(temp_dir, paste0("GS-EBV-predictions-", Sys.Date(), ".csv"))
       write.csv(pred_outputs2$all_GEBVs, ebv_file, row.names = FALSE)
       temp_files <- c(temp_files, ebv_file)
-      
+
       trait_file <- file.path(temp_dir, paste0("GS-Phenotype-predictions-", Sys.Date(), ".csv"))
       write.csv(pred_outputs2$trait_output, trait_file, row.names = FALSE)
       temp_files <- c(temp_files, trait_file)
-      
+
       # Zip files only if there's something to zip
       if (length(temp_files) > 0) {
         zip(file, files = temp_files, extras = "-j") # Using -j to junk paths
       }
-      
+
       # Optionally clean up
       file.remove(temp_files)
     }
   )
-  
+
   ##Summary Info
   pred_summary_info <- function() {
     # Handle possible NULL values for inputs
@@ -802,7 +802,7 @@ mod_GS_server <- function(input, output, session, parent_session){
     est_file_name <- if (!is.null(input$pred_est_file$name)) input$pred_est_file$name else "No file selected"
     passport_file_name <- if (!is.null(input$pred_trait_file$name)) input$pred_trait_file$name else "No file selected"
     selected_ploidy <- if (!is.null(input$pred_est_ploidy)) as.character(input$pred_est_ploidy) else "Not selected"
-    
+
     # Print the summary information
     cat(
       "BIGapp Selection Summary\n",
@@ -836,7 +836,7 @@ mod_GS_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$pred_summary, {
     showModal(modalDialog(
@@ -852,8 +852,8 @@ mod_GS_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_pred_info <- downloadHandler(
     filename = function() {

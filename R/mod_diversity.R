@@ -48,7 +48,7 @@ mod_diversity_ui <- function(id){
                                                                                          "MAF Histogram",
                                                                                          "OHet Histogram",
                                                                                          "Marker Plot")),
-                   selectInput(inputId = ns('div_image_type'), label = 'File Type', choices = c("jpeg","pdf","tiff","png"), selected = "jpeg"),
+                   selectInput(inputId = ns('div_image_type'), label = 'File Type', choices = c("jpeg","tiff","png","svg"), selected = "jpeg"),
                    sliderInput(inputId = ns('div_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('div_image_width'), label = 'Width', value = 8, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('div_image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
@@ -57,7 +57,7 @@ mod_diversity_ui <- function(id){
                      downloadButton(ns("download_div_file"), "Save Files")),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
              )
@@ -96,44 +96,44 @@ mod_diversity_ui <- function(id){
 mod_diversity_server <- function(input, output, session, parent_session){
 
     ns <- session$ns
-    
+
     # Help links
     observeEvent(input$goPar, {
       # change to help tab
       updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                         selected = "help")
-      
+
       # select specific tab
       updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
                         selected = "Genomic_Diversity_par")
       # expand specific box
       updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
     })
-    
+
     observeEvent(input$goRes, {
       # change to help tab
       updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                         selected = "help")
-      
+
       # select specific tab
       updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
                         selected = "Genomic_Diversity_results")
       # expand specific box
       updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
     })
-    
+
     observeEvent(input$goCite, {
       # change to help tab
       updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                         selected = "help")
-      
+
       # select specific tab
       updateTabsetPanel(session = parent_session, inputId = "Genomic_Diversity_tabset",
                         selected = "Genomic_Diversity_cite")
       # expand specific box
       updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
     })
-    
+
     #######Genomic Diversity analysis
 
     #Genomic Diversity output files
@@ -255,11 +255,11 @@ mod_diversity_server <- function(input, output, session, parent_session){
       #Calculate PIC
       calc_allele_frequencies <- function(d_diplo_t, ploidy) {
         allele_frequencies <- apply(d_diplo_t, 1, function(x) {
-          count_sum <- sum(!is.na(x))  
-          allele_sum <- sum(x, na.rm = TRUE) 
+          count_sum <- sum(!is.na(x))
+          allele_sum <- sum(x, na.rm = TRUE)
           if (count_sum != 0) {allele_sum / (ploidy * count_sum)} else {NA}
         })
-        
+
         all_allele_frequencies <- data.frame(SNP = rownames(d_diplo_t), p1= allele_frequencies, p2= 1-allele_frequencies)
         return(all_allele_frequencies)
       }
@@ -271,19 +271,19 @@ mod_diversity_server <- function(input, output, session, parent_session){
         pic <- 1 - sum(freq_squared) - 2*upper_tri_sum
         return(pic)
       }
-      
+
       print(Fre[1:5,])
-      
+
       PIC_results <- apply(Fre[, c("p1", "p2")], 1, calc_pic)
       PIC_df <- data.frame(SNP_ID = Fre$SNP, PIC = PIC_results)
       rownames(PIC_df) <- NULL
-      
+
       print(PIC_df[1:5,])
       print(diversity_items$maf_df[1:5,])
-      
+
       diversity_items$snp_stats <- (merge(diversity_items$maf_df, PIC_df, by = "SNP_ID", all = TRUE))[,c("SNP_ID","MAF","PIC")]
       colnames(diversity_items$snp_stats)[1] <- "SNP"
-      
+
       #Updating value boxes
       output$mean_het_box <- renderValueBox({
         valueBox(
@@ -410,7 +410,9 @@ mod_diversity_server <- function(input, output, session, parent_session){
       validate(
         need(!is.null(diversity_items$het_df), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
-      diversity_items$het_df
+      tb <- diversity_items$het_df
+      tb$Ho <- round(tb$Ho,4)
+      tb
     })
 
     output$sample_table <- renderDT({sample_table()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
@@ -419,7 +421,10 @@ mod_diversity_server <- function(input, output, session, parent_session){
       validate(
         need(!is.null(diversity_items$snp_stats), "Input VCF, define parameters and click `run analysis` to access results in this session.")
       )
-      diversity_items$snp_stats
+      tb <- diversity_items$snp_stats
+      tb$PIC <- round(tb$PIC,4)
+      tb$MAF <- round(tb$MAF,4)
+      tb
     })
 
     output$snp_table <- renderDT({snp_table()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
@@ -432,6 +437,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
           paste("genomic-diversity-", Sys.Date(), ".jpg", sep="")
         } else if (input$div_image_type == "png") {
           paste("genomic-diversity-", Sys.Date(), ".png", sep="")
+        } else if (input$div_image_type == "svg") {
+          paste("genomic-diversity-", Sys.Date(), ".svg", sep="")
         } else {
           paste("genomic-diversity-", Sys.Date(), ".tiff", sep="")
         }
@@ -443,6 +450,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
           jpeg(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
         } else if (input$div_image_type == "png") {
           png(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
+        } else if (input$div_image_type == "svg") {
+          svg(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height))
         } else {
           tiff(file, width = as.numeric(input$div_image_width), height = as.numeric(input$div_image_height), res= as.numeric(input$div_image_res), units = "in")
         }
@@ -510,13 +519,13 @@ mod_diversity_server <- function(input, output, session, parent_session){
         ex <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
         file.copy(ex, file)
       })
-    
+
     ##Summary Info
     diversity_summary_info <- function() {
       # Handle possible NULL values for inputs
       dosage_file_name <- if (!is.null(input$diversity_file$name)) input$diversity_file$name else "No file selected"
       selected_ploidy <- if (!is.null(input$diversity_ploidy)) as.character(input$diversity_ploidy) else "Not selected"
-      
+
       # Print the summary information
       cat(
         "BIGapp Summary Metrics Summary\n",
@@ -541,7 +550,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
         sep = ""
       )
     }
-    
+
     # Popup for analysis summary
     observeEvent(input$diversity_summary, {
       showModal(modalDialog(
@@ -557,8 +566,8 @@ mod_diversity_server <- function(input, output, session, parent_session){
         )
       ))
     })
-    
-    
+
+
     # Download Summary Info
     output$download_diversity_info <- downloadHandler(
       filename = function() {

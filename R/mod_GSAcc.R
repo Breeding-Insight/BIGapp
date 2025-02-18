@@ -30,13 +30,14 @@ mod_GSAcc_ui <- function(id){
       ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-                 fileInput(ns("pred_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("trait_file"), "Choose Trait File", accept = ".csv"),
-                 numericInput(ns("pred_ploidy"), "Species Ploidy", min = 1, value = NULL),
-                 numericInput(ns("pred_cv"), "Iterations", min = 1, max=20, value = 5),
+                 "* Required",
+                 fileInput(ns("pred_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
+                 fileInput(ns("trait_file"), "Choose Trait File*", accept = ".csv"),
+                 numericInput(ns("pred_ploidy"), "Species Ploidy*", min = 1, value = NULL),
+                 numericInput(ns("pred_cv"), "Iterations*", min = 1, max=20, value = 5),
                  virtualSelectInput(
                    inputId = ns("pred_trait_info"),
-                   label = "Select Trait(s):",
+                   label = "Select Trait(s)*:",
                    choices = NULL,
                    showValueAsTags = TRUE,
                    search = TRUE,
@@ -122,7 +123,7 @@ mod_GSAcc_ui <- function(id){
                      downloadButton(ns("download_pred_file"), "Save Files")),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
              )
@@ -154,31 +155,31 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "Predictive_Ability_tabset",
                       selected = "Predictive_Ability_par")
     # expand specific box
     updateBox(id = "Predictive_Ability_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goRes, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "Predictive_Ability_tabset",
                       selected = "Predictive_Ability_results")
     # expand specific box
     updateBox(id = "Predictive_Ability_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goCite, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "Predictive_Ability_tabset",
                       selected = "Predictive_Ability_cite")
@@ -834,14 +835,14 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   ##Summary Info
   predAcc_summary_info <- function() {
     # Handle possible NULL values for inputs
     dosage_file_name <- if (!is.null(input$pred_file$name)) input$pred_file$name else "No file selected"
     passport_file_name <- if (!is.null(input$trait_file$name)) input$trait_file$name else "No file selected"
     selected_ploidy <- if (!is.null(input$pred_ploidy)) as.character(input$pred_ploidy) else "Not selected"
-    
+
     # Print the summary information
     cat(
       "BIGapp Selection Model CV Summary\n",
@@ -874,7 +875,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$predAcc_summary, {
     showModal(modalDialog(
@@ -890,8 +891,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_predAcc_info <- downloadHandler(
     filename = function() {

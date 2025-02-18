@@ -5,9 +5,10 @@
 #' @param traits ToDo
 #' @param fixed_effects ToDo
 #' @param fixed_cat categorial fixed effects
-#' @param fold ToDo
+#' @param folds ToDo
 #' @param iters ToDo
 #' @param cores ToDo
+#' @param session ToDo
 #'
 rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL, fixed_cat = NULL,folds = 5, iters = 5, cores = 1, session) {
 
@@ -188,6 +189,7 @@ rrBLUP_genomic_prediction <- function(geno, pheno, traits, fixed_effects = NULL,
 #' @param ploidy numeric indicating species ploidy
 #' @param geno_input matrix with individuals in the row and markers in the columns
 #' @param ped_file pedigree file
+#' @param pheno ToDo
 #'
 #' @importFrom rrBLUP A.mat
 #' @importFrom AGHmatrix Gmatrix Amatrix Hmatrix
@@ -243,7 +245,15 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
 
 #' Performes GBLUP
 #'
-#' @param fixed_cat categorical fixed effect
+#' @param pheno_dat ToDo
+#' @param Geno.mat ToDo
+#' @param cycles ToDo
+#' @param folds ToDo
+#' @param traits ToDo
+#' @param cores ToDo
+#' @param fixed_cov ToDo
+#' @param fixed_cat ToDo
+#' @param session ToDo
 #'
 GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits, cores, fixed_cov = NULL, fixed_cat = NULL, session = NULL){
 

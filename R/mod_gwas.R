@@ -29,21 +29,22 @@ mod_gwas_ui <- function(id){
       ),
       column(width = 3,
              box(title="Inputs", width = 12, collapsible = TRUE, collapsed = FALSE, status = "info", solidHeader = TRUE,
-                 fileInput(ns("gwas_file"), "Choose VCF File", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("phenotype_file"), "Choose Trait File", accept = ".csv"),
-                 numericInput(ns("gwas_ploidy"), "Species Ploidy", min = 1, value = NULL),
-                 numericInput(ns("bp_window_before"), "Base pair window (Mb)", min = 0, value = 2),
-                 selectInput(ns('gwas_threshold'), label='Significance Threshold', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
-                 selectInput(ns('trait_info'), label = 'Select Trait', choices = NULL),
+                 "* Required",
+                 fileInput(ns("gwas_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
+                 fileInput(ns("phenotype_file"), "Choose Trait File*", accept = ".csv"),
+                 numericInput(ns("gwas_ploidy"), "Species Ploidy*", min = 1, value = NULL),
+                 numericInput(ns("bp_window_before"), "Base pair window (Mb)*", min = 0, value = 2),
+                 selectInput(ns('gwas_threshold'), label='Significance Threshold*', choices = c("M.eff","Bonferroni","FDR","permute"), selected="M.eff"),
+                 selectInput(ns('trait_info'), label = 'Select Trait*', choices = NULL),
                  virtualSelectInput(
                    inputId = ns("fixed_info"),
-                   label = "Select Fixed Effects (optional):",
+                   label = "Select Fixed Effects:",
                    choices = NULL,
                    showValueAsTags = TRUE,
                    search = TRUE,
                    multiple = TRUE
                  ),
-                 sliderInput(ns("cores"), "Number of CPU Cores", min = 1, max = (availableCores() - 1), value = 1, step = 1),
+                 sliderInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (availableCores() - 1), value = 1, step = 1),
                  actionButton(ns("gwas_start"), "Run Analysis"),
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
@@ -128,7 +129,7 @@ mod_gwas_ui <- function(id){
                      downloadButton(ns("download_gwas_file"), "Save Files")),
                    circle = FALSE,
                    status = "danger",
-                   icon = icon("floppy-disk"), width = "300px",
+                   icon = icon("floppy-disk"), width = "300px", label = "Save",
                    tooltip = tooltipOptions(title = "Click to see inputs!")
                  ))
              )
@@ -150,7 +151,7 @@ mod_gwas_ui <- function(id){
 mod_gwas_server <- function(input, output, session, parent_session){
 
   ns <- session$ns
-  
+
   # Help links
   observeEvent(input$goGWASpar, {
     # change to help tab
@@ -493,7 +494,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
         model <- c("additive","1-dom","2-dom","general","diplo-general","diplo-additive")
         updateSelectInput(session, "model_select", choices = c("all", model))
       }else{
-        model <- c("additive", "1-dom")
+        model <- c("additive", "1-dom", "general")
         updateSelectInput(session, "model_select", choices = c("all", model))
       }
 
@@ -508,7 +509,9 @@ mod_gwas_server <- function(input, output, session, parent_session){
       manhattan_plot_list <- list()
 
       #plot for six models per trait
-      manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]), models = model)+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
+      manhattan_plot_list[["all"]] <- manhattan.plot(data2,traits=colnames(data@pheno[i]), models = model)+
+        geom_point(size=3)+
+        theme(text = element_text(size = 25),strip.text = element_text(face = "bold"), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
       #Status
       updateProgressBar(session = session, id = "pb_gwas", value = 80, title = "GWAS Complete: Now Plotting Results")
@@ -525,7 +528,10 @@ mod_gwas_server <- function(input, output, session, parent_session){
                                      traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))
 
         data3 <- set.threshold(data.loco.scan_2,method="M.eff",level=0.05)
-        manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+theme(text = element_text(size = 25),strip.text = element_text(face = "bold"))
+        manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+
+          theme(text = element_text(size = 25),
+                strip.text = element_text(face = "bold"),
+                axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
       }
 
       #Save manhattan plots
@@ -542,7 +548,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     #Status
     updateProgressBar(session = session, id = "pb_gwas", value = 100, status = "success", title = "Finished")
   })
-  
+
   #Checking if any QTLs were detected and returning a user notice if not
   observe({
     req(gwas_vars$gwas_df)
@@ -562,7 +568,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
         animation = TRUE
       )
     }
-    
+
     #Gracefully abort
     return()
   })
@@ -615,7 +621,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
   observe({
     req(gwas_vars$gwas_df_filt, nrow(gwas_vars$gwas_df_filt) > 0)
-    
+
     df <- gwas_vars$gwas_df_filt %>% filter(Model %in% input$sele_models)
     updatePickerInput(session = session, inputId = "sele_qtl", choices = unique(paste0(df$Marker, "_", df$Model)),
                       selected = unique(paste0(df$Marker, "_", df$Model)))
@@ -741,21 +747,21 @@ mod_gwas_server <- function(input, output, session, parent_session){
       # Temporary files list
       temp_dir <- tempdir()
       temp_files <- c()
-      
+
       if (!is.null(gwas_vars$gwas_df)) {
         # Create a temporary file for assignments
         gwas_file <- file.path(temp_dir, paste0("QTL-Significant_Markers-statistics-", Sys.Date(), ".csv"))
         write.csv(gwas_vars$gwas_df, gwas_file, row.names = FALSE)
         temp_files <- c(temp_files, gwas_file)
       }
-      
+
       if (!is.null(gwas_vars$gwas_df_filt)) {
         # Create a temporary file for assignments
         gwas_file <- file.path(temp_dir, paste0("QTL-LD-filtered-statistics-", Sys.Date(), ".csv"))
         write.csv(gwas_vars$gwas_df_filt, gwas_file, row.names = FALSE)
         temp_files <- c(temp_files, gwas_file)
       }
-      
+
       if (!is.null(gwas_vars$fit_qtl)) {
         # Create a temporary file for assignments
         gwas_file <- file.path(temp_dir, paste0("Multiple-QTL-model-statistics-", Sys.Date(), ".csv"))
@@ -813,7 +819,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
         req(gwas_vars$LD_plot)
         #Plot
         print(gwas_vars$LD_plot)
-      
+
       } else if (input$gwas_figures == "Manhattan Plot") {
         req(gwas_vars$manhattan_plots, input$model_select)
         #Plot
