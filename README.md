@@ -76,7 +76,7 @@ BIGapp leverages a powerful suite of R packages:
 
 ### Core R Packages
 
--   **R (>= 4.2.2)**
+-   **R (>= 4.4.0)**
 
 ### Shiny Framework
 
