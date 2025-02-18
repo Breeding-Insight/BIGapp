@@ -57,9 +57,10 @@ Try out a live demo of BIGapp here: [BIGapp Demo](https://big-demo.shinyapps.io/
 2. **Open Terminal (macOS/Linux) or R Console (Windows).**
 3. **Install and Run:**
     ```R
-    if (!requireNamespace("devtools", quietly = TRUE))
-        install.packages("devtools")
-    devtools::install_github("Breeding-Insight/BIGapp")
+    if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+    
+    BiocManager::install("Breeding-Insight/BIGapp", dependencies = TRUE)
     BIGapp::run_app()
     ```
 4. **Access in Browser:** The BIGapp interface will open in your default web browser.
