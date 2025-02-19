@@ -220,6 +220,39 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         bgzip_compress(output_name, file)
 
       } else if(input$file_type == "DArT MADC file"){
+        req(input$madc_file)
+        # First check if the MADC file is valid (a non-fixedAlleleID MADC file)
+        
+        #Read only the first column for the first seven rows
+        first_seven_rows <- read.csv(input$madc_file$datapath, header = FALSE, nrows = 7, colClasses = c(NA, "NULL"))
+        
+        #Check if all entries in the first column are either blank or "*"
+        check_entries <- all(first_seven_rows[, 1] %in% c("", "*"))
+        
+        #Check if the MADC file has the filler rows or is processed from updated fixed allele ID pipeline
+        if (check_entries) {
+          #Note: This assumes that the first 7 rows are placeholder info from DArT processing
+          shinyalert(
+            title = "Raw MADC!",
+            text = "This MADC file has not been processed by the updated Breeding Insight fixed allele ID pipeline.",
+            size = "m",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "error",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            animation = TRUE
+          )
+          
+          #Exit the analysis
+          return()
+        }
+        
+        #Now perform conversion depending on user options
+        
         if(input$snp_type == "target_off"){
           if (is.null(input$madc_file$datapath) | input$hapDB_file$datapath == "" | input$botloci_file$datapath == "" | input$d2v_output_name == "") {
             shinyalert(
