@@ -114,7 +114,7 @@ mod_GSAcc_ui <- function(id){
                    tags$h3("Save Image"),
                    selectInput(inputId = ns('pred_figures'), label = 'Figure', choices = c("Violin Plot",
                                                                                            "Box Plot")),
-                   selectInput(inputId = ns('pred_image_type'), label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
+                   selectInput(inputId = ns('pred_image_type'), label = 'File Type', choices = c("jpeg","tiff","png","svg"), selected = "jpeg"),
                    sliderInput(inputId = ns('pred_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('pred_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('pred_image_height'), label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
@@ -784,8 +784,10 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         paste("GS-", Sys.Date(), ".jpg", sep="")
       } else if (input$pred_image_type == "png") {
         paste("GS-", Sys.Date(), ".png", sep="")
-      } else {
+      } else if (input$pred_image_type == "tiff"){
         paste("GS-", Sys.Date(), ".tiff", sep="")
+      } else {
+        paste("GS-", Sys.Date(), ".svg", sep="")
       }
     },
     content = function(file) {
@@ -796,8 +798,10 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         jpeg(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
       } else if (input$pred_image_type == "png") {
         png(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
-      } else {
+      } else if (input$pred_image_type == "tiff") {
         tiff(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height), res= as.numeric(input$pred_image_res), units = "in")
+      } else{
+        svg(file, width = as.numeric(input$pred_image_width), height = as.numeric(input$pred_image_height))
       }
 
       # Conditional plotting based on input selection

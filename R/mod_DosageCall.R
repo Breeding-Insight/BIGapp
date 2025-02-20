@@ -91,7 +91,7 @@ mod_DosageCall_ui <- function(id){
                 )
               )
             ),
-            numericInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (future::availableCores() - 1), value = 1),
+            sliderInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (availableCores() - 1), value = 1, step = 1),
           ),
           conditionalPanel(
             condition = "input.Rpackage == 'polyRAD'",
@@ -148,7 +148,15 @@ mod_DosageCall_ui <- function(id){
             status = "warning",
             icon = icon("info"), width = "500px",
             tooltip = tooltipOptions(title = "Click to see info!")
-          ))
+          )),
+          br(),
+          tags$hr(style="border-color: #d3d3d3; margin-top: 20px; margin-bottom: 20px;"),  # Lighter grey line
+          div(style="text-align: left; margin-top: 10px;",
+              actionButton(ns("advanced_options"),
+                           label = HTML(paste(icon("cog", style = "color: #007bff;"), "Advanced Options")),
+                           style = "background-color: transparent; border: none; color: #007bff; font-size: smaller; text-decoration: underline; padding: 0;"
+              )
+          )
         ),
         column(width=4,
           valueBoxOutput(ns("MADCsnps"), width=12),
@@ -247,6 +255,73 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   #SNP counts value box
   output$MADCsnps <- renderValueBox({
     valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
+  })
+  
+  #Default model choices
+  advanced_options <- reactiveValues(
+    contamRate = 0.001,
+    min_ind_read = 1,
+    min_ind_maf = 0,
+    tol = 1e-05
+  )
+  
+  #UI popup window for input
+  observeEvent(input$advanced_options, {
+    showModal(modalDialog(
+      title = "Advanced Options",
+      conditionalPanel(
+        condition = "input.Rpackage == 'polyRAD'", ns = ns,
+        div(
+          numericInput(
+            inputId = ns('contamRate'),
+            label = 'contamRate',
+            min = 0,
+            max = 1,
+            value = advanced_options$contamRate
+          ),
+          numericInput(
+            inputId = ns('min_ind_read'),
+            label = 'min.ind.with.reads',
+            min = 1,
+            value = advanced_options$min_ind_read
+          ),
+          numericInput(
+            inputId = ns('min_ind_maf'),
+            label = 'min.ind.with.minor.allele',
+            min = 0,
+            value = advanced_options$min_ind_maf
+          ),
+          numericInput(
+            inputId = ns('tol'),
+            label = 'tol',
+            min = 0,
+            max = 1,
+            value = advanced_options$tol
+          )
+        )
+      ),
+      conditionalPanel(
+        condition = "input.Rpackage == 'Updog'", ns = ns,
+        "Currently, there are no Advanced Options for Updog"
+      ),
+      footer = tagList(
+        modalButton("Close"),
+        actionButton(ns("save_advanced_options"), "Save")
+      )
+    ))
+  })
+  
+  
+  
+  #Close popup window when user "saves options"
+  observeEvent(input$save_advanced_options, {
+    advanced_options$contamRate <- input$contamRate
+    advanced_options$min_ind_read <- input$min_ind_read
+    advanced_options$min_ind_maf <- input$min_ind_maf
+    advanced_options$tol <- input$tol
+    # Save other inputs as needed
+    
+    removeModal()  # Close the modal after saving
   })
 
   disable("download_updog_vcf")
@@ -461,7 +536,11 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                                            p2 = input$parent2,
                                            backcross.gen = input$bx.gen,
                                            intercross.gen = input$inter.gen,
-                                           selfing.gen = input$self.gen)
+                                           selfing.gen = input$self.gen,
+                                           contamRate = advanced_options$contamRate,
+                                           min_ind_read = advanced_options$min_ind_read,
+                                           min_ind_maf = advanced_options$min_ind_maf,
+                                           tol=advanced_options$tol)
       updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
       polyrad_items
     }

@@ -15,7 +15,7 @@
 #' @importFrom vcfR read.vcfR is.biallelic write.vcf
 #' @importFrom R.utils gunzip
 #'
-polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcross.gen = 0, intercross.gen = 0, selfing.gen = 0, contamRate = 0.001, session) {
+polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcross.gen = 0, intercross.gen = 0, selfing.gen = 0, contamRate = 0.001, min_ind_read = 1, min_ind_maf = 0, tol = 1e-05, session) {
 
   # Variables
   vcf_path <- vcf
@@ -73,10 +73,11 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
   # Retaining all markers with at least 1 individual with reads (minimal filtering at this stage)
   # Need to determine the best contamRate to use; currently using the default
   polyRAD_obj <- polyRAD::VCF2RADdata(file = temp_unzipped_path,
-                                      min.ind.with.reads = 1,
-                                      min.ind.with.minor.allele = 0,
+                                      min.ind.with.reads = min_ind_read,
+                                      min.ind.with.minor.allele = min_ind_maf,
                                       taxaPloidy = ploidy,
                                       contamRate = contamRate,
+                                      tol = tol,
                                       phaseSNPs = FALSE
 
   )
@@ -106,13 +107,13 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
   # Perform dosage calling
   # "If you expect that your species has high linkage disequilibrium, the functions IterateHWE_LD and IteratePopStructLD behave like IterateHWE and IteratePopStruct, respectively, but also update priors based on genotypes at linked loci."
   if (model == "IterateHWE") {
-    rad <- IterateHWE(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IterateHWE(polyRAD_obj, tol = tol, overdispersion = OD)
   } else if (model == "IteratePopStruct") {
-    rad <- IteratePopStruct(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IteratePopStruct(polyRAD_obj, tol = tol, overdispersion = OD)
   } else if (model == "IterateHWE_LD") {
-    rad <- IterateHWE_LD(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IterateHWE_LD(polyRAD_obj, tol = tol, overdispersion = OD)
   } else if (model == "IteratePopStruct_LD") {
-    rad <- IteratePopStruct_LD(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IteratePopStruct_LD(polyRAD_obj, tol = tol, overdispersion = OD)
   } else {
     if (!is.null(p1)) {
       # First check that p1 is a valid parent
@@ -135,7 +136,8 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
                                    overdispersion = OD,
                                    n.gen.backcrossing = n.bx,
                                    n.gen.intermating = n.inter,
-                                   n.gen.selfing = n.self)
+                                   n.gen.selfing = n.self,
+                                   tol=tol)
   }
 
 
