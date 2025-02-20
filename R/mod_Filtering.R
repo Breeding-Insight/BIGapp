@@ -161,15 +161,15 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     format_fields = NULL
 
   )
-  
+
   # Function to choose user selected dataset
   current_hist_data <- reactive({
     req(input$vcf_type)
-    
+
     # Switch between 'pre-filtered' or 'filtered' data based on user choice
     if (input$vcf_type == "Pre-Filter VCF") {
       list(
-        snp_miss = filtering_files$raw_snp_miss_df, 
+        snp_miss = filtering_files$raw_snp_miss_df,
         sample_miss = filtering_files$raw_sample_miss_df,
         maf_data = filtering_files$raw_maf_df
       )
@@ -226,7 +226,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     }
 
     req(input$filter_ploidy, input$filter_output_name,input$updog_rdata)
-    
+
     #Status
     updateProgressBar(session = session, id = "pb_filter", value = 10, title = "Processing VCF file")
 
@@ -289,9 +289,9 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     starting_samples <- ncol(gt_matrix)
     filtering_files$raw_snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
     filtering_files$raw_sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
-    
+
     rm(gt_matrix) #Remove gt matrix
-    
+
     # Filtered VCF
     vcf <- filterVCF(vcf.file = vcf,
                      ploidy=ploidy,
@@ -348,7 +348,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
         color = "info"
       )
     })
-    
+
     #User warning if samples were removed during filtering
     sample_removed <- starting_samples - final_samples
     if (sample_removed > 0) {
@@ -370,21 +370,21 @@ mod_Filtering_server <- function(input, output, session, parent_session){
 
     # Status
     updateProgressBar(session = session, id = "pb_filter", value = 100, title = "Finished!")
-    
+
 
     vcf
   })
-  
+
   #Update plots
   output$din_tabs <- renderUI({
-    
+
     if (input$run_filters == 0) {
       tabBox(width =12, collapsible = FALSE, status = "info",
              id = "updog_tab", height = "600px",
              tabPanel("Results", p("Upload VCF file to access results in this section."))
       )
     } else {
-    
+
       if (!is.null(filtering_files$format_fields) && filtering_files$format_fields == TRUE && input$vcf_type == "Pre-Filter VCF") {
         # Include "Bias Histogram", "OD Histogram", and "Prop_mis Histogram" for Pre-Filtered VCF
         tabBox(
@@ -426,12 +426,16 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       temp_file <- tempfile(fileext = ".vcf.gz")
       write.vcf(vcf(), file = temp_file)
 
+      # Avoid exporting gziped instead of bgziped
+      gunzip(temp_file)
+      temp_file <- gsub(".gz", "", temp_file)
+
       # Check if the VCF file was created
       if (file.exists(temp_file)) {
         cat("VCF file created successfully.\n")
 
         # Move the file to the path specified by 'file'
-        file.copy(temp_file, file, overwrite = TRUE)
+        bgzip_compress(temp_file, file)
 
         # Delete the temporary file
         unlink(temp_file)
@@ -542,7 +546,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
           xlim = c(0,1),
           breaks = as.numeric(input$hist_bins))
         axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
-        
+
         # Add vertical lines
         abline(v = mean(as.numeric(current_hist_data()$snp_miss)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(current_hist_data()$snp_miss)), col = "green", lty = 2)  # Median line
@@ -562,7 +566,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
           xlim = c(0,1),
           breaks = as.numeric(input$hist_bins))
         axis(1, at = seq(0, 1, by = .1), labels = rep("", length(seq(0, 1, by = 0.1))))  # Add ticks
-        
+
         # Add vertical lines
         abline(v = mean(as.numeric(current_hist_data()$sample_miss)), col = "red", lty = 2)  # Mean line
         abline(v = median(as.numeric(current_hist_data()$sample_miss)), col = "green", lty = 2)  # Median line
@@ -678,7 +682,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     #Missing data
     output$missing_snp_hist <- renderPlot({
       req(current_hist_data()$snp_miss)
-      
+
       #Histogram
       hist(
         as.numeric(current_hist_data()$snp_miss),
