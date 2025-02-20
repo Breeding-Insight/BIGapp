@@ -49,7 +49,13 @@ mod_dosage2vcf_ui <- function(id){
                                                    fileInput(ns("hapDB_file"), "Upload haplotype database file (fasta)*"),
                                                    fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)*"),
                                                    sliderInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (availableCores() - 1), value = 1, step = 1)
-                                  )
+                                  ),
+                                  conditionalPanel(condition = "input.snp_type == 'target'",
+                                                   ns = ns,
+                                                   radioButtons(ns("ref_alt"),
+                                                                label = "Extract REF and ALT info:",
+                                                                choices = list("Yes"= "yes", "No" = "no"),
+                                                                selected = "no")                                  )
                  ),
                  textInput(ns("d2v_output_name"), "Output File Name"),
                  actionButton(ns("run_analysis"), "Convert File"),
@@ -323,7 +329,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         output_name <- paste0(temp_base, ".vcf")
 
         updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
-        madc2vcf(read_madc, output_name)
+        madc2vcf(read_madc, output_name, get_REF_ALT = input$ref_alt)
 
         updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
         return(output_name)
