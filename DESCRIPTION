@@ -66,7 +66,8 @@ Imports:
     Matrix,
     matrixcalc,
     markdown,
-    Rsamtools
+    Rsamtools,
+    methods
 Remotes:
     github::jendelman/GWASpoly,
     github::Breeding-Insight/BIGr,

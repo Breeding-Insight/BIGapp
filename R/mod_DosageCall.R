@@ -159,10 +159,10 @@ mod_DosageCall_ui <- function(id){
           )
         ),
         column(width=4,
-          valueBoxOutput(ns("MADCsnps"), width=12),
-          box(title = "Status", width = 12, collapsible = TRUE, status = "info",
-            progressBar(id = ns("pb_madc"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
-          )
+               valueBoxOutput(ns("MADCsnps"), width=12),
+               box(title = "Status", width = 12, collapsible = TRUE, status = "info",
+                   progressBar(id = ns("pb_madc"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+               )
         )
       )
     )
@@ -256,7 +256,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   output$MADCsnps <- renderValueBox({
     valueBox(snp_number(), "Markers in uploaded file", icon = icon("dna"), color = "info")
   })
-  
+
   #Default model choices
   advanced_options <- reactiveValues(
     contamRate = 0.001,
@@ -264,7 +264,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     min_ind_maf = 0,
     tol = 1e-05
   )
-  
+
   #UI popup window for input
   observeEvent(input$advanced_options, {
     showModal(modalDialog(
@@ -310,9 +310,9 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
-  
+
+
+
   #Close popup window when user "saves options"
   observeEvent(input$save_advanced_options, {
     advanced_options$contamRate <- input$contamRate
@@ -320,7 +320,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     advanced_options$min_ind_maf <- input$min_ind_maf
     advanced_options$tol <- input$tol
     # Save other inputs as needed
-    
+
     removeModal()  # Close the modal after saving
   })
 
@@ -555,12 +555,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   output$download_updog_vcf <- downloadHandler(
     filename = function() {
       output_name <- gsub("\\.vcf$", "", input$output_name)
-      if (input$Rpackage == "Updog") {
-        paste0(output_name, ".vcf.gz")
-      }else {
-        paste0(output_name, ".vcf")
-      }
-
+      paste0(output_name, ".vcf.gz")
     },
     content = function(file) {
 
@@ -571,11 +566,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           multidog.object = updog_out(),
           output.file = temp,
           updog_version = packageVersion("updog"),
-          compress = TRUE
+          compress = FALSE
         )
-
-        # Move the file to the path specified by 'file'
-        file.copy(paste0(temp, ".vcf.gz"), file)
 
       } else {
         polyRAD2vcf(updog_out()$Genos,
@@ -584,11 +576,9 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                     hindhe.obj = updog_out()$RADHindHe,
                     ploidy = input$ploidy,
                     output.file = temp
-                    )
-
-        # Move the file to the path specified by 'file'
-        file.copy(paste0(temp, ".vcf"), file)
+        )
       }
+      bgzip_compress(paste0(temp, ".vcf"), file)
 
       # Delete the temporary file
       unlink(temp)

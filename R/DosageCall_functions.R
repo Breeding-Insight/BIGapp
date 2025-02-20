@@ -8,14 +8,20 @@
 #' @param backcross.gen ToDo
 #' @param intercross.gen ToDo
 #' @param selfing.gen ToDo
+#' @param min_ind_read ToDo
+#' @param min_ind_maf ToDo
 #' @param contamRate ToDo
+#' @param tol ToDo
 #' @param session ToDo
 #'
 #' @import polyRAD
 #' @importFrom vcfR read.vcfR is.biallelic write.vcf
 #' @importFrom R.utils gunzip
 #'
-polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcross.gen = 0, intercross.gen = 0, selfing.gen = 0, contamRate = 0.001, min_ind_read = 1, min_ind_maf = 0, tol = 1e-05, session) {
+polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
+                                backcross.gen = 0, intercross.gen = 0, selfing.gen = 0,
+                                contamRate = 0.001, min_ind_read = 1, min_ind_maf = 0,
+                                tol = 1e-05, session) {
 
   # Variables
   vcf_path <- vcf
@@ -28,36 +34,36 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
   # Having some issues formatting the output when multiallelic SNPs is input, so excluding for now
   temp_vcf <- vcfR::read.vcfR(vcf_path, verbose = FALSE)
   temp_vcf <- temp_vcf[is.biallelic(temp_vcf),]
-  
+
   # Function to randomly assign non-matching bases for polyRAD
   assign_random_bases <- function(vcf) {
     # Get the number of rows in the VCF
     num_rows <- nrow(vcf@fix)
-    
+
     # Generate random bases for REF and ALT
     bases <- c("A", "C", "G", "T")
     ref_bases <- sample(bases, num_rows, replace = TRUE)
     alt_bases <- character(num_rows) # Initialize an empty character vector
-    
+
     # Ensure REF and ALT are different for each row
     for (i in 1:num_rows) {
       alt_bases[i] <- sample(bases[bases != ref_bases[i]], 1)
     }
-    
+
     # Assign the new bases to the vcf object
     vcf@fix[, "REF"] <- ref_bases
     vcf@fix[, "ALT"] <- alt_bases
-    
+
     return(vcf)
   }
-  
+
   #Editing REF and ALT fields randomly temporarily if blank or AB
   ref_base <- temp_vcf@fix[1, "REF"]
   alt_base <- temp_vcf@fix[1, "ALT"]
   if (is.na(ref_base) || is.na(alt_base) || alt_base == "B") {
   temp_vcf <- assign_random_bases(temp_vcf)
   }
-  
+
   # Adding filtered VCF as a temp object
   temp_vcf_path <- tempfile(fileext = ".vcf.gz")
   vcfR::write.vcf(temp_vcf, file = temp_vcf_path)

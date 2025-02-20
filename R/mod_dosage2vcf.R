@@ -49,15 +49,22 @@ mod_dosage2vcf_ui <- function(id){
                                                    fileInput(ns("hapDB_file"), "Upload haplotype database file (fasta)*"),
                                                    fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)*"),
                                                    sliderInput(ns("cores"), "Number of CPU Cores*", min = 1, max = (availableCores() - 1), value = 1, step = 1)
-                                  )
+                                  ),
+                                  conditionalPanel(condition = "input.snp_type == 'target'",
+                                                   ns = ns,
+                                                   radioButtons(ns("ref_alt"),
+                                                                label = "Extract REF and ALT info:",
+                                                                choices = list("Yes"= "yes", "No" = "no"),
+                                                                selected = "no")                                  )
                  ),
                  textInput(ns("d2v_output_name"), "Output File Name"),
-                 useShinyjs(),
-                 downloadButton(ns('download_d2vcf'), "Download VCF File", class = "butt"),
+                 actionButton(ns("run_analysis"), "Convert File"),
+                 uiOutput(ns('mybutton')),
+
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
                    p(downloadButton(ns('download_dose'), ""), "Dose Report Example File"),
-                   p(downloadButton(ns('download_counts'), ""), "Counts Example File"), 
+                   p(downloadButton(ns('download_counts'), ""), "Counts Example File"),
                    p(downloadButton(ns('download_madc'), ""), "MADC Example File"),hr(),
                    p(HTML("<b>Parameters description:</b>"), actionButton(ns("goPar"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
                    p(HTML("<b>Results description:</b>"), actionButton(ns("goRes"), icon("arrow-up-right-from-square", verify_fa = FALSE) )), hr(),
@@ -155,7 +162,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_Counts.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   output$download_madc <- downloadHandler(
     filename = function() {
       paste0("BIGapp_MADC_Example_file.csv")
@@ -165,20 +172,93 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       file.copy(ex, file)
     })
 
-  ##This is for the DArT files conversion to VCF
-  output$download_d2vcf <- downloadHandler(
-    filename = function() {
-      output_name <- gsub("\\.vcf$", "", input$d2v_output_name)
-      paste0(output_name, ".vcf.gz")
-    },
-    content = function(file) {
-      # Ensure the files are uploaded
-      # Missing input with red border and alerts
-      if(input$file_type == "DArT Dosage Reports"){
-        if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+
+  vcf_out <- eventReactive(input$run_analysis,{
+    # Ensure the files are uploaded
+    # Missing input with red border and alerts
+    if(input$file_type == "DArT Dosage Reports"){
+      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload Dose Report and Counts Files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+      # Get the uploaded file paths
+      dosage_file <- input$report_file$datapath
+      counts_file <- input$counts_file$datapath
+      ploidy <- input$dosage2vcf_ploidy
+
+      # Use a temporary file path without appending .vcf
+      temp_base <- tempfile()
+
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting DArT files to VCF")
+
+      # Convert to VCF using the BIGr package
+      cat("Running BIGr::dosage2vcf...\n")
+      dosage2vcf(
+        dart.report = dosage_file,
+        dart.counts = counts_file,
+        output.file = temp_base,
+        ploidy = as.numeric(ploidy)
+      )
+
+      # The output file should be temp_base.vcf
+      output_name <- paste0(temp_base, ".vcf")
+
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writting vcf.")
+      return(output_name)
+
+    } else if(input$file_type == "DArT MADC file"){
+      req(input$madc_file)
+      # First check if the MADC file is valid (a non-fixedAlleleID MADC file)
+
+      #Read only the first column for the first seven rows
+      first_seven_rows <- read.csv(input$madc_file$datapath, header = FALSE, nrows = 7, colClasses = c(NA, "NULL"))
+
+      #Check if all entries in the first column are either blank or "*"
+      check_entries <- all(first_seven_rows[, 1] %in% c("", "*"))
+
+      #Check if the MADC file has the filler rows or is processed from updated fixed allele ID pipeline
+      if (check_entries) {
+        #Note: This assumes that the first 7 rows are placeholder info from DArT processing
+        shinyalert(
+          title = "Raw MADC!",
+          text = "This MADC file has not been processed by the updated Breeding Insight fixed allele ID pipeline.",
+          size = "m",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+
+        #Exit the analysis
+        return()
+      }
+
+      #Now perform conversion depending on user options
+
+      if(input$snp_type == "target_off"){
+        if (is.null(input$madc_file$datapath) | input$hapDB_file$datapath == "" | input$botloci_file$datapath == "" | input$d2v_output_name == "") {
           shinyalert(
             title = "Missing input!",
-            text = "Upload Dose Report and Counts Files",
+            text = "Upload MADC, HaplotypeDB and BOTLOCI files",
             size = "s",
             closeOnEsc = TRUE,
             closeOnClickOutside = FALSE,
@@ -191,153 +271,90 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
             animation = TRUE
           )
         }
-        req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
-        # Get the uploaded file paths
-        dosage_file <- input$report_file$datapath
-        counts_file <- input$counts_file$datapath
-        ploidy <- input$dosage2vcf_ploidy
+        req(input$madc_file, input$hapDB_file, input$botloci_file)
 
         # Use a temporary file path without appending .vcf
         temp_base <- tempfile()
 
-        #Status
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting DArT files to VCF")
+        # merge MADC if multiple
+        if(length(input$madc_file$datapath) >1){
+          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 15, title = "Merging MADC files")
 
-        # Convert to VCF using the BIGr package
-        cat("Running BIGr::dosage2vcf...\n")
-        dosage2vcf(
-          dart.report = dosage_file,
-          dart.counts = counts_file,
-          output.file = temp_base,
-          ploidy = as.numeric(ploidy)
-        )
+          merged_madc <- paste0(temp_base, ".csv")
+
+          run_ids <- sapply(strsplit(input$madc_file$name, "_"), "[[",1)
+          if(length(run_ids) == 0) run_ids <- NULL
+
+          merge_MADCs(madc_list = as.list(input$madc_file$datapath), out_madc = merged_madc,run_ids = run_ids)
+          read_madc <- merged_madc
+        } else read_madc <- input$madc_file$datapath
 
         # The output file should be temp_base.vcf
         output_name <- paste0(temp_base, ".vcf")
 
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writting vcf.")
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
 
-        bgzip_compress(output_name, file)
+        get_OffTargets(madc = read_madc,
+                       botloci = input$botloci_file$datapath,
+                       hap_seq = input$hapDB_file$datapath,
+                       n.cores= input$cores,
+                       rm_multiallelic_SNP = TRUE,
+                       out_vcf = output_name,
+                       verbose = FALSE)
 
-      } else if(input$file_type == "DArT MADC file"){
-        req(input$madc_file)
-        # First check if the MADC file is valid (a non-fixedAlleleID MADC file)
-        
-        #Read only the first column for the first seven rows
-        first_seven_rows <- read.csv(input$madc_file$datapath, header = FALSE, nrows = 7, colClasses = c(NA, "NULL"))
-        
-        #Check if all entries in the first column are either blank or "*"
-        check_entries <- all(first_seven_rows[, 1] %in% c("", "*"))
-        
-        #Check if the MADC file has the filler rows or is processed from updated fixed allele ID pipeline
-        if (check_entries) {
-          #Note: This assumes that the first 7 rows are placeholder info from DArT processing
-          shinyalert(
-            title = "Raw MADC!",
-            text = "This MADC file has not been processed by the updated Breeding Insight fixed allele ID pipeline.",
-            size = "m",
-            closeOnEsc = TRUE,
-            closeOnClickOutside = FALSE,
-            html = TRUE,
-            type = "error",
-            showConfirmButton = TRUE,
-            confirmButtonText = "OK",
-            confirmButtonCol = "#004192",
-            showCancelButton = FALSE,
-            animation = TRUE
-          )
-          
-          #Exit the analysis
-          return()
-        }
-        
-        #Now perform conversion depending on user options
-        
-        if(input$snp_type == "target_off"){
-          if (is.null(input$madc_file$datapath) | input$hapDB_file$datapath == "" | input$botloci_file$datapath == "" | input$d2v_output_name == "") {
-            shinyalert(
-              title = "Missing input!",
-              text = "Upload MADC, HaplotypeDB and BOTLOCI files",
-              size = "s",
-              closeOnEsc = TRUE,
-              closeOnClickOutside = FALSE,
-              html = TRUE,
-              type = "error",
-              showConfirmButton = TRUE,
-              confirmButtonText = "OK",
-              confirmButtonCol = "#004192",
-              showCancelButton = FALSE,
-              animation = TRUE
-            )
-          }
-          req(input$madc_file, input$hapDB_file, input$botloci_file)
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
 
-          # Use a temporary file path without appending .vcf
-          temp_base <- tempfile()
+        return(output_name)
 
-          # merge MADC if multiple
-          if(length(input$madc_file$datapath) >1){
-            updateProgressBar(session = session, id = "dosage2vcf_pb", value = 15, title = "Merging MADC files")
+      } else if(input$snp_type == "target"){
 
-            merged_madc <- paste0(temp_base, ".csv")
+        # Use a temporary file path without appending .vcf
+        temp_base <- tempfile()
 
-            run_ids <- sapply(strsplit(input$madc_file$name, "_"), "[[",1)
-            if(length(run_ids) == 0) run_ids <- NULL
+        # merge MADC if multiple
+        if(length(input$madc_file$datapath) >1){
+          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 15, title = "Merging MADC files")
 
-            merge_MADCs(madc_list = as.list(input$madc_file$datapath), out_madc = merged_madc,run_ids = run_ids)
-            read_madc <- merged_madc
-          } else read_madc <- input$madc_file$datapath
+          merged_madc <- paste0(temp_base, ".csv")
 
-          # The output file should be temp_base.vcf
-          output_name <- paste0(temp_base, ".vcf")
+          run_ids <- sapply(strsplit(input$madc_file$name, "_"), "[[",1)
+          if(length(run_ids) == 0) run_ids <- NULL
 
-          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
-
-          get_OffTargets(madc = read_madc,
-                         botloci = input$botloci_file$datapath,
-                         hap_seq = input$hapDB_file$datapath,
-                         n.cores= input$cores,
-                         rm_multiallelic_SNP = TRUE,
-                         out_vcf = output_name,
-                         verbose = FALSE)
-
-          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
-
-          bgzip_compress(output_name, file)
-
-        } else if(input$snp_type == "target"){
-
-          # Use a temporary file path without appending .vcf
-          temp_base <- tempfile()
-
-          # merge MADC if multiple
-          if(length(input$madc_file$datapath) >1){
-            updateProgressBar(session = session, id = "dosage2vcf_pb", value = 15, title = "Merging MADC files")
-
-            merged_madc <- paste0(temp_base, ".csv")
-
-            run_ids <- sapply(strsplit(input$madc_file$name, "_"), "[[",1)
-            if(length(run_ids) == 0) run_ids <- NULL
-
-            merge_MADCs(madc_list = as.list(input$madc_file$datapath), out_madc = merged_madc,run_ids = run_ids)
-            read_madc <- merged_madc
-          } else read_madc <- input$madc_file$datapath
+          merge_MADCs(madc_list = as.list(input$madc_file$datapath), out_madc = merged_madc,run_ids = run_ids)
+          read_madc <- merged_madc
+        } else read_madc <- input$madc_file$datapath
 
 
-          # The output file should be temp_base.vcf
-          output_name <- paste0(temp_base, ".vcf")
+        # The output file should be temp_base.vcf
+        output_name <- paste0(temp_base, ".vcf")
 
-          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
-          madc2vcf(read_madc, output_name)
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
+        madc2vcf(read_madc, output_name, get_REF_ALT = input$ref_alt)
 
-          updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
-          bgzip_compress(output_name, file)
-        }
-
-        #Status
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
-
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
+        return(output_name)
       }
+
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+    }
+  })
+
+  # Only make available the download button when analysis is finished
+  output$mybutton <- renderUI({
+    if(isTruthy(vcf_out()))
+      downloadButton(ns("download_d2vcf"), "Download VCF file", class = "butt")
+  })
+
+
+  ##This is for the DArT files conversion to VCF
+  output$download_d2vcf <- downloadHandler(
+    filename = function() {
+      output_name <- gsub("\\.vcf$", "", input$d2v_output_name)
+      paste0(output_name, ".vcf.gz")
+    },
+    content = function(file) {
+      bgzip_compress(vcf_out(), file)
     }
   )
 
