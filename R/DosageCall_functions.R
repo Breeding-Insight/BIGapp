@@ -8,14 +8,20 @@
 #' @param backcross.gen ToDo
 #' @param intercross.gen ToDo
 #' @param selfing.gen ToDo
+#' @param min_ind_read ToDo
+#' @param min_ind_maf ToDo
 #' @param contamRate ToDo
+#' @param tol ToDo
 #' @param session ToDo
 #'
 #' @import polyRAD
 #' @importFrom vcfR read.vcfR is.biallelic write.vcf
 #' @importFrom R.utils gunzip
 #'
-polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcross.gen = 0, intercross.gen = 0, selfing.gen = 0, contamRate = 0.001, session) {
+polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
+                                backcross.gen = 0, intercross.gen = 0, selfing.gen = 0,
+                                contamRate = 0.001, min_ind_read = 1, min_ind_maf = 0,
+                                tol = 1e-05, session) {
 
   # Variables
   vcf_path <- vcf
@@ -28,36 +34,36 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
   # Having some issues formatting the output when multiallelic SNPs is input, so excluding for now
   temp_vcf <- vcfR::read.vcfR(vcf_path, verbose = FALSE)
   temp_vcf <- temp_vcf[is.biallelic(temp_vcf),]
-  
+
   # Function to randomly assign non-matching bases for polyRAD
   assign_random_bases <- function(vcf) {
     # Get the number of rows in the VCF
     num_rows <- nrow(vcf@fix)
-    
+
     # Generate random bases for REF and ALT
     bases <- c("A", "C", "G", "T")
     ref_bases <- sample(bases, num_rows, replace = TRUE)
     alt_bases <- character(num_rows) # Initialize an empty character vector
-    
+
     # Ensure REF and ALT are different for each row
     for (i in 1:num_rows) {
       alt_bases[i] <- sample(bases[bases != ref_bases[i]], 1)
     }
-    
+
     # Assign the new bases to the vcf object
     vcf@fix[, "REF"] <- ref_bases
     vcf@fix[, "ALT"] <- alt_bases
-    
+
     return(vcf)
   }
-  
+
   #Editing REF and ALT fields randomly temporarily if blank or AB
   ref_base <- temp_vcf@fix[1, "REF"]
   alt_base <- temp_vcf@fix[1, "ALT"]
   if (is.na(ref_base) || is.na(alt_base) || alt_base == "B") {
   temp_vcf <- assign_random_bases(temp_vcf)
   }
-  
+
   # Adding filtered VCF as a temp object
   temp_vcf_path <- tempfile(fileext = ".vcf.gz")
   vcfR::write.vcf(temp_vcf, file = temp_vcf_path)
@@ -73,10 +79,11 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
   # Retaining all markers with at least 1 individual with reads (minimal filtering at this stage)
   # Need to determine the best contamRate to use; currently using the default
   polyRAD_obj <- polyRAD::VCF2RADdata(file = temp_unzipped_path,
-                                      min.ind.with.reads = 1,
-                                      min.ind.with.minor.allele = 0,
+                                      min.ind.with.reads = min_ind_read,
+                                      min.ind.with.minor.allele = min_ind_maf,
                                       taxaPloidy = ploidy,
                                       contamRate = contamRate,
+                                      tol = tol,
                                       phaseSNPs = FALSE
 
   )
@@ -106,13 +113,13 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
   # Perform dosage calling
   # "If you expect that your species has high linkage disequilibrium, the functions IterateHWE_LD and IteratePopStructLD behave like IterateHWE and IteratePopStruct, respectively, but also update priors based on genotypes at linked loci."
   if (model == "IterateHWE") {
-    rad <- IterateHWE(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IterateHWE(polyRAD_obj, tol = tol, overdispersion = OD)
   } else if (model == "IteratePopStruct") {
-    rad <- IteratePopStruct(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IteratePopStruct(polyRAD_obj, tol = tol, overdispersion = OD)
   } else if (model == "IterateHWE_LD") {
-    rad <- IterateHWE_LD(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IterateHWE_LD(polyRAD_obj, tol = tol, overdispersion = OD)
   } else if (model == "IteratePopStruct_LD") {
-    rad <- IteratePopStruct_LD(polyRAD_obj, tol = 1e-5, overdispersion = OD)
+    rad <- IteratePopStruct_LD(polyRAD_obj, tol = tol, overdispersion = OD)
   } else {
     if (!is.null(p1)) {
       # First check that p1 is a valid parent
@@ -135,7 +142,8 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL, backcr
                                    overdispersion = OD,
                                    n.gen.backcrossing = n.bx,
                                    n.gen.intermating = n.inter,
-                                   n.gen.selfing = n.self)
+                                   n.gen.selfing = n.self,
+                                   tol=tol)
   }
 
 

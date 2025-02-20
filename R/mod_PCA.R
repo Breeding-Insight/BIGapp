@@ -87,7 +87,7 @@ mod_PCA_ui <- function(id){
                  div(style="display:inline-block; float:right",dropdownButton(
                    tags$h3("Save Image"),
                    selectInput(inputId = ns('pca_figure'), label = 'Figure', choices = c("2D Plot", "Scree Plot"), selected = "2D Plot"),
-                   selectInput(inputId = ns('pca_image_type'), label = 'File', choices = c("jpeg","tiff","png"), selected = "jpeg"),
+                   selectInput(inputId = ns('pca_image_type'), label = 'File', choices = c("jpeg","tiff","png","svg"), selected = "jpeg"),
                    sliderInput(inputId = ns('pca_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('pca_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('pca_image_height'), label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
@@ -595,8 +595,10 @@ mod_PCA_server <- function(input, output, session, parent_session){
         paste("pca-", Sys.Date(), ".jpg", sep = "")
       } else if (input$pca_image_type == "png") {
         paste("pca-", Sys.Date(), ".png", sep = "")
-      } else {
+      } else if (input$pca_image_type == "tiff") {
         paste("pca-", Sys.Date(), ".tiff", sep = "")
+      } else {
+        paste("pca-", Sys.Date(), ".svg", sep = "")
       }
     },
     content = function(file) {
@@ -606,8 +608,10 @@ mod_PCA_server <- function(input, output, session, parent_session){
         jpeg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
       } else if (input$pca_image_type == "png") {
         png(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
-      } else {
+      } else if (input$pca_image_type == "tiff") {
         tiff(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height), res = as.numeric(input$pca_image_res), units = "in")
+      } else{
+        svg(file, width = as.numeric(input$pca_image_width), height = as.numeric(input$pca_image_height))
       }
 
       # Plot based on user selection

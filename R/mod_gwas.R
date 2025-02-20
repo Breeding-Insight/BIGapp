@@ -120,7 +120,7 @@ mod_gwas_ui <- function(id){
                                                                                            "Manhattan Plot",
                                                                                            "QQ Plot",
                                                                                            "LD Plot")),
-                   selectInput(inputId = ns('gwas_image_type'), label = 'File Type', choices = c("jpeg","tiff","png"), selected = "jpeg"),
+                   selectInput(inputId = ns('gwas_image_type'), label = 'File Type', choices = c("jpeg","tiff","png","svg"), selected = "jpeg"),
                    sliderInput(inputId = ns('gwas_image_res'), label = 'Resolution', value = 300, min = 50, max = 1000, step=50),
                    sliderInput(inputId = ns('gwas_image_width'), label = 'Width', value = 9, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('gwas_image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
@@ -795,8 +795,10 @@ mod_gwas_server <- function(input, output, session, parent_session){
         paste("GWAS-", Sys.Date(), ".jpg", sep="")
       } else if (input$gwas_image_type == "png") {
         paste("GWAS-", Sys.Date(), ".png", sep="")
-      } else {
+      } else if (input$gwas_image_type == "tiff") {
         paste("GWAS-", Sys.Date(), ".tiff", sep="")
+      } else {
+        paste("GWAS-", Sys.Date(), ".svg", sep="")
       }
     },
     content = function(file) {
@@ -806,8 +808,10 @@ mod_gwas_server <- function(input, output, session, parent_session){
         jpeg(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
       } else if (input$gwas_image_type == "png") {
         png(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
-      } else {
+      } else if (input$gwas_image_type == "tiff") {
         tiff(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height), res= as.numeric(input$gwas_image_res), units = "in")
+      } else {
+        svg(file, width = as.numeric(input$gwas_image_width), height = as.numeric(input$gwas_image_height))
       }
 
       # Conditional plotting based on input selection
