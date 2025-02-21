@@ -142,8 +142,7 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
                                    overdispersion = OD,
                                    n.gen.backcrossing = n.bx,
                                    n.gen.intermating = n.inter,
-                                   n.gen.selfing = n.self,
-                                   tol=tol)
+                                   n.gen.selfing = n.self)
   }
 
 
