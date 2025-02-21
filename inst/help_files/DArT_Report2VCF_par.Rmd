@@ -23,6 +23,13 @@ If you provide a MADC file, you can choose between extracting:
 * Only target SNPs – These are the SNPs for which probes were specifically designed. If your panel includes 3,000 SNPs, your output VCF file should contain exactly 3,000 target SNPs.
 * Both target and off-target SNPs – In addition to target SNPs, BIGapp will identify other SNPs within the amplicon region.
 
+If you decide to extract only the target SNPs, you can choose if reference and alternative bases should also be extracted. For extracting this information from the MADC file, BIGapp compares the reference sequences with the alternative, finds the polymorphic site and notate the changing base. This requires:
+
+* Reference and alternative sequences for each tag
+* A single polymorphism between them. If more than one is found, the tag is discarded. 
+
+If you choose to not extract this information, all tags will be kept, but your VCF will have missing data (".") in the REF and ALT fields. The only process in BIGapp that will require this information is the Dosage Calling with PolyRAD.
+
 To identify off-target SNPs, BIGapp performs a pairwise alignment between each sequence and its reference using the Bioconductor packages Biostrings and pwalign.
 
 This option requires the following additional files:

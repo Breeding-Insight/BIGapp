@@ -146,6 +146,7 @@ findK <- function(genotypeMatrix, maxK, ploidy) {
 
 }
 
+#' @importFrom methods new
 performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
 
   #Convert matrix to genlight

@@ -14,6 +14,9 @@ polyRAD_dosage_call(
   intercross.gen = 0,
   selfing.gen = 0,
   contamRate = 0.001,
+  min_ind_read = 1,
+  min_ind_maf = 0,
+  tol = 1e-05,
   session
 )
 }
@@ -35,6 +38,12 @@ polyRAD_dosage_call(
 \item{selfing.gen}{ToDo}
 
 \item{contamRate}{ToDo}
+
+\item{min_ind_read}{ToDo}
+
+\item{min_ind_maf}{ToDo}
+
+\item{tol}{ToDo}
 
 \item{session}{ToDo}
 }
