@@ -89,7 +89,7 @@ app_ui <- function(request) {
           style = "display: flex; align-items: center;",  # Align text and images horizontally
           div(
             style = "display: flex; flex-direction: column; margin-right: 15px; text-align: right;",
-            div("2024 Breeding Insight"),
+            div("2025 Breeding Insight"),
             div("Funded by USDA through Cornell University")
           ),
           div(
@@ -104,7 +104,7 @@ app_ui <- function(request) {
         ),
         left = div(
           style = "display: flex; align-items: center; height: 100%;",  # Center the version text vertically
-          "v1.1.0")
+          "v1.2.0 development")
       ),
       dashboardBody(
         disconnectMessage(), #Adds generic error message for any error if not already accounted for
