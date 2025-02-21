@@ -1,6 +1,11 @@
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/Breeding-Insight/BIGapp/workflows/R-CMD-check/badge.svg)](https://github.com/Breeding-Insight/BIGapp/actions)
+![GitHub Release](https://img.shields.io/github/v/release/Breeding-Insight/BIGapp)
 [![Development Status](https://img.shields.io/badge/development-active-blue.svg)](https://img.shields.io/badge/development-active-blue.svg)
+![GitHub License](https://img.shields.io/github/license/Breeding-Insight/BIGapp)
+
+
+
 <!-- badges: end -->
 
 <div align="center">
