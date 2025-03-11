@@ -45,7 +45,7 @@ BIGapp is a user-friendly web application built with R and Shiny, designed to si
 ## Getting Started
 
 ### Tutorials
-New to BIGapp? Check out our comprehensive tutorial to guide you through the process: [BIGapp Tutorials]()
+New to BIGapp? Check out our comprehensive tutorial to guide you through the process: [BIGapp Tutorials](https://scribehow.com/page/BIGapp_Tutorials__FdLsY9ZxQsi6kgT9p-U2Zg)
 
 ### Online Preview
 
