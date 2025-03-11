@@ -49,7 +49,7 @@ New to BIGapp? Check out our comprehensive tutorial to guide you through the pro
 
 ### Online Preview
 
-Try out a live demo of BIGapp here: [BIGapp Demo](https://big-demo.shinyapps.io/bigapp/)
+Try out a live demo of BIGapp here: [BIGapp Demo](https://big-demo.shinyapps.io/bigapp-main/)
 
 ### Local Installation
 
