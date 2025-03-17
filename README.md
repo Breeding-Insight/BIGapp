@@ -54,22 +54,25 @@ New to BIGapp? Check out our comprehensive tutorial to guide you through the pro
 
 ### Online Preview
 
-Try out a live demo of BIGapp here: [BIGapp Demo](https://big-demo.shinyapps.io/bigapp/)
+Try out a live demo of BIGapp here: [BIGapp Demo](https://big-demo.shinyapps.io/bigapp-main/)
 
 ### Local Installation
 
 1. **Install R:** Download and install the latest version of R from [CRAN](https://cran.r-project.org/).
 2. **Open Terminal (macOS/Linux) or R Console (Windows).**
-3. **Install and Run:**
+3. **Installation:**
     ```R
     if (!require("BiocManager", quietly = TRUE))
         install.packages("BiocManager")
         install.packages("remotes")
     
     BiocManager::install("Breeding-Insight/BIGapp", dependencies = TRUE)
+    ```
+4. **Starting BIGapp:**
+    ```R
     BIGapp::run_app()
     ```
-4. **Access in Browser:** The BIGapp interface will open in your default web browser.
+5. **Access in Browser:** The BIGapp interface will open in your default web browser.
 
 ### Online Deployment (Coming Soon)
 
