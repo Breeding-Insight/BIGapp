@@ -73,7 +73,7 @@ mod_Filtering_ui <- function(id){
              valueBoxOutput(ns("snp_retained_box"), width = NULL),
              valueBoxOutput(ns("snp_removed_box"), width = NULL),
              box(title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,
-                 selectInput(ns("vcf_type"), "Histogram Data", choices = c("Pre-Filter VCF", "Filtered VCF"), selected = "Pre-Filter VCF"),
+                 selectInput(ns("vcf_type"), "Histogram Data", choices = c("Unfiltered VCF", "Filtered VCF"), selected = "Unfiltered VCF"),
                  sliderInput(ns("hist_bins"),"Histogram Bins", min = 1, max = 1200, value = c(50), step = 1), width = NULL,
                  div(style="display:inline-block; float:left", dropdownButton(
                    selectInput(inputId = ns('filter_hist'), label = 'Figure', choices = c("Bias Histogram",
@@ -167,7 +167,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     req(input$vcf_type)
 
     # Switch between 'pre-filtered' or 'filtered' data based on user choice
-    if (input$vcf_type == "Pre-Filter VCF") {
+    if (input$vcf_type == "Unfiltered VCF") {
       list(
         snp_miss = filtering_files$raw_snp_miss_df,
         sample_miss = filtering_files$raw_sample_miss_df,
@@ -385,7 +385,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       )
     } else {
 
-      if (!is.null(filtering_files$format_fields) && filtering_files$format_fields == TRUE && input$vcf_type == "Pre-Filter VCF") {
+      if (!is.null(filtering_files$format_fields) && filtering_files$format_fields == TRUE && input$vcf_type == "Unfiltered VCF") {
         # Include "Bias Histogram", "OD Histogram", and "Prop_mis Histogram" for Pre-Filtered VCF
         tabBox(
           width = 12, collapsible = FALSE, status = "info",
