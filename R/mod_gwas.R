@@ -147,6 +147,7 @@ mod_gwas_ui <- function(id){
 #' @importFrom bs4Dash updatebs4TabItems updateBox
 #' @importFrom shiny updateTabsetPanel
 #' @importFrom plotly ggplotly
+#' @import dplyr
 #' @noRd
 mod_gwas_server <- function(input, output, session, parent_session){
 
@@ -188,6 +189,123 @@ mod_gwas_server <- function(input, output, session, parent_session){
     # expand specific box
     updateBox(id = "GWAS_box", action = "toggle", session = parent_session)
   })
+  
+  #Default choices
+  trait_options <- reactiveValues(
+    missing_data = "NA",
+    custom_missing = NULL,
+    sample_column = NULL,
+    file_type = NULL
+  )
+  
+  #UI popup window for input
+  observeEvent(input$phenotype_file, {
+    req(input$phenotype_file)
+    #Get the column names of the csv file
+    info_df <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, nrows=2)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
+    
+    # Read first 5 rows for preview
+    preview_data <- tryCatch({
+      head(read.csv(input$phenotype_file$datapath, nrows = 5, na.strings=trait_options$missing_data),5)
+    }, error = function(e) {
+      NULL
+    })
+    
+    showModal(modalDialog(
+      title = "Trait File Options",
+      size= "l",
+      
+      selectInput(
+        inputId = ns('missing_data'),
+        label = 'Missing Data Value',
+        choices = c("NA",".","-99","(blank)","Custom"),
+        selected = trait_options$missing_data  # Initialize with stored value
+      ),
+      conditionalPanel(
+        condition = "input.missing_data == 'Custom'", ns = ns,
+        div(
+          textInput(
+            inputId = ns('custom_missing'),
+            label = 'Custom Missing Value',
+            value = trait_options$custom_missing  # Initialize with stored value
+          )
+        ),
+        div(
+          id = ns("custom_missing_warning"),
+          style = "color: red;",
+          textOutput(ns("custom_missing_msg"))
+        )
+      ),
+      selectInput(
+        inputId = ns('sample_column'),
+        label = 'Sample ID Column',
+        choices = colnames(info_df)
+      ),
+      
+      if (!is.null(preview_data)) {
+        div(
+          h4(
+            "File Preview (First 5 Rows)",
+            style = "font-size: 18px; color: darkgrey;" # Smaller and purple
+          ),
+          div(
+            style = "background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;", # Grey box style
+            div(
+              style = "max-width: 100%; overflow-x: auto;", # Constrain table width and enable horizontal scrolling
+              tableOutput(ns("file_preview"))
+            )
+          )
+        )
+      } else {
+        div(
+          p("Could not load file preview.")
+        )
+      },
+      
+      footer = tagList(
+        actionButton(ns("save_trait_options"), "Save")
+      )
+    ))
+    
+    # Render the preview table
+    output$file_preview <- renderTable({
+      req(preview_data)
+      preview_data
+    })
+    
+  })
+  
+  output$custom_missing_msg <- renderText({
+    if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
+      "Please enter a custom missing value."
+    } else {
+      ""
+    }
+  })
+
+  
+  #Close popup window when user "saves options"
+  observeEvent(input$save_trait_options, {
+    trait_options$missing_data <- input$missing_data
+    trait_options$custom_missing <- input$custom_missing
+    trait_options$sample_column <- input$sample_column
+    #trait_options$file_type
+    # Save other inputs as needed
+    
+    if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
+      # Validation failed: display warning and prevent modal closure
+      showNotification(
+        "Please enter a custom missing value.",
+        type = "error",
+        duration = NULL # Make it persistent
+      )
+      return() # Stop further execution and keep the modal open
+    }
+    
+    removeModal()  # Close the modal after saving
+  })
+  
 
   #Call some plots to NULL so that the spinners do not show before analysis
   output$bic_plot <- renderDT(NULL)
@@ -260,7 +378,18 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
     #Make subset phenotype file (need to develop alternative method that does not save a new phenotype file each time.)
     #I think I can subset the read.GWAS file pheno and fixed categories (data@pheno[,c("trait")]) and data@fixed = phenotype_file[,c("List of fixed traits")]
-    phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE)
+    # assign the missing data and sample ID column based on user selections
+    if (trait_options$missing_data == "(blank)") {
+      phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, na.strings="")
+    } else if (trait_options$missing_data == "Custom") {
+      phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$custom_missing)
+    } else {
+      phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$missing_data)
+    }
+    
+    # Make the sample ID column the first column in the dataframe
+    sample_col_name <- input$sample_column
+    phenotype_file <- phenotype_file[, c(sample_col_name, setdiff(names(phenotype_file), sample_col_name))]
 
     # Remove empty lines
     rm.empty <- which(apply(phenotype_file, 1, function(x) all(is.na(x) | x == "")))
