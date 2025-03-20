@@ -428,7 +428,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
 
       # Avoid exporting gziped instead of bgziped
       gunzip(temp_file)
-      temp_file <- gsub(".gz", "", temp_file)
+      temp_file <- gsub("\\.gz$", "", temp_file)
 
       # Check if the VCF file was created
       if (file.exists(temp_file)) {
