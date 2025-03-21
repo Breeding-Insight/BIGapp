@@ -439,3 +439,113 @@ subset_vcf <- function(vcfR.object, remove.sample.list = NULL, remove.sample.fil
   return(list(vcf = vcf, removed_number = removed_number))
   
 }
+
+#' Internal function
+#'
+#' @param Gmat.file Genotype matrix with numeric dosage values in the format of samples as columns and SNPs as rows
+#' @param ploidy species ploidy
+#' @param output.file path to save the VCF file
+#' @param dosageCount The format of the dosage values. Default is the count of reference alleles, where 0 = homozygous alternate
+#'
+#' @importFrom readr read_csv
+#' @import tidyverse
+#' @importFrom reshape2 melt dcast
+#' @importFrom BIGr flip_dosage
+#'
+gmatrix2vcf <- function(Gmat.file, ploidy, output.file, dosageCount = "Reference") {
+  # Convert a genotype matrix with numeric dosage values to a VCF file
+  input_path <- Gmat.file
+  
+  #Import matrix
+  dosage <- readr::read_csv(input_path)
+  dosage <- data.frame(dosage, check.names = FALSE)
+  rownames(dosage) <- dosage[,1]
+  names(dosage)[1] <- "ID"
+  
+  ###Test that all values are integers within file
+  
+  # Header
+  vcf_header <- c(
+      "##fileformat=VCFv4.3",
+      paste0("##BIGapp_gmatrix2vcf=",packageVersion("BIGapp")),
+      "##reference=NA",
+      "##contig=<ID=NA,length=NA>",
+      '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype, where 1 is the count of alternate alleles">'
+  )
+
+  
+  # Assuming markers are in the "Chr_Pos" format
+  df <- dosage %>%
+    separate(ID, into = c("Chr", "Pos"), sep = "_")
+  
+  #Make the VCF df
+  vcf_df <- data.frame(
+    CHROM = df$Chr,
+    POS = df$Pos,
+    ID = dosage$ID,
+    REF = ".",
+    ALT = ".",
+    QUAL = ".",
+    FILTER = ".",
+    INFO = ".",
+    FORMAT = "GT"
+  )
+  
+  cat("Converting dosages to genotype format\n")
+  
+  ###Convert genotypes from dosage to gt
+  # Precompute genotype strings for all possible dosage values to improve efficiency
+  precompute_genotype_strings <- function(ploidy) {
+    genotype_strings <- character(ploidy + 1)
+    # Generate the genotype string based on the dosage and ploidy
+    # Updog uses the ref counts, which is not typical, so this corrects it
+    for (dosage in 0:ploidy) {
+      ref_count <- dosage
+      alt_count <- ploidy - dosage
+      genotype_strings[dosage + 1] <- paste(c(rep("0", ref_count), rep("1", alt_count)), collapse = "/")
+    }
+    return(genotype_strings)
+  }
+  
+  # Apply the precomputed genotype strings to the matrix
+  convert_dosage2gt <- function(dosage_matrix, ploidy) {
+    dosage_matrix <- as.matrix(dosage_matrix)
+    genotype_strings <- precompute_genotype_strings(ploidy)
+    
+    # Handle missing values separately
+    genotype_matrix <- matrix(genotype_strings[dosage_matrix + 1], nrow = nrow(dosage_matrix), ncol = ncol(dosage_matrix))
+    #genotype_matrix[is.na(dosage_matrix)] <- "./." # Handle missing values
+    genotype_matrix[is.na(dosage_matrix)] <- paste(rep(".", ploidy), collapse = "/")
+    
+    # Retain row and column names
+    rownames(genotype_matrix) <- rownames(dosage_matrix)
+    colnames(genotype_matrix) <- colnames(dosage_matrix)
+    
+    return(genotype_matrix)
+  }
+  
+  # Convert the dosage matrix to genotypes
+  # Adjust dosage values depending on allele count
+  dosage_check <- ifelse(dosageCount == "Reference", FALSE, TRUE)
+  dosage <- BIGr::flip_dosage(dosage[,-c(1)], ploidy, is.reference= dosage_check)
+  geno_df <- convert_dosage2gt(dosage, ploidy)
+  
+  #Combine info from the matrices to form the VCF information for each sample
+  #Combine the dataframes together
+  vcf_df <- cbind(vcf_df,geno_df)
+  
+  # Add # to the CHROM column name
+  colnames(vcf_df)[1] <- "#CHROM"
+  
+  # Write the header to the file
+  writeLines(vcf_header, con = output.file)
+  
+  # Append the dataframe to the file in tab-separated format
+  suppressWarnings(
+    write.table(vcf_df, file = output.file, sep = "\t", quote = FALSE, row.names = FALSE, col.names = TRUE, append = TRUE)
+  )
+  
+  # Unload all items from memory
+  rm(vcf_df, geno_df, dosage, df)
+  
+}
