@@ -407,3 +407,35 @@ bgzip_compress <- function(output_name, file){
     stop("Error: Failed to create the VCF file.")
   }
 }
+
+#' Internal function
+#'
+#' @param vcfR.object vcfR object after importing to R with vcfR::read.vcfR
+#' @param remove.sample.list A list of sample names to be removed
+#' @param remove.sample.file (optional) The path to a txt file with a list of sample names to be removed, where each sample is on a new line
+#'
+#' @importFrom readr read.csv
+#'
+subset_vcf <- function(vcfR.object, remove.sample.list = NULL, remove.sample.file = NULL) {
+  # Remove samples from the VCF object
+  
+  vcf <- vcfR.object
+  
+  if (!is.null(remove.sample.file)){
+    #unwanted_samples <- read.csv(remove.sample.file, header = FALSE, stringsAsFactors = FALSE)$V1
+    unwanted_samples <- suppressWarnings(readLines(remove.sample.file))
+    
+  }else{
+    unwanted_samples <- remove.sample.list
+  }
+  
+  all_samples <- names(data.frame(vcf@gt, check.names=FALSE))
+  samples_to_keep <- all_samples[!all_samples %in% unwanted_samples]
+  vcf <- vcf[,samples_to_keep]
+  
+  #Get the number of samples removed to add to the filtering info popup
+  removed_number <- (length(all_samples) - length(samples_to_keep))
+  
+  return(list(vcf = vcf, removed_number = removed_number))
+  
+}
