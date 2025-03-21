@@ -462,9 +462,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     # Create a data frame with PC scores
     pc_df <- data.frame(PC1 = pc_scores[, 1], PC2 = pc_scores[, 2],
                         PC3 = pc_scores[, 3], PC4 = pc_scores[, 4],
-                        PC5 = pc_scores[, 5], PC6 = pc_scores[, 6],
-                        PC7 = pc_scores[, 7], PC8 = pc_scores[, 8],
-                        PC9 = pc_scores[, 9], PC10 = pc_scores[, 10])
+                        PC5 = pc_scores[, 5])
 
 
     # Compute the percentage of variance explained for each PC
