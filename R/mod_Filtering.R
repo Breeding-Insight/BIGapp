@@ -63,7 +63,15 @@ mod_Filtering_ui <- function(id){
                    status = "warning",
                    icon = icon("info"), width = "300px",
                    tooltip = tooltipOptions(title = "Click to see info!")
-                 ))
+                 )),
+                 br(),
+                 tags$hr(style="border-color: #d3d3d3; margin-top: 20px; margin-bottom: 20px;"),  # Lighter grey line
+                 div(style="text-align: left; margin-top: 10px;",
+                     actionButton(ns("advanced_options"),
+                                  label = HTML(paste(icon("cog", style = "color: #007bff;"), "Advanced Options")),
+                                  style = "background-color: transparent; border: none; color: #007bff; font-size: smaller; text-decoration: underline; padding: 0;"
+                     )
+                 )
              )
       ),
       column(width = 6,
@@ -104,6 +112,7 @@ mod_Filtering_ui <- function(id){
 #'
 #' @import vcfR
 #' @import BIGr
+#' @importFrom shinyWidgets virtualSelectInput
 #' @importFrom shinyjs enable disable useShinyjs
 #' @importFrom graphics abline axis hist
 #'
@@ -147,6 +156,101 @@ mod_Filtering_server <- function(input, output, session, parent_session){
                       selected = "VCF_Filtering_cite")
     # expand specific box
     updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
+  })
+  
+  
+  ## Advanced options popup
+  #Default model choices
+  advanced_options <- reactiveValues(
+    sample_list = NULL,
+    remove_list = NULL,
+    remove_file = NULL
+  )
+  
+  #List the ped file name if previously uploaded
+  output$uploaded_file_name <- renderText({
+    if (!is.null(advanced_options$remove_file)) {
+      paste("Previously uploaded file:", advanced_options$remove_file$name)
+    } else {
+      ""  # Return an empty string if no file has been uploaded
+    }
+  })
+  
+  #Get list of sample names from VCF file
+  observeEvent(input$updog_rdata, {
+    #populate preview_data
+    preview_vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE, nrows = 1)
+    
+    #Get names
+    advanced_options$sample_list <- names(data.frame(preview_vcf@gt, check.names=FALSE)[,-1])
+    
+    rm(preview_vcf)
+  })
+  
+  #UI popup window for input
+  observeEvent(input$advanced_options, {
+    showModal(modalDialog(
+      title = "Advanced Options",
+      size = "l",
+      div(
+        h4(
+          "Remove Samples From VCF",
+          style = "font-size: 18px; color: black;" # Smaller and purple
+        ),
+      ),
+      fluidRow(
+        column(
+          width = 5,
+          virtualSelectInput(
+            inputId = ns("remove_list"),
+            label = "Select Samples to Remove",
+            choices = advanced_options$sample_list,
+            selected = advanced_options$remove_list,
+            showValueAsTags = TRUE,
+            search = TRUE,
+            multiple = TRUE
+          )
+        ),
+        column(
+          width = 1,
+          h4(
+            "or",
+            style = "font-size: 20px; color: blue;"
+          )
+        ),
+        column(
+          width = 5,
+          div(
+            fileInput(ns("remove_file"), "Upload Sample File", accept = ".txt"),
+            conditionalPanel(
+              condition = "output.uploaded_file_name !== ''",
+              textOutput(ns("uploaded_file_name"))
+            )
+          )
+        )
+      ),
+      footer = tagList(
+        modalButton("Close"),
+        actionButton(ns("save_advanced_options"), "Save")
+      )
+    ))
+  })
+  
+  
+  
+  #Close popup window when user "saves options"
+  observeEvent(input$save_advanced_options, {
+    #Only close the window if one of the options has been selected
+    if (!is.null(input$remove_list) && !is.null(input$remove_file)) {
+      showNotification("Please select only one method (list or file) to remove samples. Please refresh BIGapp", type = "warning")
+    } else {
+      advanced_options$remove_list <- input$remove_list
+      advanced_options$remove_file <- input$remove_file
+      # Save other inputs as needed
+      
+      removeModal()
+    }
+    
   })
 
   #vcf
@@ -291,6 +395,25 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     filtering_files$raw_sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
 
     rm(gt_matrix) #Remove gt matrix
+    
+    #Remove the samples if any are manually selected from advanced options
+    if (!is.null(advanced_options$remove_list)) {
+      advanced_options$remove_file <- NULL #Prioritize manually selected samples if a file was also uploaded (add a user warning if both are uploaded in model)
+      
+      vcf_temp <- subset_vcf(vcf, remove.sample.list = advanced_options$remove_list)
+      vcf <- vcf_temp[[1]]
+      removed_samples <- vcf_temp[[2]]
+      rm(vcf_temp)
+    } else if (!is.null(advanced_options$remove_file)) {
+      
+      #Remove the samples
+      vcf_temp <- subset_vcf(vcf, remove.sample.file = advanced_options$remove_file$datapath)
+      vcf <- vcf_temp[[1]]
+      removed_samples <- vcf_temp[[2]]
+      rm(vcf_temp)
+    } else {
+      removed_samples <- 0
+    }
 
     # Filtered VCF
     vcf <- filterVCF(vcf.file = vcf,
@@ -351,10 +474,26 @@ mod_Filtering_server <- function(input, output, session, parent_session){
 
     #User warning if samples were removed during filtering
     sample_removed <- starting_samples - final_samples
-    if (sample_removed > 0) {
+    
+    if (sample_removed > 0 && removed_samples == 0) {
       shinyalert(
         title = "Samples Filtered",
         text = paste(sample_removed, "samples were removed during filtering."),
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "info",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    } else if (sample_removed > 0 && removed_samples > 0) {
+      shinyalert(
+        title = "Samples Filtered",
+        text = paste(sample_removed, "samples were removed during filtering.\n",removed_samples,"of",sample_removed,"were manually removed by user input."),
         size = "s",
         closeOnEsc = TRUE,
         closeOnClickOutside = FALSE,
