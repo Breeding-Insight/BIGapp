@@ -384,7 +384,25 @@ mod_PCA_server <- function(input, output, session, parent_session){
       }
     }
 
-    #Start analysis
+    #Start analysis following a genotype data check
+    
+    if (ncol(genomat) < 5){
+      shinyalert(
+        title = "Small Genotype File",
+        text = "BIGapp currently requires at least 5 samples to perform a PCA",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      req(ncol(genomat) > 5) # Stop the analysis if duplicates are found
+    }
 
     # Passport info
     if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
