@@ -67,6 +67,7 @@ Imports:
     matrixcalc,
     markdown,
     Rsamtools,
+    VariantAnnotation,
     methods
 Remotes:
     github::jendelman/GWASpoly,
