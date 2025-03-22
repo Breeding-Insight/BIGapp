@@ -41,6 +41,8 @@ Imports:
     golem,
     ggplot2,
     purrr,
+    readr,
+    reshape2,
     scales,
     shiny,
     shinyWidgets,
