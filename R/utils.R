@@ -414,7 +414,6 @@ bgzip_compress <- function(output_name, file){
 #' @param remove.sample.list A list of sample names to be removed
 #' @param remove.sample.file (optional) The path to a txt file with a list of sample names to be removed, where each sample is on a new line
 #'
-#' @importFrom readr read.csv
 #'
 subset_vcf <- function(vcfR.object, remove.sample.list = NULL, remove.sample.file = NULL) {
   # Remove samples from the VCF object
@@ -448,7 +447,7 @@ subset_vcf <- function(vcfR.object, remove.sample.list = NULL, remove.sample.fil
 #' @param dosageCount The format of the dosage values. Default is the count of reference alleles, where 0 = homozygous alternate
 #'
 #' @importFrom readr read_csv
-#' @import tidyverse
+#' @import tidyr
 #' @importFrom reshape2 melt dcast
 #' @importFrom BIGr flip_dosage
 #'

@@ -60,8 +60,8 @@ mod_dosage2vcf_ui <- function(id){
                                                    ns = ns,
                                                    radioButtons(ns("ref_alt"),
                                                                 label = "Extract REF and ALT info:",
-                                                                choices = list("Yes"= "yes", "No" = "no"),
-                                                                selected = "no")                                  )
+                                                                choices = list("Yes"= "TRUE", "No" = "FALSE"),
+                                                                selected = "TRUE")                                  )
                  ),
                  textInput(ns("d2v_output_name"), "Output File Name"),
                  actionButton(ns("run_analysis"), "Convert File"),
