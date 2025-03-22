@@ -41,6 +41,8 @@ Imports:
     golem,
     ggplot2,
     purrr,
+    readr,
+    reshape2,
     scales,
     shiny,
     shinyWidgets,
@@ -67,6 +69,7 @@ Imports:
     matrixcalc,
     markdown,
     Rsamtools,
+    VariantAnnotation,
     methods
 Remotes:
     github::jendelman/GWASpoly,

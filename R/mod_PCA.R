@@ -384,7 +384,25 @@ mod_PCA_server <- function(input, output, session, parent_session){
       }
     }
 
-    #Start analysis
+    #Start analysis following a genotype data check
+    
+    if (ncol(genomat) < 5){
+      shinyalert(
+        title = "Small Genotype File",
+        text = "BIGapp currently requires at least 5 samples to perform a PCA",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      req(ncol(genomat) > 5) # Stop the analysis if duplicates are found
+    }
 
     # Passport info
     if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
@@ -462,9 +480,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     # Create a data frame with PC scores
     pc_df <- data.frame(PC1 = pc_scores[, 1], PC2 = pc_scores[, 2],
                         PC3 = pc_scores[, 3], PC4 = pc_scores[, 4],
-                        PC5 = pc_scores[, 5], PC6 = pc_scores[, 6],
-                        PC7 = pc_scores[, 7], PC8 = pc_scores[, 8],
-                        PC9 = pc_scores[, 9], PC10 = pc_scores[, 10])
+                        PC5 = pc_scores[, 5])
 
 
     # Compute the percentage of variance explained for each PC

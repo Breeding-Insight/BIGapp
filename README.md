@@ -20,7 +20,7 @@ BIGapp is a user-friendly web application built with R and Shiny, designed to si
 
 ## Key Features
 
-- **Web-Based Interface:** Access BIGapp through your web browser, eliminating the need for complex software installations.
+- **Web-Based Interface:** Access BIGapp through your web browser, eliminating the need for using command-line inputs to perform genomic analysis.
 - **Genotype Processing:**
     -  Call genotypes from read counts.
     -  Filter SNPs based on various criteria.

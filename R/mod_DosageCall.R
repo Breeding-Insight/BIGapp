@@ -32,33 +32,33 @@ mod_DosageCall_ui <- function(id){
           "* Required",
           selectInput(ns("Rpackage"), "Dosage Calling Method", choices = c("Updog", "polyRAD"), selected = "Updog"),
           fileInput(ns("madc_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
+          fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
+          conditionalPanel(
+            condition = "output.passportTablePopulated",
+            ns = ns,
+            tags$div(
+              style = "padding-left: 20px;",  # Add padding/indentation
+              virtualSelectInput(
+                inputId = ns("cat_madc"),
+                label = "Select Category Subset:",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = FALSE
+              ),
+              virtualSelectInput(
+                inputId = ns("item_madc"),
+                label = "Select Subset Values:",
+                choices = NULL,
+                showValueAsTags = TRUE,
+                search = TRUE,
+                multiple = TRUE
+              )
+            )
+          ),
           conditionalPanel(
             condition = "input.Rpackage == 'Updog'",
             ns = ns,
-            fileInput(ns("madc_passport"), "Choose Trait File", accept = c(".csv")),
-            conditionalPanel(
-              condition = "output.passportTablePopulated",
-              ns = ns,
-              tags$div(
-                style = "padding-left: 20px;",  # Add padding/indentation
-                virtualSelectInput(
-                  inputId = ns("cat_madc"),
-                  label = "Select Category Subset:",
-                  choices = NULL,
-                  showValueAsTags = TRUE,
-                  search = TRUE,
-                  multiple = FALSE
-                ),
-                virtualSelectInput(
-                  inputId = ns("item_madc"),
-                  label = "Select Subset Values:",
-                  choices = NULL,
-                  showValueAsTags = TRUE,
-                  search = TRUE,
-                  multiple = TRUE
-                )
-              )
-            ),
             textInput(ns("output_name"), "Output File Name*"),
             numericInput(ns("ploidy"), "Species Ploidy*", min = 1, value = NULL),
             selectInput(ns("updog_model"), "Updog Model", choices = c("norm","hw","bb","s1","s1pp","f1","f1pp","flex","uniform"), selected = "norm"),
@@ -325,6 +325,11 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   })
 
   disable("download_updog_vcf")
+  
+  #Default model choices
+  polyrad_items <- reactiveValues(
+    vcf_path = NULL,
+  )
 
   ##This is for performing Dosage Calling
 
@@ -528,8 +533,74 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       mout
     } else {
       # PolyRAD
+      
+      #Variables
+      polyrad_items$vcf_path <- input$madc_file$datapath
+      
+      #Status
+      updateProgressBar(session = session, id = "pb_madc", value = 15, title = "Formatting Input File")
+      
+      #Subset samples from the VCF if the user selected items in the passport file
+      if (!is.null(input$item_madc) && length(input$item_madc) > 0){
+        
+        #Status
+        updateProgressBar(session = session, id = "pb_madc", value = 25, title = "Subsetting Input File")
+        
+        #First getting the samples that are both in the passport and the MADC/VCF file
+        #**Assuming the first column of the passport table is the sample IDs
+        #*#populate preview_data
+        preview_vcf <- read.vcfR(input$madc_file$datapath, verbose = FALSE, nrows = 1)
+        
+        #Get names
+        sample_list <- names(data.frame(preview_vcf@gt, check.names=FALSE)[,-1])
+        
+        shared_samples <- intersect(passport_table()[[1]], sample_list)
+        
+        # Filter the passport dataframe (samples to kee[])
+        filtered_shared_samples <- passport_table() %>%
+          filter(passport_table()[[1]] %in% shared_samples,
+                 passport_table()[[input$cat_madc]] %in% input$item_madc) %>%
+          pull(1)
+        
+        # Find samples to remove (samples in the vcf that are not in the filtered passport table)
+        filtered_shared_samples_remove <- setdiff(sample_list, filtered_shared_samples)
+        
+        #Give warning if no samples were subset
+        if (length(filtered_shared_samples) < 1) {
+          shinyalert(
+            title = "Data Warning!",
+            text = "No samples remain after subsetting options",
+            size = "s",
+            closeOnEsc = TRUE,
+            closeOnClickOutside = FALSE,
+            html = TRUE,
+            type = "error",
+            showConfirmButton = TRUE,
+            confirmButtonText = "OK",
+            confirmButtonCol = "#004192",
+            showCancelButton = FALSE,
+            animation = TRUE
+          )
+          
+          return()
+        }
+        
+        #Subset the VCF
+        temp_vcf <- read.vcfR(polyrad_items$vcf_path, verbose = FALSE)
+        temp_vcf <- subset_vcf(temp_vcf, remove.sample.list = filtered_shared_samples_remove)[[1]]
+        #Write to temp location
+        temp_file_subset <- tempfile(fileext = ".vcf.gz")
+        write.vcf(temp_vcf, file = temp_file_subset)
+        
+        #Update path
+        polyrad_items$vcf_path <- temp_file_subset
+        
+        #reduce memory 
+        rm(temp_vcf)
+      }
+      
       updateProgressBar(session = session, id = "pb_madc", value = 35, title = "Performing Dosage Calling")
-      polyrad_items <- polyRAD_dosage_call(vcf = input$madc_file$datapath,
+      polyrad_items <- polyRAD_dosage_call(vcf = polyrad_items$vcf_path,
                                            ploidy = input$ploidy,
                                            model = input$polyRAD_model,
                                            p1 = input$parent1,
@@ -572,7 +643,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       } else {
         polyRAD2vcf(updog_out()$Genos,
                     model = input$polyRAD_model,
-                    vcf_path = input$madc_file$datapath,
+                    vcf_path = polyrad_items$vcf_path,
                     hindhe.obj = updog_out()$RADHindHe,
                     ploidy = input$ploidy,
                     output.file = temp
@@ -605,7 +676,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
   ##Summary Info
   dosage_summary_info <- function() {
     #Handle possible NULL values for inputs
-    genotype_file_name <- if (!is.null(input$vcf_file$name)) input$vcf_file$name else "No file selected"
+    genotype_file_name <- if (!is.null(input$madc_file$name)) input$madc_file$name else "No file selected"
     report_file_name <- if (!is.null(input$madc_passport$name)) input$madc_passport$name else "No file selected"
     selected_ploidy <- if (!is.null(input$ploidy)) as.character(input$ploidy) else "Not selected"
 
@@ -632,6 +703,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       paste("BIGr:", packageVersion("BIGr")), "\n",
       paste("Updog:", packageVersion("updog")), "\n",
       paste("PolyRAD:", packageVersion("polyRAD")), "\n",
+      paste("vcfR:", packageVersion("vcfR")), "\n",
       paste("dplyr:", packageVersion("dplyr")), "\n",
       sep = ""
     )
