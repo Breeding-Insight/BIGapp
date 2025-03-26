@@ -30,11 +30,17 @@ mod_dosage2vcf_ui <- function(id){
                  "* Required",
                  selectInput(ns('file_type'),
                              label = 'Select File Format',
-                             choices = c("DArT Dosage Reports","DArT MADC file"), selected = "DArT MADC file"),
+                             choices = c("DArT MADC file","DArT Dosage Reports", "Dosage Matrix"), selected = "DArT MADC file"),
                  conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
                                   ns = ns,
                                   fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
                                   fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
+                 ),
+                 conditionalPanel(condition = "input.file_type == 'Dosage Matrix'",
+                                  ns = ns,
+                                  fileInput(ns("matrix_file"), "Choose Dosage Matrix File", accept = c(".csv")),
+                                  selectInput(ns("dosage_counts"), "Dosage Allele Count", choices = c("Reference","Alternate"), selected = "Reference"),
                                   numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
                  ),
                  conditionalPanel(condition = "input.file_type == 'DArT MADC file'",
@@ -54,8 +60,8 @@ mod_dosage2vcf_ui <- function(id){
                                                    ns = ns,
                                                    radioButtons(ns("ref_alt"),
                                                                 label = "Extract REF and ALT info:",
-                                                                choices = list("Yes"= "yes", "No" = "no"),
-                                                                selected = "no")                                  )
+                                                                choices = list("Yes"= "TRUE", "No" = "FALSE"),
+                                                                selected = "TRUE")                                  )
                  ),
                  textInput(ns("d2v_output_name"), "Output File Name"),
                  actionButton(ns("run_analysis"), "Convert File"),
@@ -207,6 +213,9 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
       # Convert to VCF using the BIGr package
       cat("Running BIGr::dosage2vcf...\n")
+      
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writing VCF")
+      
       dosage2vcf(
         dart.report = dosage_file,
         dart.counts = counts_file,
@@ -217,7 +226,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       # The output file should be temp_base.vcf
       output_name <- paste0(temp_base, ".vcf")
 
-      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writting vcf.")
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
+      
       return(output_name)
 
     } else if(input$file_type == "DArT MADC file"){
@@ -292,7 +302,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         # The output file should be temp_base.vcf
         output_name <- paste0(temp_base, ".vcf")
 
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Writing VCF")
 
         get_OffTargets(madc = read_madc,
                        botloci = input$botloci_file$datapath,
@@ -302,7 +312,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
                        out_vcf = output_name,
                        verbose = FALSE)
 
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
 
         return(output_name)
 
@@ -328,16 +338,61 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         # The output file should be temp_base.vcf
         output_name <- paste0(temp_base, ".vcf")
 
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Converting markers")
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Writing VCF")
         madc2vcf(read_madc, output_name, get_REF_ALT = input$ref_alt)
 
-        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 80, title = "Writting vcf.")
+        updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
         return(output_name)
       }
-
+      
+    } else if (input$file_type == "Dosage Matrix"){
+      
+      if (is.null(input$matrix_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload Dosage Matrix",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$matrix_file, input$d2v_output_name, input$dosage2vcf_ploidy)
       #Status
-      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete! - Downloading VCF")
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting matrix to VCF")
+      
+      # Get the uploaded file paths
+      matrix_file <- input$matrix_file$datapath
+      ploidy <- input$dosage2vcf_ploidy
+      
+      # Use a temporary file path without appending .vcf
+      temp_base <- tempfile()
+      
+      # The output file should be temp_base.vcf
+      output_name <- paste0(temp_base, ".vcf")
+      
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writing VCF")
+      
+      # Convert to VCF using the BIGr package
+      gmatrix2vcf(Gmat.file = matrix_file,
+                  ploidy = ploidy,
+                  output.file = output_name,
+                  dosageCount = input$dosage_counts)
+      
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
+      
+      return(output_name)
+
     }
+    
   })
 
   # Only make available the download button when analysis is finished
