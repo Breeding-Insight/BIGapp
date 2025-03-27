@@ -36,7 +36,7 @@ mod_PCA_ui <- function(id){
                  title = "Inputs", width = 12, solidHeader = TRUE, status = "info",
                  p("* Required"),
                  fileInput(ns("dosage_file"), "Choose VCF File*", accept = c(".csv",".vcf",".gz")),
-                 fileInput(ns("passport_file"), "Choose Trait File (IDs in first column)", accept = c(".csv")),
+                 fileInput(ns("passport_file"), "Choose Trait File", accept = c(".csv")),
                  #Dropdown will update after passport upload
                  numericInput(ns("pca_ploidy"), "Species Ploidy*", min = 2, value = NULL),
                  br(),
@@ -100,16 +100,12 @@ mod_PCA_ui <- function(id){
                )
         ),
         column(width = 8,
-               box(title = "Trait Data", width = 12, solidHeader = TRUE, collapsible = TRUE, status = "info", collapsed = FALSE, maximizable = T,
-                   DTOutput(ns('passport_table')),
-                   style = "overflow-y: auto; height: 480px"
-               ),
                box(
-                 title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 550, maximizable = T,
+                 title = "PCA Plots", status = "info", solidHeader = FALSE, width = 12, height = 650, maximizable = T,
                  bs4Dash::tabsetPanel(
-                   tabPanel("3D-Plot",withSpinner(plotlyOutput(ns("pca_plot"), height = '460px'))),
-                   tabPanel("2D-Plot", withSpinner(plotOutput(ns("pca_plot_ggplot"), height = '460px'))),
-                   tabPanel("Scree Plot", withSpinner(plotOutput(ns("scree_plot"), height = '460px')))) # Placeholder for plot outputs
+                   tabPanel("3D-Plot",withSpinner(plotlyOutput(ns("pca_plot"), height = '560px'))),
+                   tabPanel("2D-Plot", withSpinner(plotOutput(ns("pca_plot_ggplot"), height = '560px'))),
+                   tabPanel("Scree Plot", withSpinner(plotOutput(ns("scree_plot"), height = '560px')))) # Placeholder for plot outputs
                )
         ),
         column(width = 1)
@@ -170,6 +166,157 @@ mod_PCA_server <- function(input, output, session, parent_session){
     # expand specific box
     updateBox(id = "PCA_box", action = "toggle", session = parent_session)
   })
+  
+  #Default choices
+  trait_options <- reactiveValues(
+    missing_data = "NA",
+    custom_missing = NULL,
+    sample_column = NULL,
+    file_type = NULL
+  )
+  
+  # Update dropdown menu choices based on uploaded passport file
+  passport_table <- reactive({
+    validate(
+      need(!is.null(input$passport_file), "Upload passport file to access results in this section."),
+    )
+    info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, na.strings=trait_options$missing_data)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
+    
+    updateSelectInput(session, "group_info", choices = colnames(info_df))
+    info_df
+  })
+  
+  #PCA specific category selection
+  observeEvent(passport_table(), {
+    #updateMaterialSwitch(session, inputId = "use_cat", status = "success")
+    
+    # Get selected column name
+    selected_col <- input$group_info
+    
+    # Extract unique values from the selected column
+    unique_values <- unique(passport_table()[[selected_col]])
+    
+    #Add category selection
+    updateVirtualSelect("cat_color", choices = unique_values, session = session)
+    
+  })
+  
+  # PCA specific category selection. Update when group_info is changed.
+  observeEvent(input$group_info, {
+    req(passport_table()) # Ensure passport_table is available
+    selected_col <- input$group_info
+    unique_values <- unique(passport_table()[[selected_col]])
+    updateVirtualSelect("cat_color", choices = unique_values, session = session)
+  })
+  
+  #UI popup window for input
+  observeEvent(input$passport_file, {
+    req(input$passport_file)
+    #Get the column names of the csv file
+    info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, nrows=2)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
+    
+    # Read first 5 rows for preview
+    preview_data <- tryCatch({
+      head(read.csv(input$passport_file$datapath, nrows = 5, na.strings=trait_options$missing_data),5)
+    }, error = function(e) {
+      NULL
+    })
+    
+    showModal(modalDialog(
+      title = "Trait File Options",
+      size= "l",
+      
+      selectInput(
+        inputId = ns('missing_data'),
+        label = 'Missing Data Value',
+        choices = c("NA",".","-99","(blank)","Custom"),
+        selected = trait_options$missing_data  # Initialize with stored value
+      ),
+      conditionalPanel(
+        condition = "input.missing_data == 'Custom'", ns = ns,
+        div(
+          textInput(
+            inputId = ns('custom_missing'),
+            label = 'Custom Missing Value',
+            value = trait_options$custom_missing  # Initialize with stored value
+          )
+        ),
+        div(
+          id = ns("custom_missing_warning"),
+          style = "color: red;",
+          textOutput(ns("custom_missing_msg"))
+        )
+      ),
+      selectInput(
+        inputId = ns('sample_column'),
+        label = 'Sample ID Column',
+        choices = colnames(info_df)
+      ),
+      
+      if (!is.null(preview_data)) {
+        div(
+          h4(
+            "File Preview (First 5 Rows)",
+            style = "font-size: 18px; color: darkgrey;" # Smaller and purple
+          ),
+          div(
+            style = "background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;", # Grey box style
+            div(
+              style = "max-width: 100%; overflow-x: auto;", # Constrain table width and enable horizontal scrolling
+              tableOutput(ns("file_preview"))
+            )
+          )
+        )
+      } else {
+        div(
+          p("Could not load file preview.")
+        )
+      },
+      
+      footer = tagList(
+        actionButton(ns("save_trait_options"), "Save")
+      )
+    ))
+    
+    # Render the preview table
+    output$file_preview <- renderTable({
+      req(preview_data)
+      preview_data
+    })
+    
+  })
+  
+  output$custom_missing_msg <- renderText({
+    if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
+      "Please enter a custom missing value."
+    } else {
+      ""
+    }
+  })
+  
+  
+  #Close popup window when user "saves options"
+  observeEvent(input$save_trait_options, {
+    trait_options$missing_data <- input$missing_data
+    trait_options$custom_missing <- input$custom_missing
+    trait_options$sample_column <- input$sample_column
+    #trait_options$file_type
+    # Save other inputs as needed
+    
+    if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
+      # Validation failed: display warning and prevent modal closure
+      showNotification(
+        "Please enter a custom missing value.",
+        type = "error",
+        duration = NULL # Make it persistent
+      )
+      return() # Stop further execution and keep the modal open
+    }
+    
+    removeModal()  # Close the modal after saving
+  })
 
   #PCA reactive values
   pca_data <- reactiveValues(
@@ -177,39 +324,6 @@ mod_PCA_server <- function(input, output, session, parent_session){
     variance_explained = NULL,
     my_palette = NULL
   )
-
-  # Update dropdown menu choices based on uploaded passport file
-  passport_table <- reactive({
-    validate(
-      need(!is.null(input$passport_file), "Upload passport file to access results in this section."),
-    )
-    info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
-    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
-
-    updateSelectInput(session, "group_info", choices = colnames(info_df))
-    info_df
-  })
-
-  output$passport_table <- renderDT({
-    passport_table()},
-    options = list(scrollX = TRUE,
-                   autoWidth = FALSE,
-                   pageLength = 4))
-
-  #PCA specific category selection
-  observeEvent(input$group_info, {
-    #updateMaterialSwitch(session, inputId = "use_cat", status = "success")
-
-    # Get selected column name
-    selected_col <- input$group_info
-
-    # Extract unique values from the selected column
-    unique_values <- unique(passport_table()[[selected_col]])
-
-    #Add category selection
-    updateVirtualSelect("cat_color", choices = unique_values, session = session)
-
-  })
 
   #PCA events
   observeEvent(input$pca_start, {
@@ -270,11 +384,40 @@ mod_PCA_server <- function(input, output, session, parent_session){
       }
     }
 
-    #Start analysis
+    #Start analysis following a genotype data check
+    
+    if (ncol(genomat) < 5){
+      shinyalert(
+        title = "Small Genotype File",
+        text = "BIGapp currently requires at least 5 samples to perform a PCA",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      req(ncol(genomat) > 5) # Stop the analysis if duplicates are found
+    }
 
     # Passport info
     if (!is.null(input$passport_file$datapath) && input$passport_file$datapath != "") {
-      info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE)
+      #Importing trait file based on user inputs
+      if (trait_options$missing_data == "(blank)") {
+        info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, na.strings="")
+      } else if (trait_options$missing_data == "Custom") {
+        info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$custom_missing)
+      } else {
+        info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$missing_data)
+      }
+      
+      # Make the sample ID column the first column in the dataframe
+      sample_col_name <- input$sample_column
+      info_df <- info_df[, c(sample_col_name, setdiff(names(info_df), sample_col_name))]
 
       # Check for duplicates in the first column
       duplicated_samples <- info_df[duplicated(info_df[, 1]), 1]
@@ -337,9 +480,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     # Create a data frame with PC scores
     pc_df <- data.frame(PC1 = pc_scores[, 1], PC2 = pc_scores[, 2],
                         PC3 = pc_scores[, 3], PC4 = pc_scores[, 4],
-                        PC5 = pc_scores[, 5], PC6 = pc_scores[, 6],
-                        PC7 = pc_scores[, 7], PC8 = pc_scores[, 8],
-                        PC9 = pc_scores[, 9], PC10 = pc_scores[, 10])
+                        PC5 = pc_scores[, 5])
 
 
     # Compute the percentage of variance explained for each PC

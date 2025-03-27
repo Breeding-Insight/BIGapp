@@ -205,6 +205,124 @@ mod_GS_server <- function(input, output, session, parent_session){
       ""  # Return an empty string if no file has been uploaded
     }
   })
+  
+  ## Trait file modal window
+  
+  #Default choices
+  trait_options <- reactiveValues(
+    missing_data = "NA",
+    custom_missing = NULL,
+    sample_column = NULL,
+    file_type = NULL
+  )
+  
+  #UI popup window for input
+  observeEvent(input$pred_trait_file, {
+    req(input$pred_trait_file)
+    #Get the column names of the csv file
+    info_df <- read.csv(input$pred_trait_file$datapath, header = TRUE, check.names = FALSE, nrows=2)
+    info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
+    
+    # Read first 5 rows for preview
+    preview_data <- tryCatch({
+      head(read.csv(input$pred_trait_file$datapath, nrows = 5, na.strings=trait_options$missing_data),5)
+    }, error = function(e) {
+      NULL
+    })
+    
+    showModal(modalDialog(
+      title = "Trait File Options",
+      size= "l",
+      
+      selectInput(
+        inputId = ns('missing_data'),
+        label = 'Missing Data Value',
+        choices = c("NA",".","-99","(blank)","Custom"),
+        selected = trait_options$missing_data  # Initialize with stored value
+      ),
+      conditionalPanel(
+        condition = "input.missing_data == 'Custom'", ns = ns,
+        div(
+          textInput(
+            inputId = ns('custom_missing'),
+            label = 'Custom Missing Value',
+            value = trait_options$custom_missing  # Initialize with stored value
+          )
+        ),
+        div(
+          id = ns("custom_missing_warning"),
+          style = "color: red;",
+          textOutput(ns("custom_missing_msg"))
+        )
+      ),
+      selectInput(
+        inputId = ns('sample_column'),
+        label = 'Sample ID Column',
+        choices = colnames(info_df)
+      ),
+      
+      if (!is.null(preview_data)) {
+        div(
+          h4(
+            "File Preview (First 5 Rows)",
+            style = "font-size: 18px; color: darkgrey;" # Smaller and purple
+          ),
+          div(
+            style = "background-color: #f0f0f0; padding: 10px; border: 1px solid #ccc;", # Grey box style
+            div(
+              style = "max-width: 100%; overflow-x: auto;", # Constrain table width and enable horizontal scrolling
+              tableOutput(ns("file_preview"))
+            )
+          )
+        )
+      } else {
+        div(
+          p("Could not load file preview.")
+        )
+      },
+      
+      footer = tagList(
+        actionButton(ns("save_trait_options"), "Save")
+      )
+    ))
+    
+    # Render the preview table
+    output$file_preview <- renderTable({
+      req(preview_data)
+      preview_data
+    })
+    
+  })
+  
+  output$custom_missing_msg <- renderText({
+    if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
+      "Please enter a custom missing value."
+    } else {
+      ""
+    }
+  })
+  
+  
+  #Close popup window when user "saves options"
+  observeEvent(input$save_trait_options, {
+    trait_options$missing_data <- input$missing_data
+    trait_options$custom_missing <- input$custom_missing
+    trait_options$sample_column <- input$sample_column
+    #trait_options$file_type
+    # Save other inputs as needed
+    
+    if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
+      # Validation failed: display warning and prevent modal closure
+      showNotification(
+        "Please enter a custom missing value.",
+        type = "error",
+        duration = NULL # Make it persistent
+      )
+      return() # Stop further execution and keep the modal open
+    }
+    
+    removeModal()  # Close the modal after saving
+  })
 
   #UI popup window for input
   observeEvent(input$advanced_options_pred, {
@@ -276,10 +394,10 @@ mod_GS_server <- function(input, output, session, parent_session){
 
 
   #1) Get traits
-  observeEvent(input$pred_trait_file, {
+  observeEvent(input$save_trait_options, {
     info_df2 <- read.csv(input$pred_trait_file$datapath, header = TRUE, check.names = FALSE, nrow = 0)
-    trait_var2 <- colnames(info_df2)
-    trait_var2 <- trait_var2[2:length(trait_var2)]
+    sample_col_name <- input$sample_column
+    trait_var2 <- setdiff(names(info_df2), sample_col_name)
     updateVirtualSelect("pred_fixed_info2", choices = trait_var2, session = session)
     updateVirtualSelect("pred_trait_info2", choices = trait_var2, session = session)
   })
@@ -351,11 +469,43 @@ mod_GS_server <- function(input, output, session, parent_session){
     ploidy <- as.numeric(input$pred_est_ploidy)
     train_geno_path <- input$pred_known_file$datapath
     est_geno_path <- input$pred_est_file$datapath
-    pheno2 <- read.csv(input$pred_trait_file$datapath, header = TRUE, check.names = FALSE)
-    row.names(pheno2) <- pheno2[,1]
     traits <- input$pred_trait_info2
-    #CVs <- as.numeric(input$pred_cv)
-    #train_perc <- as.numeric(input$pred_folds)
+    
+    # Phenotypic variables
+    if (trait_options$missing_data == "(blank)") {
+      pheno2 <- read.csv(input$pred_trait_file$datapath, header = TRUE, check.names = FALSE, na.strings="")
+    } else if (trait_options$missing_data == "Custom") {
+      pheno2 <- read.csv(input$pred_trait_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$custom_missing)
+    } else {
+      pheno2 <- read.csv(input$pred_trait_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$missing_data)
+    }
+    
+    # Make the sample ID column the first column in the dataframe
+    sample_col_name <- input$sample_column
+    pheno2 <- pheno2[, c(sample_col_name, setdiff(names(pheno2), sample_col_name))]
+    
+    # Add row names and catch errors
+    tryCatch({
+      row.names(pheno2) <- pheno2[, 1]
+    }, warning = function(w) {
+      showNotification(
+        paste("Warning: Duplicate row names detected. Please ensure the sample ID column has unique values.", w$message),
+        type = "warning",
+        duration = NULL
+      )
+      return(NULL) # Return NULL to prevent further processing
+    }, error = function(e) {
+      showNotification(
+        paste("Error: An error occurred while assigning row names. Please check your sample ID column.", e$message),
+        type = "error",
+        duration = NULL
+      )
+      return(NULL) # Return NULL to prevent further processing
+    })
+    
+    # Assigning the IDs based on user input for column 1
+    ids_pheno <- pheno2[, 1]
+    
 
 
     #Make sure at least one trait was input

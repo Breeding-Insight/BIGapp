@@ -1,6 +1,11 @@
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/Breeding-Insight/BIGapp/workflows/R-CMD-check/badge.svg)](https://github.com/Breeding-Insight/BIGapp/actions)
+![GitHub Release](https://img.shields.io/github/v/release/Breeding-Insight/BIGapp)
 [![Development Status](https://img.shields.io/badge/development-active-blue.svg)](https://img.shields.io/badge/development-active-blue.svg)
+![GitHub License](https://img.shields.io/github/license/Breeding-Insight/BIGapp)
+
+
+
 <!-- badges: end -->
 
 <div align="center">
@@ -15,7 +20,7 @@ BIGapp is a user-friendly web application built with R and Shiny, designed to si
 
 ## Key Features
 
-- **Web-Based Interface:** Access BIGapp through your web browser, eliminating the need for complex software installations.
+- **Web-Based Interface:** Access BIGapp through your web browser, eliminating the need for using command-line inputs to perform genomic analysis.
 - **Genotype Processing:**
     -  Call genotypes from read counts.
     -  Filter SNPs based on various criteria.
