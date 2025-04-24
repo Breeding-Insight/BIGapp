@@ -614,24 +614,6 @@ vcf_sanity_check <- function(
   )
   checks <- setNames(rep(NA, length(checks_names)), checks_names)
 
-  # Messages in case of failure
-  messages <- data.frame(
-    "VCF_header" = c("VCF header is missing. Please check the file format.", "VCF header is present."),
-    "VCF_columns" = c("Required VCF columns are missing. Please check the file format.", "Required VCF columns are present."),
-    "max_markers" = c("More than 10,000 markers found. Consider subsampling or running in HPC.", "Less than maximum number of markers found."),
-    "GT" = c("Genotype information is not available in the VCF file.", "Genotype information is available in the VCF file."),
-    "allele_counts" = c("Allele counts are not available in the VCF file.", "Allele counts are available in the VCF file."),
-    "samples" = c("Sample information is not available in the VCF file.", "Sample information is available in the VCF file."),
-    "chrom_info" = c("Chromosome information is not available in the VCF file.", "Chromosome information is available in the VCF file."),
-    "pos_info" = c("Position information is not available in the VCF file.", "Position information is available in the VCF file."),
-    "ref_alt" = c("REF/ALT fields contain invalid nucleotide codes.", "REF/ALT fields are valid."),
-    "multiallelics" = c("Multiallelic sites not found in the VCF file.", "Multiallelic sites found in the VCF file."),
-    "phased_GT" = c("Phased genotypes (|) are not present in the VCF file.", "Phased genotypes (|) are present in the VCF file."),
-    "duplicated_samples" = c("Duplicated sample IDs found.", "No duplicated sample IDs found."),
-    "duplicated_markers" = c("Duplicated marker IDs found.", "No duplicated marker IDs found."),
-    "mixed_ploidies" = c("Mixed ploidies detected.", "No mixed ploidies detected.")
-  )
-  rownames(messages) <- c("false", "true")
 
   # Container for duplicated IDs
   duplicates <- list(
@@ -781,15 +763,15 @@ vcf_sanity_check <- function(
       ploidy_max <- max(ploidy_values, na.rm = TRUE)
       if (verbose) cat("Highest ploidy detected from GT field:", ploidy_max, "\n")
     }
-    if(length(ploidy_values) > 1) {
-      checks['mixed_ploidies'] <- TRUE
+    if (length(ploidy_values) > 1) {
+      checks["mixed_ploidies"] <- TRUE
       if (verbose) cat("Mixed ploidies\n")
     } else {
-      checks['mixed_ploidies'] <- FALSE
+      checks["mixed_ploidies"] <- FALSE
     }
   }
 
-  # --- 5. CHROM and POS column checks ---
+  # --- CHROM and POS column checks ---
   checks["chrom_info"] <- "#CHROM" %in% column_names
   checks["pos_info"] <- "POS" %in% column_names
 
@@ -800,7 +782,7 @@ vcf_sanity_check <- function(
     if (!checks["pos_info"]) warning(" Column 'POS' is missing.")
   }
 
-  # --- 6. REF/ALT basic check on sample rows ---
+  # --- REF/ALT basic check on sample rows ---
   sample_lines <- lines[head(data_line_indices, n_data_lines)]
   ref_alt_valid <- sapply(sample_lines, function(line) {
     fields <- strsplit(line, "\t")[[1]]
@@ -814,11 +796,169 @@ vcf_sanity_check <- function(
   })
   checks["ref_alt"] <- all(ref_alt_valid)
 
-  # --- 7. Multiallelic site check (ALT with ',' separator) ---
+  # --- Multiallelic site check (ALT with ',' separator) ---
   multiallelic_flags <- grepl(",", sapply(sample_lines, function(line) strsplit(line, "\t")[[1]][5]))
   checks["multiallelics"] <- any(multiallelic_flags)
 
+  # --- Compile messages ---
+
+  # Messages in case of failure
+  messages <- data.frame(
+    "VCF_header" = c(
+      "VCF header is missing. Please check the file format.",
+      "VCF header is present."
+    ),
+    "VCF_columns" = c(
+      "Required VCF columns are missing. Please check the file format.",
+      "Required VCF columns are present."
+    ),
+    "max_markers" = c(
+      "More than 10,000 markers found. Consider subsampling or running in HPC.",
+      "Less than maximum number of markers found."
+    ),
+    "GT" = c(
+      "Genotype information is not available in the VCF file.",
+      "Genotype information is available in the VCF file."
+    ),
+    "allele_counts" = c(
+      "Allele counts are not available in the VCF file.",
+      "Allele counts are available in the VCF file."
+    ),
+    "samples" = c(
+      "Sample information is not available in the VCF file.",
+      "Sample information is available in the VCF file."
+    ),
+    "chrom_info" = c(
+      "Chromosome information is not available in the VCF file.",
+      "Chromosome information is available in the VCF file."
+    ),
+    "pos_info" = c(
+      "Position information is not available in the VCF file.",
+      "Position information is available in the VCF file."
+    ),
+    "ref_alt" = c(
+      "REF/ALT fields contain invalid nucleotide codes.",
+      "REF/ALT fields are valid."
+    ),
+    "multiallelics" = c(
+      "Multiallelic sites not found in the VCF file.",
+      "Multiallelic sites found in the VCF file."
+    ),
+    "phased_GT" = c(
+      "Phased genotypes (|) are not present in the VCF file.",
+      "Phased genotypes (|) are present in the VCF file."
+    ),
+    "duplicated_samples" = c(
+      "No duplicated sample IDs found.",
+      paste("Duplicated sample IDs found: ", paste(duplicates$duplicated_samples, collapse = ", "))
+    ),
+    "duplicated_markers" = c(
+      "No duplicated marker IDs found.",
+      paste("Duplicated marker IDs found: ", paste(duplicates$duplicated_markers, collapse = ", "))
+    ),
+    "mixed_ploidies" = c(
+      "Mixed ploidies detected.",
+      "No mixed ploidies detected."
+    )
+  )
+  rownames(messages) <- c("false", "true")
+
   # --- Done ---
   if (verbose) cat("Sanity check complete.\n")
-  return(list(checks = checks, messages = messages, duplicates = duplicates, ploidy_max = ploidy_max))
+  return(structure(
+    list(
+      checks = checks, messages = messages,
+      duplicates = duplicates, ploidy_max = ploidy_max
+    ),
+    class = "vcf_sanity_check"
+  ))
+}
+
+#' Generate Sanity Check Messages for VCF Files
+#'
+#' This function generates user-friendly messages based on the results of a VCF sanity check.
+#'
+#' @param checks A `vcf_sanity_check` object containing the results of the sanity check.
+#' @param required_true A character vector of checks that must be TRUE for the VCF file to pass validation.
+#' @param required_false A character vector of checks that must be FALSE for the VCF file to pass validation.
+#' @param input_ploidy (Optional) An integer specifying the expected ploidy of the VCF file. If provided, the function will compare it with the detected ploidy.
+#'
+#' @details This function uses the results of a VCF sanity check to display appropriate messages to the user. It checks for required conditions that must be met (TRUE or FALSE) and optionally validates the ploidy of the VCF file. If any issues are detected, the function displays alerts using `shinyalert`.
+#'
+#' @return None. The function displays alerts for any detected issues.
+#'
+#' @importFrom shinyalert shinyalert
+#'
+#' @export
+vcf_sanity_messages <- function(
+    checks,
+    required_true, 
+    required_false,
+    input_ploidy = NULL) {
+  # check must be from vcf_sanity_check
+  if (!inherits(checks, "vcf_sanity_check")) {
+    stop("check must be a vcf_sanity_check object.")
+  }
+
+  # Check required TRUE
+  if (!all(checks$checks[required_true])) {
+    shinyalert(
+      title = "File Error",
+      text = paste(checks$message[1, required_true][which(!checks$checks[required_true])],
+        collapse = "\n"
+      ),
+      size = "xs",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = FALSE,
+      html = TRUE,
+      type = "info",
+      showConfirmButton = TRUE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#004192",
+      showCancelButton = FALSE,
+      imageUrl = "",
+      animation = TRUE,
+    )
+  }
+
+  # Check required FALSE
+  if (any(checks$checks[required_false])) {
+    shinyalert(
+      title = "File Error",
+      text = paste(checks$message[2, required_false][which(checks$checks[required_false])],
+        collapse = "\n"
+      ),
+      size = "xs",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = FALSE,
+      html = TRUE,
+      type = "info",
+      showConfirmButton = TRUE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#004192",
+      showCancelButton = FALSE,
+      imageUrl = "",
+      animation = TRUE,
+    )
+  }
+
+  if (!is.null(input_ploidy)) {
+    if (checks$ploidy_max != input_ploidy) {
+      shinyalert(
+        title = "File Error",
+        text = "Informed ploidy doesn't match genotypes in the VCF file",
+        size = "xs",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "info",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        imageUrl = "",
+        animation = TRUE,
+      )
+    }
+  }
 }
