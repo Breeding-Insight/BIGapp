@@ -35,13 +35,13 @@ mod_dosage2vcf_ui <- function(id){
                                   ns = ns,
                                   fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
                                   fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
-                                  numericInput(ns("dosage2vcf_ploidy"), "s Ploidy", min = 1, value = NULL)
+                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
                  ),
                  conditionalPanel(condition = "input.file_type == 'Dosage Matrix'",
                                   ns = ns,
                                   fileInput(ns("matrix_file"), "Choose Dosage Matrix File", accept = c(".csv")),
                                   selectInput(ns("dosage_counts"), "Dosage Allele Count", choices = c("Reference","Alternate"), selected = "Reference"),
-                                  numericInput(ns("dosage2vcf_ploidy"), "s Ploidy", min = 1, value = NULL)
+                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
                  ),
                  conditionalPanel(condition = "input.file_type == 'DArT MADC file'",
                                   ns = ns,
@@ -194,7 +194,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     # Ensure the files are uploaded
     # Missing input with red border and alerts
     if(input$file_type == "DArT Dosage Reports"){
-      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ == "") {
         shinyalert(
           title = "Missing input!",
           text = "Upload Dose Report and Counts Files",
@@ -210,11 +210,11 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
           animation = TRUE
         )
       }
-      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_)
       # Get the uploaded file paths
       dosage_file <- input$report_file$datapath
       counts_file <- input$counts_file$datapath
-      ploidy <- input$dosage2vcf_ploidy
+       <- input$dosage2vcf_
       
       # Use a temporary file path without appending .vcf
       temp_base <- tempfile()
@@ -231,7 +231,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         dart.report = dosage_file,
         dart.counts = counts_file,
         output.file = temp_base,
-        ploidy = as.numeric(ploidy)
+         = as.numeric()
       )
       
       # The output file should be temp_base.vcf
@@ -368,7 +368,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       
     } else if (input$file_type == "Dosage Matrix"){
       
-      if (is.null(input$matrix_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+      if (is.null(input$matrix_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ == "") {
         shinyalert(
           title = "Missing input!",
           text = "Upload Dosage Matrix",
@@ -384,13 +384,13 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
           animation = TRUE
         )
       }
-      req(input$matrix_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+      req(input$matrix_file, input$d2v_output_name, input$dosage2vcf_)
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting matrix to VCF")
       
       # Get the uploaded file paths
       matrix_file <- input$matrix_file$datapath
-      ploidy <- input$dosage2vcf_ploidy
+       <- input$dosage2vcf_
       
       # Use a temporary file path without appending .vcf
       temp_base <- tempfile()
@@ -403,7 +403,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       
       # Convert to VCF using the BIGr package
       gmatrix2vcf(Gmat.file = matrix_file,
-                  ploidy = ploidy,
+                   = ,
                   output.file = output_name,
                   dosageCount = input$dosage_counts)
       
@@ -439,7 +439,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     #Handle possible NULL values for inputs
     report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
     counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
-    selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
+    selected_ <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
     
     #Print the summary information
     cat(
