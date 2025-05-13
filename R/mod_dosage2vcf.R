@@ -103,7 +103,7 @@ mod_dosage2vcf_ui <- function(id){
         ),
         column(width = 4,
                box(title = "Status", width = 12, collapsible = TRUE, status = "info",
-                   progressBar(id = ns("dosage2vcf_pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+                   progressBar(id = ns("pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
                )
         ),
         column(width = 1),
@@ -119,7 +119,7 @@ mod_dosage2vcf_ui <- function(id){
 #' @importFrom Rsamtools bgzip
 #'
 #' @noRd
-mod_dosage2vcf_server <- function(input, output, session, parent_session){
+mod_server <- function(input, output, session, parent_session){
   
   ns <- session$ns
   
@@ -194,7 +194,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     # Ensure the files are uploaded
     # Missing input with red border and alerts
     if(input$file_type == "DArT Dosage Reports"){
-      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ == "") {
+      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
         shinyalert(
           title = "Missing input!",
           text = "Upload Dose Report and Counts Files",
@@ -210,11 +210,11 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
           animation = TRUE
         )
       }
-      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_)
+      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
       # Get the uploaded file paths
       dosage_file <- input$report_file$datapath
       counts_file <- input$counts_file$datapath
-       <- input$dosage2vcf_
+      ploidy <- input$dosage2vcf_ploidy
       
       # Use a temporary file path without appending .vcf
       temp_base <- tempfile()
@@ -231,7 +231,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         dart.report = dosage_file,
         dart.counts = counts_file,
         output.file = temp_base,
-         = as.numeric()
+        ploidy = as.numeric(ploidy)
       )
       
       # The output file should be temp_base.vcf
@@ -368,7 +368,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       
     } else if (input$file_type == "Dosage Matrix"){
       
-      if (is.null(input$matrix_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ == "") {
+      if (is.null(input$matrix_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
         shinyalert(
           title = "Missing input!",
           text = "Upload Dosage Matrix",
@@ -384,13 +384,13 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
           animation = TRUE
         )
       }
-      req(input$matrix_file, input$d2v_output_name, input$dosage2vcf_)
+      req(input$matrix_file, input$d2v_output_name, input$dosage2vcf_ploidy)
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting matrix to VCF")
       
       # Get the uploaded file paths
       matrix_file <- input$matrix_file$datapath
-       <- input$dosage2vcf_
+      ploidy <- input$dosage2vcf_ploidy
       
       # Use a temporary file path without appending .vcf
       temp_base <- tempfile()
@@ -403,7 +403,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       
       # Convert to VCF using the BIGr package
       gmatrix2vcf(Gmat.file = matrix_file,
-                   = ,
+                  ploidy = ploidy,
                   output.file = output_name,
                   dosageCount = input$dosage_counts)
       
