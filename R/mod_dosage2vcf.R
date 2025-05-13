@@ -103,7 +103,7 @@ mod_dosage2vcf_ui <- function(id){
         ),
         column(width = 4,
                box(title = "Status", width = 12, collapsible = TRUE, status = "info",
-                   progressBar(id = ns("pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
+                   progressBar(id = ns("dosage2vcf_pb"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
                )
         ),
         column(width = 1),
@@ -119,7 +119,7 @@ mod_dosage2vcf_ui <- function(id){
 #' @importFrom Rsamtools bgzip
 #'
 #' @noRd
-mod_server <- function(input, output, session, parent_session){
+mod_dosage2vcf_server <- function(input, output, session, parent_session){
   
   ns <- session$ns
   
@@ -439,7 +439,7 @@ mod_server <- function(input, output, session, parent_session){
     #Handle possible NULL values for inputs
     report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
     counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
-    selected_ <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
+    selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
     
     #Print the summary information
     cat(
