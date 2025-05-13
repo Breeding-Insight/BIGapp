@@ -35,13 +35,13 @@ mod_dosage2vcf_ui <- function(id){
                                   ns = ns,
                                   fileInput(ns("report_file"), "Choose DArT Dose Report File", accept = c(".csv")),
                                   fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
-                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
+                                  numericInput(ns("dosage2vcf_ploidy"), "s Ploidy", min = 1, value = NULL)
                  ),
                  conditionalPanel(condition = "input.file_type == 'Dosage Matrix'",
                                   ns = ns,
                                   fileInput(ns("matrix_file"), "Choose Dosage Matrix File", accept = c(".csv")),
                                   selectInput(ns("dosage_counts"), "Dosage Allele Count", choices = c("Reference","Alternate"), selected = "Reference"),
-                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
+                                  numericInput(ns("dosage2vcf_ploidy"), "s Ploidy", min = 1, value = NULL)
                  ),
                  conditionalPanel(condition = "input.file_type == 'DArT MADC file'",
                                   ns = ns,
@@ -51,13 +51,13 @@ mod_dosage2vcf_ui <- function(id){
                                                label = "Select Marker Type",
                                                choices = list("Target"= "target", "Target + Off-Target" = "target_off"),
                                                selected = "target"),
-                                  selectInput(ns('specie'),
-                                              label = 'Specie',
+                                  selectInput(ns('species'),
+                                              label = 'Species',
                                               choices = c("alfalfa","blueberry", "cranberry", "cucumber", "lettuce", "pecan", "sweetpotato", "other"), 
                                               selected = "alfalfa"),
                                   conditionalPanel(condition = "input.snp_type == 'target_off'",
                                                    ns = ns,
-                                                   conditionalPanel(condition = "input.specie == 'other'",
+                                                   conditionalPanel(condition = "input.species == 'other'",
                                                                     ns = ns,
                                                                     fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)"),
                                                    ),
@@ -66,7 +66,7 @@ mod_dosage2vcf_ui <- function(id){
                                   ),
                                   conditionalPanel(condition = "input.snp_type == 'target'",
                                                    ns = ns,
-                                                   conditionalPanel(condition = "input.specie == 'other'",
+                                                   conditionalPanel(condition = "input.species == 'other'",
                                                                     ns = ns,
                                                                     radioButtons(ns("ref_alt"),
                                                                                  label = "Extract REF and ALT info:",
@@ -274,7 +274,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       }
       
       # Select species botloci
-      botloci <- switch(input$specie, 
+      botloci <- switch(input$species, 
                         "alfalfa" = "https://raw.githubusercontent.com/Breeding-Insight/BIGapp-PanelHub/refs/heads/main/alfalfa/20201030-BI-Alfalfa_SNPs_DArTag-probe-design_f180bp.botloci",
                         "blueberry" = "https://raw.githubusercontent.com/Breeding-Insight/BIGapp-PanelHub/refs/heads/main/blueberry/20200819-BI-Blueberry_10K_SNPs_forDArT_3K_ref_alt.botloci",
                         "cranberry" = "https://raw.githubusercontent.com/Breeding-Insight/BIGapp-PanelHub/refs/heads/main/cranberry/Cranberry_unique_alignment_126MAS_3K_54BB_rmDupTags_f180bp.botloci",
