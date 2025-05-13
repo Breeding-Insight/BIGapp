@@ -855,6 +855,17 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       names_to = "Trait",
       values_to = "Correlation"
     )
+    
+    # Determine dynamic y-axis lower bound based on the entire dataset
+    min_val <- min(df_long$Correlation, na.rm = TRUE)
+    y_axis_lower_bound <- if (min_val < 0) {
+      # If there are negative values, start the axis slightly below the minimum
+      # You can adjust the floor() logic for more/less padding, or just use min_val
+      floor(min_val * 10) / 10 
+    } else {
+      0
+    }
+    y_axis_upper_bound <- 1 #Y max is 1
 
     plots <- list(box_plot = NULL, violin_plot = NULL)
     #This can be adapted if we start comparing more than one GP model
@@ -867,7 +878,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       labs(title = "Predictive Ability by Trait",
            x = " ",
            y = "Predictive Ability") +
-      #theme_minimal() +                      # Using a minimal theme
+      scale_y_continuous(limits = c(y_axis_lower_bound, y_axis_upper_bound),
+                         breaks = seq(floor(y_axis_lower_bound*5)/5, y_axis_upper_bound, by = 0.2)) +
       theme(legend.position = "none",
             strip.text = element_text(size = 12),
             axis.text = element_text(size = 12),
@@ -884,6 +896,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       labs(title = "Predictive Ability by Trait",
            x = " ",  # x-label is blank because it's not relevant per facet
            y = "Predictive Ability") +
+      scale_y_continuous(limits = c(y_axis_lower_bound, y_axis_upper_bound),
+                         breaks = seq(floor(y_axis_lower_bound*5)/5, y_axis_upper_bound, by = 0.2)) +
       theme(legend.position = "none",
             strip.text = element_text(size = 12),
             axis.text = element_text(size = 12),
