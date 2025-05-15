@@ -59,6 +59,7 @@ mod_PCA_ui <- function(id){
                box(
                  title = "Plot Controls", status = "warning", solidHeader = TRUE, collapsible = TRUE,collapsed = FALSE, width = 12,
                  selectInput(ns('group_info'), label = 'Color Variable', choices = ""),
+                 materialSwitch(ns('use_shapes'), label = "Add Shapes (2D-Plot only)", status = "success"),
                  materialSwitch(ns('use_cat'), label = "Color Category (2D-Plot only)", status = "success"),
                  conditionalPanel(condition = "input.use_cat",
                                   ns = ns,
@@ -560,16 +561,64 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     #input$cat_color <- as.character(unique(pca_data$pc_df_pop[[input$group_info]]))
     cat_colors <- c(input$cat_color, "grey")
-    plot <- {if(!is.null(input$group_info) & input$group_info != "")
-      ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
-                                     y = pca_data$pc_df_pop[[input$pc_Y]],
-                                     color = factor(pca_data$pc_df_pop[[input$group_info]]))) else
-                                       ggplot(pca_data$pc_df_pop, aes(x = pca_data$pc_df_pop[[input$pc_X]],
-                                                                      y = pca_data$pc_df_pop[[input$pc_Y]]))} +
+    
+    #Add a check if too many values are needing shapes
+    if (length(my_palette) > 25 & input$use_shapes) {
+      shinyalert(
+        title = "Too Many Values!",
+        text = "There are more than 25 unique values selected for the shape option",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+      
+      #Trying to update the ui switch back to "off", but it is not working
+      updateMaterialSwitch(session = parent_session, inputId = "use_shapes", value = NULL)
+    }
+    
+    shapes_list <- c(1:25)
+    
+    #plot
+    plot <- ggplot(pca_data$pc_df_pop, aes(
+      x = pca_data$pc_df_pop[[input$pc_X]],
+      y = pca_data$pc_df_pop[[input$pc_Y]],
+      color = if (!is.null(input$group_info) & input$group_info != "") factor(pca_data$pc_df_pop[[input$group_info]]) else NULL,
+      shape = if (!is.null(input$group_info) & input$group_info != "" & input$use_shapes) factor(pca_data$pc_df_pop[[input$group_info]]) else NULL
+    )) +
       geom_point(size = 2, alpha = 0.8) +
-      {if(input$use_cat & !is.null(my_palette)) scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey) else
-        if(!is.null(my_palette)) scale_color_manual(values = my_palette)} +
-      guides(color = guide_legend(override.aes = list(size = 5.5), nrow = 17)) +
+      
+      #add color
+      {if (input$use_cat & !is.null(my_palette)) 
+        scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey)
+        else if (!is.null(my_palette)) 
+          scale_color_manual(values = my_palette)} +
+      
+      #add shapes
+      {if (input$use_shapes)
+        scale_shape_manual(values = shapes_list)} +  # Use up to 25 shapes
+      
+      #adjust legends
+      guides(
+        color = guide_legend(override.aes = list(size = 5.5), nrow = 17),
+        shape = if (input$use_shapes) guide_legend(override.aes = list(size = 5.5), nrow = 17) else NULL
+      ) +
+      
+      #add labels
+      labs(
+        x = paste0(input$pc_X, " (", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
+        y = paste0(input$pc_Y, " (", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
+        color = if (!is.null(input$group_info)) input$group_info else NULL,
+        shape = if (input$use_shapes & !is.null(input$group_info)) input$group_info else NULL
+      ) +
+      
+      #add minimal theme
       theme_minimal() +
       theme(
         panel.border = element_rect(color = "black", fill = NA),
@@ -577,14 +626,9 @@ mod_PCA_server <- function(input, output, session, parent_session){
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 12),
         legend.title = element_text(size = 16)
-      ) +
-      labs(
-        x = paste0(input$pc_X, "(", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
-        y = paste0(input$pc_Y, "(", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-        color = input$group_info
       )
-
-    plot  # Assign the plot to your reactiveValues
+    
+    plot
   })
 
   #Plot the 2d plot

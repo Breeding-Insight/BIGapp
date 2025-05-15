@@ -464,6 +464,11 @@ mod_gwas_server <- function(input, output, session, parent_session){
       info <- data.frame(vcf@fix)
       gpoly_df <- cbind(info[,c("ID","CHROM","POS")], geno_mat)
 
+      #Fix ID column if empty
+      if (is.na(gpoly_df[1,1])) {
+        gpoly_df$ID <- row.names(gpoly_df)
+      }
+
       if(!any(colnames(gpoly_df) %in% phenotype_file[,1])) {
         shinyalert(
           title = "Samples ID do not match",
