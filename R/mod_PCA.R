@@ -199,7 +199,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     unique_values <- unique(passport_table()[[selected_col]])
     
     #Add category selection
-    updateVirtualSelect("cat_color", choices = unique_values, session = session)
+    updateVirtualSelect("cat_color", choices = unique_values, selected = unique_values, session = session)
     
   })
   
@@ -208,7 +208,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     req(passport_table()) # Ensure passport_table is available
     selected_col <- input$group_info
     unique_values <- unique(passport_table()[[selected_col]])
-    updateVirtualSelect("cat_color", choices = unique_values, session = session)
+    updateVirtualSelect("cat_color", choices = unique_values, selected = unique_values, session = session)
   })
   
   #UI popup window for input
@@ -530,106 +530,188 @@ mod_PCA_server <- function(input, output, session, parent_session){
     validate(
       need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
     )
-
-    # Generate colors
-    if (!is.null(pca_data$my_palette)) {
-      unique_countries <- unique(pca_data$pc_df_pop[[input$group_info]])
-      palette <- brewer.pal(length(unique_countries), input$color_choice)
-      my_palette <- colorRampPalette(palette)(length(unique_countries))
-    } else {
-      unique_countries <- NULL
-      my_palette <- NULL
-    }
-
-    # Define a named vector to map input labels to grey values
-    label_to_value <- c("Light Grey" = "grey80",
-                        "Grey" = "grey60",
-                        "Dark Grey" = "grey40",
-                        "Black" = "black")
-
-    # Get the corresponding value based on the selected grey
-    selected_grey <- label_to_value[[input$grey_choice]]
-
-    #Set factor
-    if (!input$use_cat && is.null(my_palette)) {
-      print("No Color Info")
-    } else {
-      if(input$group_info != "") pca_data$pc_df_pop[[input$group_info]] <- as.factor(pca_data$pc_df_pop[[input$group_info]])
-    }
-
-    # Similar plotting logic here
-
-    #input$cat_color <- as.character(unique(pca_data$pc_df_pop[[input$group_info]]))
-    cat_colors <- c(input$cat_color, "grey")
     
-    #Add a check if too many values are needing shapes
-    if (length(my_palette) > 25 & input$use_shapes) {
-      shinyalert(
-        title = "Too Many Values!",
-        text = "There are more than 25 unique values selected for the shape option",
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "error",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
+    df_plot <- pca_data$pc_df_pop
+    group_var_name <- input$group_info
+    pc_x_col <- input$pc_X
+    pc_y_col <- input$pc_Y
+    
+    # Define default aesthetics for unselected categories
+    label_to_value <- c("Light Grey" = "grey80", "Grey" = "grey60", "Dark Grey" = "grey40", "Black" = "black")
+    default_color <- label_to_value[[input$grey_choice]]
+    default_shape <- 16 # Solid circle (pch value)
+    
+    # --- Palette Generation (local to this reactive, named) ---
+    local_my_palette <- NULL # This will be a named vector: category level -> color
+    if (group_var_name != "" && !is.null(group_var_name) && !is.null(input$color_choice)) {
+      # Ensure group_var_name exists in df_plot
+      if (!group_var_name %in% names(df_plot)) {
+        shinyalert(title = "Error", text = paste("Group variable '", group_var_name, "' not found."), type = "error")
+        return(NULL)
+      }
+      
+      unique_group_vals_for_plot <- unique(as.character(df_plot[[group_var_name]]))
+      num_levels_for_plot <- length(unique_group_vals_for_plot)
+      
+      if (num_levels_for_plot > 0) {
+        max_brewer_colors <- tryCatch(
+          RColorBrewer::brewer.pal.info[input$color_choice, "maxcolors"],
+          error = function(e) 8 # Default max colors if palette info fails
+        )
+        
+        n_base_colors <- num_levels_for_plot # Number of colors needed from brewer.pal directly or via ramp
+        
+        # Adjust n for brewer.pal requirements (min 3 for most)
+        if (num_levels_for_plot == 1) {
+          base_palette_brewer <- RColorBrewer::brewer.pal(3, input$color_choice)[1]
+        } else if (num_levels_for_plot == 2) {
+          base_palette_brewer <- RColorBrewer::brewer.pal(3, input$color_choice)[1:2]
+        } else {
+          base_palette_brewer <- RColorBrewer::brewer.pal(min(n_base_colors, max_brewer_colors), input$color_choice)
+        }
+        
+        generated_palette_values <- grDevices::colorRampPalette(base_palette_brewer)(num_levels_for_plot)
+        local_my_palette <- setNames(generated_palette_values, unique_group_vals_for_plot)
+      }
+    }
+    
+    # --- Base ggplot object ---
+    plot_obj <- ggplot(df_plot, aes(x = .data[[pc_x_col]], y = .data[[pc_y_col]]))
+    
+    # --- Determine if color/shape are mapped to group or static ---
+    map_color_to_group <- group_var_name != "" && !is.null(group_var_name) && !is.null(local_my_palette)
+    map_shape_to_group <- map_color_to_group && input$use_shapes
+    
+    # Arguments for geom_point (static values if not mapped)
+    geom_point_args <- list(size = 2.5, alpha = 0.8)
+    
+    if (map_color_to_group) {
+      # Ensure group_var_name column is factor for consistent scale behavior
+      df_plot[[group_var_name]] <- as.factor(df_plot[[group_var_name]])
+      all_levels <- levels(df_plot[[group_var_name]])
+      
+      plot_obj <- plot_obj + aes(color = .data[[group_var_name]]) # Map color aesthetic
+      
+      color_values_map <- setNames(rep(default_color, length(all_levels)), all_levels)
+      categories_to_colorize <- input$cat_color # User's selection from UI
+      
+      if (input$use_cat && length(categories_to_colorize) > 0) {
+        for (cat_level in categories_to_colorize) {
+          if (cat_level %in% names(local_my_palette)) {
+            color_values_map[cat_level] <- local_my_palette[cat_level]
+          }
+        }
+      } else if (!input$use_cat) { # Color all categories distinctively
+        # Ensure all_levels from factor are present in local_my_palette names
+        for(lvl in all_levels) {
+          if(lvl %in% names(local_my_palette)) {
+            color_values_map[lvl] <- local_my_palette[lvl]
+          }
+          # else it remains default_color, which is fine.
+        }
+      }
+      # If input$use_cat is TRUE but categories_to_colorize is empty, all remain default_color.
+      
+      plot_obj <- plot_obj + scale_color_manual(
+        name = group_var_name, 
+        values = color_values_map, 
+        na.value = default_color # Handles explicit NAs in the grouping column
       )
-      
-      #Trying to update the ui switch back to "off", but it is not working
-      updateMaterialSwitch(session = parent_session, inputId = "use_shapes", value = NULL)
+    } else {
+      geom_point_args$color <- default_color # Set static color for all points
     }
     
-    shapes_list <- c(1:25)
-    
-    #plot
-    plot <- ggplot(pca_data$pc_df_pop, aes(
-      x = pca_data$pc_df_pop[[input$pc_X]],
-      y = pca_data$pc_df_pop[[input$pc_Y]],
-      color = if (!is.null(input$group_info) & input$group_info != "") factor(pca_data$pc_df_pop[[input$group_info]]) else NULL,
-      shape = if (!is.null(input$group_info) & input$group_info != "" & input$use_shapes) factor(pca_data$pc_df_pop[[input$group_info]]) else NULL
-    )) +
-      geom_point(size = 2, alpha = 0.8) +
+    if (map_shape_to_group) {
+      df_plot[[group_var_name]] <- as.factor(df_plot[[group_var_name]]) # Ensure it's factor
+      all_levels <- levels(df_plot[[group_var_name]])
       
-      #add color
-      {if (input$use_cat & !is.null(my_palette)) 
-        scale_color_manual(values = setNames(c(my_palette, "grey"), cat_colors), na.value = selected_grey)
-        else if (!is.null(my_palette)) 
-          scale_color_manual(values = my_palette)} +
+      plot_obj <- plot_obj + aes(shape = .data[[group_var_name]]) # Map shape aesthetic
       
-      #add shapes
-      {if (input$use_shapes)
-        scale_shape_manual(values = shapes_list)} +  # Use up to 25 shapes
+      shape_values_map <- setNames(rep(default_shape, length(all_levels)), all_levels)
+      categories_to_shape <- input$cat_color # User's selection from UI for shaping
       
-      #adjust legends
-      guides(
-        color = guide_legend(override.aes = list(size = 5.5), nrow = 17),
-        shape = if (input$use_shapes) guide_legend(override.aes = list(size = 5.5), nrow = 17) else NULL
-      ) +
+      # Check for shinyalert for too many shapes (based on categories selected for shaping)
+      if (length(categories_to_shape) > 25) {
+        # The shinyalert is defined in your original code, ensure its condition matches this logic
+        shinyalert(
+          title = "Too Many Values!",
+          text = "There are more than 25 unique values selected for the shape option",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192", 
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+        updateMaterialSwitch(session = session, inputId = "use_shapes", value = FALSE) # Use 'session' not 'parent_session' if in module
+        
+        # Cap the number of categories getting distinct shapes
+        categories_to_shape_for_map <- categories_to_shape[1:25]
+      } else {
+        categories_to_shape_for_map <- categories_to_shape
+      }
       
-      #add labels
-      labs(
-        x = paste0(input$pc_X, " (", pca_data$variance_explained[as.numeric(substr(input$pc_X, 3, 3))], "%)"),
-        y = paste0(input$pc_Y, " (", pca_data$variance_explained[as.numeric(substr(input$pc_Y, 3, 3))], "%)"),
-        color = if (!is.null(input$group_info)) input$group_info else NULL,
-        shape = if (input$use_shapes & !is.null(input$group_info)) input$group_info else NULL
-      ) +
+      available_custom_shapes <- c(0:24) # PCH values (0-14 are symbols, 15-20 are filled symbols, 21-24 are bordered)
+      # Standard practice often uses 1:25, let's stick to that.
+      available_custom_shapes <- c(1:25)
       
-      #add minimal theme
-      theme_minimal() +
-      theme(
-        panel.border = element_rect(color = "black", fill = NA),
-        legend.text = element_text(size = 14),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
-        legend.title = element_text(size = 16)
+      
+      shape_idx <- 1
+      for (cat_level in categories_to_shape_for_map) {
+        if (cat_level %in% all_levels && shape_idx <= length(available_custom_shapes)) {
+          shape_values_map[cat_level] <- available_custom_shapes[shape_idx]
+          shape_idx <- shape_idx + 1
+        }
+      }
+      plot_obj <- plot_obj + scale_shape_manual(
+        name = group_var_name, # Same name as color scale for potential legend merging
+        values = shape_values_map, 
+        na.value = default_shape # Handles explicit NAs
       )
+    } else {
+      geom_point_args$shape <- default_shape # Set static shape for all points
+    }
     
-    plot
-  })
+    # --- Add geom_point layer ---
+    # geom_point_args list already has size, alpha, and conditionally color/shape if static
+    plot_obj <- plot_obj + do.call(geom_point, geom_point_args)
+    
+    # --- Labels, Guides, and Theme ---
+    plot_obj <- plot_obj + labs(
+      x = paste0(pc_x_col, " (", pca_data$variance_explained[as.numeric(substr(pc_x_col, 3, 3))], "%)"),
+      y = paste0(pc_y_col, " (", pca_data$variance_explained[as.numeric(substr(pc_y_col, 3, 3))], "%)")
+      # Legend titles are taken from scale_manual 'name' argument
+    )
+    
+    # Configure guides (legends)
+    guide_options <- list()
+    if (map_color_to_group) {
+      guide_options$color <- guide_legend(override.aes = list(size = 5.5), nrow = 17)
+    } else {
+      guide_options$color <- "none"
+    }
+    if (map_shape_to_group) {
+      guide_options$shape <- guide_legend(override.aes = list(size = 5.5), nrow = 17)
+    } else {
+      guide_options$shape <- "none"
+    }
+    plot_obj <- plot_obj + guides(!!!guide_options)
+    
+    plot_obj <- plot_obj + theme_minimal() + theme(
+      panel.border = element_rect(color = "black", fill = NA),
+      legend.text = element_text(size = 14),
+      axis.title = element_text(size = 16),
+      axis.text = element_text(size = 14),
+      legend.title = element_text(size = 16),
+      legend.position = "right" # Example position, adjust as needed
+    )
+    
+    return(plot_obj)
+})
 
   #Plot the 2d plot
   output$pca_plot_ggplot <- renderPlot({
