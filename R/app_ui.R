@@ -104,7 +104,7 @@ app_ui <- function(request) {
         ),
         left = div(
           style = "display: flex; align-items: center; height: 100%;",  # Center the version text vertically
-          "v1.3.0 development")
+          "v1.3.0")
       ),
       dashboardBody(
         disconnectMessage(), #Adds generic error message for any error if not already accounted for
