@@ -89,7 +89,7 @@ mod_Home_ui <- function(id){
                  target = "_blank",  # Optional: opens the link in a new tab
                  valueBox(
                    value = NULL,
-                   subtitle = "BIGapp Tutorials (in-progress)",
+                   subtitle = "BIGapp Tutorials",
                    icon = icon("compass"),
                    color = "warning",
                    gradient = TRUE,
