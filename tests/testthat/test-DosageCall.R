@@ -131,7 +131,7 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
   input$parent2 <- "Sample_2"
 
   cores <- 2
-  output_name <- "out"
+  output_name <- "out2"
 
   #Initialize matrices list
   matrices <- list()
