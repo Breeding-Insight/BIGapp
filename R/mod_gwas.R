@@ -661,7 +661,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
         data.loco.scan_2 <- GWASpoly(data=data.loco,models=model[j],
                                      traits=colnames(data@pheno[i]),params=params,n.core= as.numeric(cores))
 
-        data3 <- set.threshold(data.loco.scan_2,method="M.eff",level=0.05)
+        data3 <- set.threshold(data.loco.scan_2,method=input$gwas_threshold,level=0.05)
         manhattan_plot_list[[model[j]]] <- manhattan.plot(data3,traits=colnames(data@pheno[i]))+geom_point(size=3)+
           theme(text = element_text(size = 25),
                 strip.text = element_text(face = "bold"),
