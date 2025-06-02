@@ -343,7 +343,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     updog_par <- grepl("MPP", format_fields) & grepl("PMC", info_fields) & grepl("BIAS", info_fields) & grepl("OD", info_fields)
     filtering_files$format_fields <- updog_par
 
-    if (input$use_updog & updog_par) {
+    if (input$use_updog & any(updog_par)) {
       # Use Updog filtering parameters
       OD_filter <- as.numeric(input$OD_filter)
       Prop_mis <- as.numeric(input$Prop_mis)
@@ -523,8 +523,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
              tabPanel("Results", p("Upload VCF file to access results in this section."))
       )
     } else {
-
-      if (!is.null(filtering_files$format_fields) && filtering_files$format_fields == TRUE && input$vcf_type == "Unfiltered VCF") {
+      if (!any(is.null(filtering_files$format_fields)) && any(filtering_files$format_fields == TRUE) && input$vcf_type == "Unfiltered VCF") {
         # Include "Bias Histogram", "OD Histogram", and "Prop_mis Histogram" for Pre-Filtered VCF
         tabBox(
           width = 12, collapsible = FALSE, status = "info",
