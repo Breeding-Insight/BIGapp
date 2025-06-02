@@ -343,7 +343,24 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     updog_par <- grepl("MPP", format_fields) & grepl("PMC", info_fields) & grepl("BIAS", info_fields) & grepl("OD", info_fields)
     filtering_files$format_fields <- updog_par
 
-    if (input$use_updog & any(updog_par)) {
+    if(length(updog_par) > 1) {
+      shinyalert(
+        title = "Malformed VCF",
+        text = "Make sure all your markers have the same information in the FORMAT field.",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    
+    if (input$use_updog & updog_par) {
       # Use Updog filtering parameters
       OD_filter <- as.numeric(input$OD_filter)
       Prop_mis <- as.numeric(input$Prop_mis)
