@@ -139,4 +139,4 @@ BIGapp development is supported by [Breeding Insight](https://www.breedinginsigh
 
 If you use BIGapp in your research, please cite:
 
-Sandercock, A.M., Peel, M.D., Taniguti, C., Chinchilla-Vargas, J., Chen, S., Sapkota, M., Lin, M., Zhao, D., Beil, C.T., Sheehan, M.J. (2024). BIGapp: A User-Friendly Genomic Tool Kit Identified Quantitative Trait Loci for Creeping Rootedness in Alfalfa (Medicago sativa L.). Manuscript in preparation.
+Sandercock A.M., Peel M.D., Tanigut C.H., Chinchilla-Vargas J., Chen S., Sapkota M., Lin M., Zhao D., Ackerman A.J., Basnet B.R., Beil C.T., Sheehan M.J. (2025). BIGapp: A User-Friendly Genomic Tool Kit Identified Quantitative Trait Loci for Creeping Rootedness in Alfalfa (_Medicago sativa_ L.)., The Plant Genome. doi:https://doi.org/10.1002/tpg2.70067
