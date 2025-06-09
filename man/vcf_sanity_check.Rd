@@ -39,6 +39,7 @@ The function performs the following checks:
 \item \strong{VCF_header}: Verifies the presence of the \verb{##fileformat} header.
 \item \strong{VCF_columns}: Ensures required columns (\verb{#CHROM}, \code{POS}, \code{ID}, \code{REF}, \code{ALT}, \code{QUAL}, \code{FILTER}, \code{INFO}) are present.
 \item \strong{max_markers}: Checks if the total number of markers exceeds the specified limit.
+\item \strong{unique_FORMAT}: Ensures that the FORMAT fields are consistent across sampled markers.
 \item \strong{GT}: Verifies the presence of the \code{GT} (genotype) field in the FORMAT column.
 \item \strong{allele_counts}: Checks for allele-level count fields (e.g., \code{AD}, \code{RA}, \code{AO}, \code{RO}).
 \item \strong{samples}: Ensures sample/genotype columns are present.

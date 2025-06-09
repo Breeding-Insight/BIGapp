@@ -4,22 +4,34 @@
 \alias{vcf_sanity_messages}
 \title{Generate Sanity Check Messages for VCF Files}
 \usage{
-vcf_sanity_messages(checks, required_true, required_false, input_ploidy = NULL)
+vcf_sanity_messages(
+  checks,
+  error_if_false = c("VCF_header", "VCF_columns", "max_markers", "GT", "allele_counts",
+    "samples", "chrom_info", "pos_info", "ref_alt", "mixed_ploidies"),
+  error_if_true = c("phased_GT", "duplicated_samples", "duplicated_markers"),
+  warning_if_true = c("multiallelics"),
+  warning_if_false = c("unique_FORMAT"),
+  input_ploidy = NULL
+)
 }
 \arguments{
 \item{checks}{A \code{vcf_sanity_check} object containing the results of the sanity check.}
 
-\item{required_true}{A character vector of checks that must be TRUE for the VCF file to pass validation.}
+\item{error_if_false}{(Optional) A character vector of checks that must be TRUE for the VCF file to pass validation.}
 
-\item{required_false}{A character vector of checks that must be FALSE for the VCF file to pass validation.}
+\item{error_if_true}{(Optional) A character vector of checks that must be FALSE for the VCF file to pass validation.}
+
+\item{warning_if_true}{(Optional) A character vector of checks that should trigger a warning if TRUE.}
+
+\item{warning_if_false}{(Optional) A character vector of checks that should trigger a warning if FALSE.}
 
 \item{input_ploidy}{(Optional) An integer specifying the expected ploidy of the VCF file. If provided, the function will compare it with the detected ploidy.}
 }
 \value{
-None. The function displays alerts for any detected issues.
+A logical value indicating whether any of the specified checks failed (TRUE) or passed (FALSE). If any required checks are not met, an error alert is displayed. If any warnings are triggered, a warning alert is displayed.
 }
 \description{
-This function generates user-friendly messages based on the results of a VCF sanity check.
+This function generates messages based on the results of a VCF sanity check.
 }
 \details{
 This function uses the results of a VCF sanity check to display appropriate messages to the user. It checks for required conditions that must be met (TRUE or FALSE) and optionally validates the ploidy of the VCF file. If any issues are detected, the function displays alerts using \code{shinyalert}.

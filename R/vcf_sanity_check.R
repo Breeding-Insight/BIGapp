@@ -17,6 +17,7 @@
 #' - **VCF_header**: Verifies the presence of the `##fileformat` header.
 #' - **VCF_columns**: Ensures required columns (`#CHROM`, `POS`, `ID`, `REF`, `ALT`, `QUAL`, `FILTER`, `INFO`) are present.
 #' - **max_markers**: Checks if the total number of markers exceeds the specified limit.
+#' - **unique_FORMAT**: Ensures that the FORMAT fields are consistent across sampled markers.
 #' - **GT**: Verifies the presence of the `GT` (genotype) field in the FORMAT column.
 #' - **allele_counts**: Checks for allele-level count fields (e.g., `AD`, `RA`, `AO`, `RO`).
 #' - **samples**: Ensures sample/genotype columns are present.
@@ -36,6 +37,7 @@ vcf_sanity_check <- function(
     max_markers = 10000,
     depth_support_fields = c("AD", "RA", "AO", "RO", "NR", "NV", "SB", "F1R2", "F2R1"),
     verbose = FALSE) {
+  
   if (!file.exists(vcf_path)) stop("File does not exist.")
   
   is_gz <- grepl("\\.gz$", vcf_path)
@@ -229,7 +231,7 @@ vcf_sanity_check <- function(
       ploidy_max <- max(ploidy_values, na.rm = TRUE)
       if (verbose) cat("Highest ploidy detected from GT field:", ploidy_max, "\n")
     }
-    if (length(ploidy_values) > 1) {
+    if (length(unique(ploidy_values)) > 1) {
       checks["mixed_ploidies"] <- TRUE
       if (verbose) cat("Mixed ploidies detected\n")
     } else {
@@ -260,52 +262,52 @@ vcf_sanity_check <- function(
   # Messages in case of failure
   messages <- data.frame(
     "VCF_header" = c(
-      "VCF header is missing. Please check the file format",
-      "VCF header is present"
+      "VCF header is missing. Please check the file format\n",
+      "VCF header is present\n"
     ),
     "VCF_columns" = c(
-      "Required VCF columns are missing. Please check the file format",
-      "Required VCF columns are present"
+      "Required VCF columns are missing. Please check the file format\n",
+      "Required VCF columns are present\n"
     ),
     "max_markers" = c(
-      "More than 10,000 markers found. Consider subsampling or running in HPC",
-      "Less than maximum number of markers found"
+      "More than 10,000 markers found. Consider subsampling or running in HPC\n",
+      "Less than maximum number of markers found\n"
     ),
     "unique_FORMAT" = c(
-      "FORMAT fields are not consistent across sampled markers",
-      "FORMAT fields are consistent across sampled markers"
+      "FORMAT fields are not consistent across sampled markers\n",
+      "FORMAT fields are consistent across sampled markers\n"
     ),
     "GT" = c(
-      "Genotype information is not available in the VCF file",
-      "Genotype information is available in the VCF file"
+      "Genotype information is not available in the VCF file\n",
+      "Genotype information is available in the VCF file\n"
     ),
     "allele_counts" = c(
-      "Required field for allele counts are not available in the VCF file",
-      "Required field for allele counts are available in the VCF file"
+      "Required field for allele counts are not available in the VCF file\n",
+      "Required field for allele counts are available in the VCF file\n"
     ),
     "samples" = c(
-      "Sample information is not available in the VCF file",
-      "Sample information is available in the VCF file"
+      "Sample information is not available in the VCF file\n",
+      "Sample information is available in the VCF file\n"
     ),
     "chrom_info" = c(
-      "Chromosome information is not available in the VCF file",
-      "Chromosome information is available in the VCF file"
+      "Chromosome information is not available in the VCF file\n",
+      "Chromosome information is available in the VCF file\n"
     ),
     "pos_info" = c(
-      "Position information is not available in the VCF file",
-      "Position information is available in the VCF file"
+      "Position information is not available in the VCF file\n",
+      "Position information is available in the VCF file\n"
     ),
     "ref_alt" = c(
-      "REF/ALT fields contain invalid nucleotide codes",
-      "REF/ALT fields are valid"
+      "REF/ALT fields contain invalid nucleotide codes\n",
+      "REF/ALT fields are valid\n"
     ),
     "multiallelics" = c(
-      "Multiallelic sites not found in the VCF file",
-      "Multiallelic sites found in the VCF file"
+      "Multiallelic sites not found in the VCF file\n",
+      "Multiallelic sites found in the VCF file\n"
     ),
     "phased_GT" = c(
-      "Phased genotypes (|) are not present in the VCF file",
-      "Phased genotypes (|) are present in the VCF file"
+      "Phased genotypes (|) are not present in the VCF file\n",
+      "Phased genotypes (|) are present in the VCF file\n"
     ),
     "duplicated_samples" = c(
       "No duplicated sample IDs found",
@@ -316,8 +318,8 @@ vcf_sanity_check <- function(
       paste("Duplicated marker IDs found: ", paste(duplicates$duplicated_markers, collapse = ", "))
     ),
     "mixed_ploidies" = c(
-      "Mixed ploidies detected",
-      "No mixed ploidies detected"
+      "No mixed ploidies detected",
+      "Mixed ploidies detected"
     )
   )
   rownames(messages) <- c("false", "true")
@@ -338,22 +340,22 @@ vcf_sanity_check <- function(
 #' This function generates messages based on the results of a VCF sanity check.
 #'
 #' @param checks A `vcf_sanity_check` object containing the results of the sanity check.
-#' @param required_true A character vector of checks that must be TRUE for the VCF file to pass validation.
-#' @param required_false A character vector of checks that must be FALSE for the VCF file to pass validation.
-#' @param warning_true (Optional) A character vector of checks that should trigger a warning if TRUE.
-#' @param warning_false (Optional) A character vector of checks that should trigger a warning if FALSE.
+#' @param error_if_false (Optional) A character vector of checks that must be TRUE for the VCF file to pass validation.
+#' @param error_if_true (Optional) A character vector of checks that must be FALSE for the VCF file to pass validation.
+#' @param warning_if_true (Optional) A character vector of checks that should trigger a warning if TRUE.
+#' @param warning_if_false (Optional) A character vector of checks that should trigger a warning if FALSE.
 #' @param input_ploidy (Optional) An integer specifying the expected ploidy of the VCF file. If provided, the function will compare it with the detected ploidy.
 #'
 #' @details This function uses the results of a VCF sanity check to display appropriate messages to the user. It checks for required conditions that must be met (TRUE or FALSE) and optionally validates the ploidy of the VCF file. If any issues are detected, the function displays alerts using `shinyalert`.
 #'
-#' @return None. The function displays alerts for any detected issues.
+#' @return A logical value indicating whether any of the specified checks failed (TRUE) or passed (FALSE). If any required checks are not met, an error alert is displayed. If any warnings are triggered, a warning alert is displayed.
 #'
 #' @importFrom shinyalert shinyalert
 #'
 #' @export
 vcf_sanity_messages <- function(
     checks,
-    required_true = c(
+    error_if_false = c(
       "VCF_header",
       "VCF_columns",
       "max_markers",
@@ -365,11 +367,11 @@ vcf_sanity_messages <- function(
       "ref_alt",
       "mixed_ploidies"
     ), 
-    required_false = c( "phased_GT",
+    error_if_true = c( "phased_GT",
                         "duplicated_samples",
                         "duplicated_markers"),
-    warning_true = c("multiallelics"),
-    warning_false = c("unique_FORMAT"),
+    warning_if_true = c("multiallelics"),
+    warning_if_false = c("unique_FORMAT"),
     input_ploidy = NULL) {
   
   # check must be from vcf_sanity_check
@@ -377,12 +379,14 @@ vcf_sanity_messages <- function(
     stop("check must be a vcf_sanity_check object.")
   }
   
+  it_should_brake <- vector()
   # Check required TRUE
-  if (length(required_true) > 0 && !all(checks$checks[required_true])) {
+  if (length(error_if_false) > 0 && !all(checks$checks[error_if_false])) {
+    it_should_brake <- c(it_should_brake, !checks$checks[error_if_false])
     shinyalert(
       title = "File Error",
-      text = paste(checks$message[1, required_true][which(!checks$checks[required_true])],
-                   collapse = "\n"
+      text = paste(checks$message[1, error_if_false][which(!checks$checks[error_if_false])],
+                   collapse = ";"
       ),
       size = "xs",
       closeOnEsc = TRUE,
@@ -399,11 +403,11 @@ vcf_sanity_messages <- function(
   }
   
   # Check warning TRUE
-  if (length(warning_true) > 0 && all(checks$checks[warning_true])) {
+  if (length(warning_if_true) > 0 && all(checks$checks[warning_if_true])) {
     shinyalert(
       title = "Warning",
-      text = paste(checks$message[2, warning_true][which(checks$checks[warning_true])],
-                   collapse = "\n"
+      text = paste(checks$message[2, warning_if_true][which(checks$checks[warning_if_true])],
+                   collapse = ";"
       ),
       size = "xs",
       closeOnEsc = TRUE,
@@ -420,11 +424,13 @@ vcf_sanity_messages <- function(
   }
   
   # Check required FALSE
-  if (length(required_false) > 0 && any(checks$checks[required_false])) {
+  if (length(error_if_true) > 0 && any(checks$checks[error_if_true])) {
+    it_should_brake <- c(it_should_brake, checks$checks[error_if_true])
+    
     shinyalert(
       title = "File Error",
-      text = paste(checks$message[2, required_false][which(checks$checks[required_false])],
-                   collapse = "\n"
+      text = paste(checks$message[2, error_if_true][which(checks$checks[error_if_true])],
+                   collapse = ";"
       ),
       size = "xs",
       closeOnEsc = TRUE,
@@ -441,11 +447,11 @@ vcf_sanity_messages <- function(
   }
   
   # Check warning FALSE
-  if (length(warning_false) > 0 && !all(checks$checks[warning_false])) {
+  if (length(warning_if_false) > 0 && !all(checks$checks[warning_if_false])) {
     shinyalert(
       title = "Warning",
-      text = paste(checks$message[1, warning_false][which(!checks$checks[warning_false])],
-                   collapse = "\n"
+      text = paste(checks$message[1, warning_if_false][which(!checks$checks[warning_if_false])],
+                   collapse = ";"
       ),
       size = "xs",
       closeOnEsc = TRUE,
@@ -462,6 +468,8 @@ vcf_sanity_messages <- function(
   }
   
   if (!is.null(input_ploidy)) {
+    it_should_brake <- c(it_should_brake, checks$ploidy_max != input_ploidy)
+    
     if (checks$ploidy_max != input_ploidy) {
       shinyalert(
         title = "File Error",
@@ -480,6 +488,7 @@ vcf_sanity_messages <- function(
       )
     }
   }
+  return(any(it_should_brake))
 }
 
 #' Print Method for vcf_sanity_check Objects
