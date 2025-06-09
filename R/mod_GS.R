@@ -579,11 +579,11 @@ mod_GS_server <- function(input, output, session, parent_session) {
       }
       
       #### VCF sanity check
-      checks <- vcf_sanity_check(train_geno_path, max_markers = 1000)
+      checks <- vcf_sanity_check(train_geno_path)
       
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-        "samples",  "max_markers"
+        "samples"
       )
       
       error_if_true <- c(
@@ -609,7 +609,7 @@ mod_GS_server <- function(input, output, session, parent_session) {
         est_vcf <- NULL
       } else {
         ## Check VCF
-        checks <- vcf_sanity_check(est_geno_path, max_markers = 1000)
+        checks <- vcf_sanity_check(est_geno_path)
         checks_result <- vcf_sanity_messages(checks, 
                                              error_if_false, 
                                              error_if_true, 
