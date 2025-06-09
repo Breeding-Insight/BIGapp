@@ -4,16 +4,16 @@ get_counts <- function(madc_file, output_name) {
   # Note: This assumes that the first 7 rows are not useful here like in the Strawberry DSt23-8501_MADC file
 
   # Read the madc file
-  madc_df <- read.csv(madc_file, sep = ",", check.names = FALSE, header = FALSE)
-  header <- grep("AlleleID", madc_df[, 1])
-  if (header > 1) madc_df <- madc_df[-c(1:(grep("AlleleID", madc_df[, 1])) - 1), ]
-  colnames(madc_df) <- madc_df[1, ]
-  madc_df <- madc_df[-1, ]
+  madc_df <- read.csv(madc_file, sep = ',', check.names = FALSE, header = FALSE)
+  header <- grep("AlleleID", madc_df[,1])
+  if(header > 1) madc_df <- madc_df[-c(1:(grep("AlleleID", madc_df[,1]))-1), ]
+  colnames(madc_df) <- madc_df[1,]
+  madc_df <- madc_df[-1,]
 
   # Retain only the Ref and Alt haplotypes
   filtered_df <- madc_df[!grepl("\\|AltMatch|\\|RefMatch", madc_df$AlleleID), ]
 
-  # Remove extra text after Ref and Alt (_001 or _002)
+  #Remove extra text after Ref and Alt (_001 or _002)
   filtered_df$AlleleID <- sub("\\|Ref.*", "|Ref", filtered_df$AlleleID)
   filtered_df$AlleleID <- sub("\\|Alt.*", "|Alt", filtered_df$AlleleID)
 
@@ -21,10 +21,10 @@ get_counts <- function(madc_file, output_name) {
 }
 
 
-# Get the alt, ref, and size matrix for use in Updog
-# Add functionality here to stop the script if indentical() is False
+#Get the alt, ref, and size matrix for use in Updog
+#Add functionality here to stop the script if indentical() is False
 get_matrices <- function(result_df) {
-  # This function takes the dataframe of ref and alt counts for each sample, and converts them to ref, alt, and size(total count) matrices for Updog
+  #This function takes the dataframe of ref and alt counts for each sample, and converts them to ref, alt, and size(total count) matrices for Updog
 
   update_df <- result_df
 
@@ -34,15 +34,15 @@ get_matrices <- function(result_df) {
   # Filter rows where 'AlleleID' ends with 'Alt'
   alt_df <- subset(update_df, grepl("Alt$", AlleleID))
 
-  # Ensure that each has the same SNPs and that they are in the same order
+  #Ensure that each has the same SNPs and that they are in the same order
   same <- identical(alt_df$CloneID, ref_df$CloneID)
 
-  ### Convert the ref and alt counts into matrices with the CloneID as the index
-  # Set SNP names as index
+  ###Convert the ref and alt counts into matrices with the CloneID as the index
+  #Set SNP names as index
   row.names(ref_df) <- ref_df$CloneID
   row.names(alt_df) <- alt_df$CloneID
 
-  # Retain only the rows in common if they are not identical and provide warning
+  #Retain only the rows in common if they are not identical and provide warning
   if (same == FALSE) {
     warning("Mismatch between Ref and Alt Markers. MADC likely altered. Markers without a Ref or Alt match removed.")
     # Find the common CloneIDs between the two dataframes
@@ -53,23 +53,21 @@ get_matrices <- function(result_df) {
   }
 
   # Remove unwanted columns and convert to matrix
-  rm.col <- c(
-    "AlleleID", "CloneID", "AlleleSequence", "ClusterConsensusSequence",
+  rm.col <- c("AlleleID", "CloneID", "AlleleSequence", "ClusterConsensusSequence",
     "CallRate", "OneRatioRef", "OneRatioSnp", "FreqHomRef", "FreqHomSnp",
-    "FreqHets", "PICRef", "PICSnp", "AvgPIC", "AvgCountRef", "AvgCountSnp", "RatioAvgCountRefAvgCountSnp"
-  )
+    "FreqHets", "PICRef", "PICSnp", "AvgPIC", "AvgCountRef", "AvgCountSnp", "RatioAvgCountRefAvgCountSnp")
 
   ref_matrix <- as.matrix(ref_df[, -which(colnames(ref_df) %in% rm.col)])
   alt_matrix <- as.matrix(alt_df[, -which(colnames(alt_df) %in% rm.col)])
 
-  # Convert elements to numeric
+  #Convert elements to numeric
   class(ref_matrix) <- "numeric"
   class(alt_matrix) <- "numeric"
 
   # Make the size matrix by combining the two matrices
   size_matrix <- (ref_matrix + alt_matrix)
 
-  # Count the number of cells with 0 count to estimate missing data
+  #Count the number of cells with 0 count to estimate missing data
   # Count the number of cells with the value 0
   count_zeros <- sum(size_matrix == 0)
 
@@ -123,7 +121,7 @@ findK <- function(genotypeMatrix, maxK, ploidy) {
     NA.char = NA
   )
 
-  # Assign the populations as the sample names since there is no assumed populations
+  #Assign the populations as the sample names since there is no assumed populations
   pop(genlight_new) <- genlight_new@ind.names
 
   # Estimate number of clusters
@@ -133,14 +131,13 @@ findK <- function(genotypeMatrix, maxK, ploidy) {
   # Either way, this is a suggestion, and the number of clusters to use should be made with biology considerations.
   graphics.off() # Prevent plot from automatically displaying
   grp <- find.clusters(genlight_new,
-    max.n.clust = maxK,
-    n.pca = nInd(genlight_new),
-    stat = "BIC",
-    criterion = "diffNgroup",
-    parallel = FALSE,
-    choose = FALSE
-  )
-
+                       max.n.clust = maxK,
+                       n.pca = nInd(genlight_new),
+                       stat = "BIC",
+                       criterion = "diffNgroup",
+                       parallel = FALSE,
+                       choose = FALSE)
+  
   # Identify the best K based on lowest BIC
   bestK <- length(grp$size)
 
@@ -148,18 +145,19 @@ findK <- function(genotypeMatrix, maxK, ploidy) {
   bicDF <- data.frame(K = 1:maxK, BIC = as.data.frame(grp$Kstat)$`grp$Kstat`)
 
   return(list(bestK = as.numeric(bestK), grp = grp, BIC = bicDF))
+  
 }
 
 #' @importFrom methods new
 performDAPC <- function(genotypeMatrix, selected_K, ploidy) {
-  # Convert matrix to genlight
+  
+  #Convert matrix to genlight
   genlight_new <- new("genlight", t(genotypeMatrix),
-    ind.names = row.names(t(genotypeMatrix)),
-    loc.names = colnames(t(genotypeMatrix)),
-    ploidy = ploidy,
-    NA.char = NA
-  )
-
+                      ind.names = row.names(t(genotypeMatrix)),
+                      loc.names = colnames(t(genotypeMatrix)),
+                      ploidy = ploidy,
+                      NA.char = NA)
+  
   # Get groups based on specified cluster number (K)
   graphics.off() # Prevent plot from automatically displaying
   grp <- find.clusters(genlight_new,
@@ -549,416 +547,4 @@ gmatrix2vcf <- function(Gmat.file, ploidy, output.file, dosageCount = "Reference
 
   # Unload all items from memory
   rm(vcf_df, geno_df, dosage, df)
-}
-
-#' Perform a Sanity Check on a VCF File
-#'
-#' This function performs a series of checks on a VCF file to ensure its validity and integrity. It verifies the presence of required headers, columns, and data fields, and checks for common issues such as missing or malformed data.
-#'
-#' @param vcf_path A character string specifying the path to the VCF file. The file can be plain text or gzipped.
-#' @param n_data_lines An integer specifying the number of data lines to sample for detailed checks. Default is 100.
-#' @param max_markers An integer specifying the maximum number of markers allowed in the VCF file. Default is 10,000.
-#' @param verbose A logical value indicating whether to print detailed messages during the checks. Default is FALSE.
-#'
-#' @return A list containing:
-#' - `checks`: A named vector indicating the results of each check (TRUE or FALSE).
-#' - `messages`: A data frame containing messages for each check, indicating success or failure.
-#' - `duplicates`: A list containing any duplicated sample or marker IDs found in the VCF file.
-#' - `ploidy_max`: The maximum ploidy detected from the genotype field, if applicable.
-#'
-#' @details The function performs the following checks:
-#' - **VCF_header**: Verifies the presence of the `##fileformat` header.
-#' - **VCF_columns**: Ensures required columns (`#CHROM`, `POS`, `ID`, `REF`, `ALT`, `QUAL`, `FILTER`, `INFO`) are present.
-#' - **max_markers**: Checks if the total number of markers exceeds the specified limit.
-#' - **GT**: Verifies the presence of the `GT` (genotype) field in the FORMAT column.
-#' - **allele_counts**: Checks for allele-level count fields (e.g., `AD`, `RA`, `AO`, `RO`).
-#' - **samples**: Ensures sample/genotype columns are present.
-#' - **chrom_info** and **pos_info**: Verifies the presence of `CHROM` and `POS` columns.
-#' - **ref_alt**: Ensures `REF` and `ALT` fields contain valid nucleotide codes.
-#' - **multiallelics**: Identifies multiallelic sites (ALT field with commas).
-#' - **phased_GT**: Checks for phased genotypes (presence of `|` in the `GT` field).
-#' - **duplicated_samples**: Checks for duplicated sample IDs.
-#' - **duplicated_markers**: Checks for duplicated marker IDs.
-#'
-#' @importFrom stats setNames
-#'
-#' @export
-vcf_sanity_check <- function(
-    vcf_path,
-    n_data_lines = 100,
-    max_markers = 10000,
-    verbose = FALSE) {
-  if (!file.exists(vcf_path)) stop("File does not exist.")
-
-  is_gz <- grepl("\\.gz$", vcf_path)
-  con <- if (is_gz) gzfile(vcf_path, open = "rt") else file(vcf_path, open = "r")
-  lines <- readLines(con, warn = FALSE)
-  close(con)
-
-  # --- Prepare result vector ---
-  checks_names <- c(
-    "VCF_header",
-    "VCF_columns",
-    "max_markers",
-    "GT",
-    "allele_counts",
-    "samples",
-    "chrom_info",
-    "pos_info",
-    "ref_alt",
-    "multiallelics",
-    "phased_GT",
-    "duplicated_samples",
-    "duplicated_markers",
-    "mixed_ploidies"
-  )
-  checks <- setNames(rep(NA, length(checks_names)), checks_names)
-
-
-  # Container for duplicated IDs
-  duplicates <- list(
-    duplicated_samples = character(0),
-    duplicated_markers = character(0)
-  )
-
-  # --- Header checks ---
-  header_lines <- grep("^##", lines, value = TRUE)
-  if (!any(grepl("^##fileformat=VCFv", header_lines))) {
-    checks["VCF_header"] <- FALSE
-    if (verbose) warning("Missing ##fileformat header.")
-  } else {
-    checks["VCF_header"] <- TRUE
-    if (verbose) cat("VCF header is present.\n")
-  }
-
-  # --- Column header line ---
-  column_header_line <- grep("^#CHROM", lines, value = TRUE)
-  if (length(column_header_line) != 1) stop("Missing or multiple #CHROM lines.")
-  column_names <- unlist(strsplit(column_header_line, "\t"))
-  has_genotypes <- length(column_names) > 8
-
-  required_columns <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
-  checks["VCF_columns"] <- all(required_columns %in% column_names[1:8])
-  if (checks["VCF_columns"]) {
-    if (verbose) cat("Required VCF columns are present.\n")
-  } else {
-    if (verbose) warning("Missing one or more required VCF columns.")
-  }
-
-  # --- Total marker count ---
-  data_line_indices <- grep("^[^#]", lines)
-  total_markers <- length(data_line_indices)
-  if (verbose) cat(sprintf("Total markers (data rows): %d\n", total_markers))
-
-  checks["max_markers"] <- total_markers <= max_markers
-  if (!checks["max_markers"]) {
-    warning(sprintf("More than %d markers found. Consider subsampling.", max_markers))
-  }
-
-  # --- Check for duplicated marker IDs ---
-  if (total_markers > 0) {
-    marker_ids <- sapply(lines[data_line_indices], function(line) {
-      fields <- strsplit(line, "\t")[[1]]
-      if (length(fields) >= 3) fields[3] else NA
-    })
-    marker_ids <- marker_ids[!is.na(marker_ids)]
-    duplicated_markers <- marker_ids[duplicated(marker_ids)]
-    duplicates$duplicated_markers <- duplicated_markers
-    if (length(duplicated_markers) > 0) {
-      checks["duplicated_markers"] <- TRUE
-      if (verbose) warning("Duplicated marker IDs found: ", paste(head(duplicated_markers, 10), collapse = ", "), "...")
-    } else {
-      if (verbose) cat("No duplicated marker IDs.\n")
-      checks["duplicated_markers"] <- FALSE
-    }
-  }
-
-  # --- FORMAT field checks (GT, AD, etc.) ---
-  if (has_genotypes) {
-    checks["samples"] <- TRUE
-    sample_indices <- head(data_line_indices, n_data_lines)
-    format_fields <- character()
-
-    for (i in seq_along(sample_indices)) {
-      fields <- strsplit(lines[sample_indices[i]], "\t")[[1]]
-      if (length(fields) >= 9) {
-        format_keys <- unlist(strsplit(fields[9], ":"))
-        format_fields <- union(format_fields, format_keys)
-      }
-    }
-
-    # GT check
-    checks["GT"] <- "GT" %in% format_fields
-    if (verbose) {
-      if (checks["GT"]) cat("FORMAT field 'GT' (genotype) is present.\n") else warning("FORMAT field 'GT' is missing.")
-    }
-    # Allele counts check
-    support_fields <- c("AD", "RA", "AO", "RO", "NR", "NV", "SB", "F1R2", "F2R1")
-    checks["allele_counts"] <- any(support_fields %in% format_fields)
-    if (checks["allele_counts"]) {
-      if (verbose) {
-        cat(sprintf(
-          "Allele count FORMAT field(s) found: %s\n",
-          paste(intersect(support_fields, format_fields), collapse = ", ")
-        ))
-      }
-    } else {
-      warning(" No allele-level count fields found (e.g., AD, RA, AO, RO).")
-    }
-
-    # Optional: phased GT (presence of '|' instead of '/' in genotypes)
-    phased_lines <- grep("\\|", lines[sample_indices])
-    checks["phased_GT"] <- length(phased_lines) > 0
-
-    # --- Check for duplicated sample names ---
-    sample_names <- column_names[10:length(column_names)]
-    duplicated_samples <- sample_names[duplicated(sample_names)]
-    duplicates$duplicated_samples <- duplicated_samples
-    if (length(duplicated_samples) > 0) {
-      if (verbose) warning("Duplicated sample names found: ", paste(duplicated_samples, collapse = ", "))
-      checks["duplicated_samples"] <- TRUE
-    } else {
-      if (verbose) cat("No duplicated sample names.\n")
-      checks["duplicated_samples"] <- FALSE
-    }
-  } else {
-    checks["samples"] <- FALSE
-    checks["GT"] <- FALSE
-    checks["allele_counts"] <- FALSE
-    checks["phased_GT"] <- FALSE
-    checks["duplicated_samples"] <- FALSE
-
-    warning("No sample/genotype columns found.")
-  }
-
-  # --- Ploidy inference (based on GT) ---
-  ploidy_max <- NA # default if GT not found or no valid genotypes
-
-  if (checks["GT"]) {
-    ploidy_values <- c()
-
-    for (i in seq_along(sample_indices)) {
-      fields <- strsplit(lines[sample_indices[i]], "\t")[[1]]
-
-      # Skip if not enough fields
-      if (length(fields) < 10) next
-
-      format_keys <- unlist(strsplit(fields[9], ":"))
-      gt_index <- which(format_keys == "GT")
-
-      # Loop through samples (from column 10 onward)
-      for (sample_field in fields[10:length(fields)]) {
-        sample_fields <- unlist(strsplit(sample_field, ":"))
-        if (length(sample_fields) >= gt_index) {
-          gt_raw <- sample_fields[gt_index]
-          if (grepl("[/|]", gt_raw)) {
-            ploidy <- length(unlist(strsplit(gt_raw, "[/|]")))
-            ploidy_values <- c(ploidy_values, ploidy)
-          }
-        }
-      }
-    }
-
-    if (length(ploidy_values) > 0) {
-      ploidy_max <- max(ploidy_values, na.rm = TRUE)
-      if (verbose) cat("Highest ploidy detected from GT field:", ploidy_max, "\n")
-    }
-    if (length(ploidy_values) > 1) {
-      checks["mixed_ploidies"] <- TRUE
-      if (verbose) cat("Mixed ploidies\n")
-    } else {
-      checks["mixed_ploidies"] <- FALSE
-    }
-  }
-
-  # --- CHROM and POS column checks ---
-  checks["chrom_info"] <- "#CHROM" %in% column_names
-  checks["pos_info"] <- "POS" %in% column_names
-
-  if (checks["chrom_info"] && checks["pos_info"]) {
-    if (verbose) cat("Both CHROM and POS columns are present.\n")
-  } else {
-    if (!checks["chrom_info"]) warning(" Column 'CHROM' is missing.")
-    if (!checks["pos_info"]) warning(" Column 'POS' is missing.")
-  }
-
-  # --- REF/ALT basic check on sample rows ---
-  sample_lines <- lines[head(data_line_indices, n_data_lines)]
-  ref_alt_valid <- sapply(sample_lines, function(line) {
-    fields <- strsplit(line, "\t")[[1]]
-    if (length(fields) >= 5) {
-      ref <- fields[4]
-      alt <- fields[5]
-      grepl("^[ACGTN]+$", ref) && grepl("^[ACGTN.,<>]+$", alt)
-    } else {
-      FALSE
-    }
-  })
-  checks["ref_alt"] <- all(ref_alt_valid)
-
-  # --- Multiallelic site check (ALT with ',' separator) ---
-  multiallelic_flags <- grepl(",", sapply(sample_lines, function(line) strsplit(line, "\t")[[1]][5]))
-  checks["multiallelics"] <- any(multiallelic_flags)
-
-  # --- Compile messages ---
-
-  # Messages in case of failure
-  messages <- data.frame(
-    "VCF_header" = c(
-      "VCF header is missing. Please check the file format.",
-      "VCF header is present."
-    ),
-    "VCF_columns" = c(
-      "Required VCF columns are missing. Please check the file format.",
-      "Required VCF columns are present."
-    ),
-    "max_markers" = c(
-      "More than 10,000 markers found. Consider subsampling or running in HPC.",
-      "Less than maximum number of markers found."
-    ),
-    "GT" = c(
-      "Genotype information is not available in the VCF file.",
-      "Genotype information is available in the VCF file."
-    ),
-    "allele_counts" = c(
-      "Allele counts are not available in the VCF file.",
-      "Allele counts are available in the VCF file."
-    ),
-    "samples" = c(
-      "Sample information is not available in the VCF file.",
-      "Sample information is available in the VCF file."
-    ),
-    "chrom_info" = c(
-      "Chromosome information is not available in the VCF file.",
-      "Chromosome information is available in the VCF file."
-    ),
-    "pos_info" = c(
-      "Position information is not available in the VCF file.",
-      "Position information is available in the VCF file."
-    ),
-    "ref_alt" = c(
-      "REF/ALT fields contain invalid nucleotide codes.",
-      "REF/ALT fields are valid."
-    ),
-    "multiallelics" = c(
-      "Multiallelic sites not found in the VCF file.",
-      "Multiallelic sites found in the VCF file."
-    ),
-    "phased_GT" = c(
-      "Phased genotypes (|) are not present in the VCF file.",
-      "Phased genotypes (|) are present in the VCF file."
-    ),
-    "duplicated_samples" = c(
-      "No duplicated sample IDs found.",
-      paste("Duplicated sample IDs found: ", paste(duplicates$duplicated_samples, collapse = ", "))
-    ),
-    "duplicated_markers" = c(
-      "No duplicated marker IDs found.",
-      paste("Duplicated marker IDs found: ", paste(duplicates$duplicated_markers, collapse = ", "))
-    ),
-    "mixed_ploidies" = c(
-      "Mixed ploidies detected.",
-      "No mixed ploidies detected."
-    )
-  )
-  rownames(messages) <- c("false", "true")
-
-  # --- Done ---
-  if (verbose) cat("Sanity check complete.\n")
-  return(structure(
-    list(
-      checks = checks, messages = messages,
-      duplicates = duplicates, ploidy_max = ploidy_max
-    ),
-    class = "vcf_sanity_check"
-  ))
-}
-
-#' Generate Sanity Check Messages for VCF Files
-#'
-#' This function generates user-friendly messages based on the results of a VCF sanity check.
-#'
-#' @param checks A `vcf_sanity_check` object containing the results of the sanity check.
-#' @param required_true A character vector of checks that must be TRUE for the VCF file to pass validation.
-#' @param required_false A character vector of checks that must be FALSE for the VCF file to pass validation.
-#' @param input_ploidy (Optional) An integer specifying the expected ploidy of the VCF file. If provided, the function will compare it with the detected ploidy.
-#'
-#' @details This function uses the results of a VCF sanity check to display appropriate messages to the user. It checks for required conditions that must be met (TRUE or FALSE) and optionally validates the ploidy of the VCF file. If any issues are detected, the function displays alerts using `shinyalert`.
-#'
-#' @return None. The function displays alerts for any detected issues.
-#'
-#' @importFrom shinyalert shinyalert
-#'
-#' @export
-vcf_sanity_messages <- function(
-    checks,
-    required_true, 
-    required_false,
-    input_ploidy = NULL) {
-  # check must be from vcf_sanity_check
-  if (!inherits(checks, "vcf_sanity_check")) {
-    stop("check must be a vcf_sanity_check object.")
-  }
-
-  # Check required TRUE
-  if (!all(checks$checks[required_true])) {
-    shinyalert(
-      title = "File Error",
-      text = paste(checks$message[1, required_true][which(!checks$checks[required_true])],
-        collapse = "\n"
-      ),
-      size = "xs",
-      closeOnEsc = TRUE,
-      closeOnClickOutside = FALSE,
-      html = TRUE,
-      type = "info",
-      showConfirmButton = TRUE,
-      confirmButtonText = "OK",
-      confirmButtonCol = "#004192",
-      showCancelButton = FALSE,
-      imageUrl = "",
-      animation = TRUE,
-    )
-  }
-
-  # Check required FALSE
-  if (any(checks$checks[required_false])) {
-    shinyalert(
-      title = "File Error",
-      text = paste(checks$message[2, required_false][which(checks$checks[required_false])],
-        collapse = "\n"
-      ),
-      size = "xs",
-      closeOnEsc = TRUE,
-      closeOnClickOutside = FALSE,
-      html = TRUE,
-      type = "info",
-      showConfirmButton = TRUE,
-      confirmButtonText = "OK",
-      confirmButtonCol = "#004192",
-      showCancelButton = FALSE,
-      imageUrl = "",
-      animation = TRUE,
-    )
-  }
-
-  if (!is.null(input_ploidy)) {
-    if (checks$ploidy_max != input_ploidy) {
-      shinyalert(
-        title = "File Error",
-        text = "Informed ploidy doesn't match genotypes in the VCF file",
-        size = "xs",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "info",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        imageUrl = "",
-        animation = TRUE,
-      )
-    }
-  }
 }
