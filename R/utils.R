@@ -320,13 +320,37 @@ split_info_column <- function(info) {
 #' @importFrom vcfR read.vcfR
 #' @importFrom shinyalert shinyalert
 #'
-read_geno_file <- function(file_path, requires = c("GT")) {
+read_geno_file <- function(file_path, requires = c("GT"), ploidy) {
   if (grepl("\\.csv$", file_path)) {
     geno <- read.csv(geno_path, header = TRUE, row.names = 1, check.names = FALSE)
     n_snps <- nrow(geno)
     return(list(geno, n_snps))
   } else if (grepl("\\.vcf$", file_path) || grepl("\\.gz$", file_path)) {
     # Convert VCF file if submitted
+    #### VCF sanity check - Used in the GSAcc mod
+    checks <- vcf_sanity_check(file_path)
+    
+    error_if_false <- c(
+      "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+      "samples"
+    )
+    
+    error_if_true <- c(
+      "multiallelics", "phased_GT",  "mixed_ploidies",
+      "duplicated_samples", "duplicated_markers"
+    )
+    
+    warning_if_false <- c("chrom_info", "pos_info", "ref_alt")
+    
+    checks_result <- vcf_sanity_messages(checks, 
+                                         error_if_false, 
+                                         error_if_true, 
+                                         warning_if_false = warning_if_false, 
+                                         warning_if_true = NULL,
+                                         input_ploidy = as.numeric(ploidy))
+    
+    if(checks_result) return(NULL) # Stop the analysis if checks fail
+    #########
     vcf <- read.vcfR(file_path, verbose = FALSE)
 
     all_requires <- vector()
