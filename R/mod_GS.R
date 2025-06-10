@@ -597,7 +597,7 @@ mod_GS_server <- function(input, output, session, parent_session) {
                                            error_if_false, 
                                            error_if_true, 
                                            warning_if_false = warning_if_false, 
-                                           warning_if_true = warning_if_true,
+                                           warning_if_true = NULL,
                                            input_ploidy = as.numeric(input$pred_est_ploidy))
       
       if(checks_result) return() # Stop the analysis if checks fail
@@ -614,7 +614,7 @@ mod_GS_server <- function(input, output, session, parent_session) {
                                              error_if_false, 
                                              error_if_true, 
                                              warning_if_false = warning_if_false, 
-                                             warning_if_true = warning_if_true,
+                                             warning_if_true = NULL,
                                              as.numeric(input$pred_est_ploidy))
         
         if(checks_result) return() # Stop the analysis if checks fail
