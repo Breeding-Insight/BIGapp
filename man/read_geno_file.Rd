@@ -4,12 +4,16 @@
 \alias{read_geno_file}
 \title{Read geno file}
 \usage{
-read_geno_file(file_path, requires = c("GT"))
+read_geno_file(file_path, requires = c("GT"), ploidy, check = TRUE)
 }
 \arguments{
 \item{file_path}{character indicanting path to file}
 
 \item{requires}{which information is required from the VCF. Define the FORMAT or INFO letters. Example: c("GT", "DP", "PL")}
+
+\item{ploidy}{numeric value indicating the ploidy of the species}
+
+\item{check}{logical indicating whether to perform checks on the VCF file}
 }
 \description{
 Read geno file

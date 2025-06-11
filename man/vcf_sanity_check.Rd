@@ -19,6 +19,8 @@ vcf_sanity_check(
 
 \item{max_markers}{An integer specifying the maximum number of markers allowed in the VCF file. Default is 10,000.}
 
+\item{depth_support_fields}{(Optional) A character vector of fields that are expected to be present in the FORMAT column for allele counts. Default is \code{c("AD", "RA", "AO", "RO", "NR", "NV", "SB", "F1R2", "F2R1")}.}
+
 \item{verbose}{A logical value indicating whether to print detailed messages during the checks. Default is FALSE.}
 }
 \value{

@@ -4,6 +4,7 @@
 #'
 #' @param vcf_path A character string specifying the path to the VCF file. The file can be plain text or gzipped.
 #' @param n_data_lines An integer specifying the number of data lines to sample for detailed checks. Default is 100.
+#' @param depth_support_fields (Optional) A character vector of fields that are expected to be present in the FORMAT column for allele counts. Default is `c("AD", "RA", "AO", "RO", "NR", "NV", "SB", "F1R2", "F2R1")`.
 #' @param max_markers An integer specifying the maximum number of markers allowed in the VCF file. Default is 10,000.
 #' @param verbose A logical value indicating whether to print detailed messages during the checks. Default is FALSE.
 #'
