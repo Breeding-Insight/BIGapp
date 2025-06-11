@@ -521,34 +521,10 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     #Getting genotype matrix
     #Geno.file conversion if needed
     if(!is.null(input$pred_file$datapath)){
-      geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT")
+      geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT", ploidy = as.numeric(input$pred_ploidy))
+      if(is.null(geno_snps)) return()
       geno <- geno_snps[[1]]
       values_boxes$pred_snps <- geno_snps[[2]]
-
-      #Check that the ploidy entered is correct
-      if (input$pred_ploidy != max(geno, na.rm = TRUE)) {
-        # If condition is met, show notification toast
-        shinyalert(
-          title = "Ploidy Mismatch",
-          text = paste0("The maximum value in the genotype file (",max(geno, na.rm = TRUE),") does not equal the ploidy entered"),
-          size = "xs",
-          closeOnEsc = FALSE,
-          closeOnClickOutside = FALSE,
-          html = TRUE,
-          type = "warning",
-          showConfirmButton = TRUE,
-          confirmButtonText = "OK",
-          confirmButtonCol = "#004192",
-          showCancelButton = FALSE,
-          #closeOnConfirm = TRUE,
-          #closeOnCancel = TRUE,
-          imageUrl = "",
-          animation = TRUE
-        )
-
-        # Stop the observeEvent gracefully
-        #return()
-      }
 
       #Make sure the trait file and genotype file are in the same order
       # Column names for geno (assuming these are the individual IDs)

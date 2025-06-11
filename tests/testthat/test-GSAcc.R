@@ -64,7 +64,7 @@ test_that("test Predictive Ability iris",{
 
   #Getting genotype matrix
   #Geno.file conversion if needed
-  geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT")
+  geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT", ploidy = input$pred_ploidy, check = FALSE)
   geno <- geno_snps[[1]]
   pred_inputs$pred_snps <- geno_snps[[2]] # n markers
   pred_inputs$pred_genos <- ncol(geno) # n samples
