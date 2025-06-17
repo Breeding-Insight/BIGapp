@@ -127,7 +127,8 @@ mod_GS_ui <- function(id){
 #' GS Server Functions
 #'
 #' @importFrom vcfR read.vcfR extract.gt
-#' @importFrom rrBLUP mixed.solve A.mat
+#' @importFrom rrBLUP mixed.solve
+#' @importFrom AGHmatrix Gmatrix
 #' @importFrom stats cor
 #' @importFrom shinyalert shinyalert
 #' @import dplyr
@@ -640,17 +641,19 @@ mod_GS_server <- function(input, output, session, parent_session){
 
 
     # Function to convert genotype matrix according to ploidy
-    convert_genotype <- function(genotype_matrix, ploidy) {
-      normalized_matrix <- 2 * (genotype_matrix / ploidy) - 1
-      return(normalized_matrix)
-    }
+    #convert_genotype <- function(genotype_matrix, ploidy) {
+    #  normalized_matrix <- 2 * (genotype_matrix / ploidy) - 1
+    #  return(normalized_matrix)
+    #}
 
     #tranforming genotypes
-    train_geno_adj_init <- convert_genotype(train_geno, as.numeric(ploidy))
+    #train_geno_adj_init <- convert_genotype(train_geno, as.numeric(ploidy))
+    train_geno_adj_init <- train_geno
     if (is.null(est_geno)) {
       est_geno_adj_init <- NULL
     } else {
-      est_geno_adj_init <- convert_genotype(est_geno, as.numeric(ploidy))
+      #est_geno_adj_init <- convert_genotype(est_geno, as.numeric(ploidy))
+      est_geno_adj_init <- est_geno
     }
 
     #Make sure the trait file and genotype file are in the same order
@@ -752,7 +755,13 @@ mod_GS_server <- function(input, output, session, parent_session){
       pheno2 <- pheno2[common_ids, ]
 
       #Matrix
-      Kin_mat <- A.mat(t(train_geno_adj_init), max.missing=NULL,impute.method="mean",return.imputed=FALSE)
+      #Kin_mat <- A.mat(t(train_geno_adj_init), max.missing=NULL,impute.method="mean",return.imputed=FALSE)
+      Kin_mat <- Gmatrix(t(train_geno_adj_init),
+                          method = "VanRaden",
+                          ploidy = ploidy,
+                          ploidy.correction=TRUE,
+                          ratio = FALSE,
+                          missingValue = "NA")
 
     } else{
       #Subset phenotype file and training file by common IDs
@@ -767,7 +776,13 @@ mod_GS_server <- function(input, output, session, parent_session){
       train_pred_geno <- cbind(train_geno_adj, est_geno_adj_init)
 
       #Matrix
-      Kin_mat <- A.mat(t(train_pred_geno), max.missing=NULL,impute.method="mean",return.imputed=FALSE)
+      #Kin_mat <- A.mat(t(train_pred_geno), max.missing=NULL,impute.method="mean",return.imputed=FALSE)
+      Kin_mat <- Gmatrix(t(train_pred_geno),
+                         method = "VanRaden",
+                         ploidy = ploidy,
+                         ploidy.correction=TRUE,
+                         ratio = FALSE,
+                         missingValue = "NA")
 
     }
 
