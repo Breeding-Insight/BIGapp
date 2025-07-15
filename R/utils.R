@@ -576,3 +576,32 @@ gmatrix2vcf <- function(Gmat.file, ploidy, output.file, dosageCount = "Reference
   # Unload all items from memory
   rm(vcf_df, geno_df, dosage, df)
 }
+
+#' Check if a File is Compressed
+#'
+#' This function checks whether a given file is compressed by inspecting its
+#' magic number (first few bytes). It detects common compression formats such as
+#' gzip (`.gz`), bzip2 (`.bz2`), and xz (`.xz`).
+#'
+#' @param file_path A character string giving the path to the file to be checked.
+#'
+#' @return A character string indicating the compression type (`"gzip (.gz)"`,
+#' `"bzip2 (.bz2)"`, or `"xz (.xz)"`) if the file is compressed, or `FALSE` if
+#' the file is not recognized as compressed.
+#' 
+is_compressed_file <- function(file_path) {
+  con <- file(file_path, "rb")
+  magic <- readBin(con, "raw", n = 4)
+  close(con)
+  
+  # Known magic numbers for compressed formats
+  if (all(magic[1:2] == as.raw(c(0x1f, 0x8b)))) {
+    return("gzip (.gz)")
+  } else if (all(magic[1:3] == as.raw(c(0x42, 0x5a, 0x68)))) {
+    return("bzip2 (.bz2)")
+  } else if (all(magic[1:6] == as.raw(c(0xfd, 0x37, 0x7a, 0x58, 0x5a, 0x00)))) {
+    return("xz (.xz)")
+  } else {
+    return(FALSE)  # Not a known compressed format
+  }
+}

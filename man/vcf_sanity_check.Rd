@@ -39,6 +39,7 @@ This function performs a series of checks on a VCF file to ensure its validity a
 The function performs the following checks:
 \itemize{
 \item \strong{VCF_header}: Verifies the presence of the \verb{##fileformat} header.
+\item \strong{VCF_compressed}: Checks if the VCF file is compressed and if the extension is correct.
 \item \strong{VCF_columns}: Ensures required columns (\verb{#CHROM}, \code{POS}, \code{ID}, \code{REF}, \code{ALT}, \code{QUAL}, \code{FILTER}, \code{INFO}) are present.
 \item \strong{max_markers}: Checks if the total number of markers exceeds the specified limit.
 \item \strong{unique_FORMAT}: Ensures that the FORMAT fields are consistent across sampled markers.
