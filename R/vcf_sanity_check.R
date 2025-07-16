@@ -16,7 +16,7 @@
 #'
 #' @details The function performs the following checks:
 #' - **VCF_header**: Verifies the presence of the `##fileformat` header.
-#' - **VCF_compressed**: Checks if the VCF file is compressed and if the extension is correct.
+#' - **VCF_compressed**: Checks if the VCF file is .gz compressed and if the extension is correct.
 #' - **VCF_columns**: Ensures required columns (`#CHROM`, `POS`, `ID`, `REF`, `ALT`, `QUAL`, `FILTER`, `INFO`) are present.
 #' - **max_markers**: Checks if the total number of markers exceeds the specified limit.
 #' - **unique_FORMAT**: Ensures that the FORMAT fields are consistent across sampled markers.
@@ -68,7 +68,10 @@ vcf_sanity_check <- function(
   
   con <- if (is_gz == "gzip (.gz)") {
     checks["VCF_compressed"] <- TRUE
-    if(!is_gz_ext) if(verbose) warning("File is compressed with gzip (.gz), but does not have .gz extension.")
+    if(!is_gz_ext) if(verbose) {
+      checks["VCF_compressed"] <- TRUE 
+      warning("File is compressed with gzip (.gz), but does not have .gz extension.")
+    }
     gzfile(vcf_path, open = "rt") 
   } else if(is_gz == "bzip2 (.bz2)") {
     if (verbose) warning("File is compressed th bzip2 (.bz2), which is not supported.")
@@ -77,7 +80,7 @@ vcf_sanity_check <- function(
     if (verbose) warning("File is compressed with xz (.xz), which is not supported.")
     checks["VCF_compressed"] <- FALSE
   } else {
-    checks["VCF_compressed"] <- FALSE
+    checks["VCF_compressed"] <- TRUE
     file(vcf_path, open = "r")
   }
   
@@ -285,8 +288,8 @@ vcf_sanity_check <- function(
       "VCF header is present\n"
     ),
     "VCF_compressed" = c(
-      "VCF is uncompressed or compressed with non-supported format\n",
-      "VCF is .gz compressed. Check if has the proper extension\n"
+      "VCF is compressed but filename doesn't have the extension or it has non-supported format\n",
+      "VCF is .gz compressed or uncompressed\n"
     ),
     "VCF_columns" = c(
       "Required VCF columns are missing. Please check the file format\n",
