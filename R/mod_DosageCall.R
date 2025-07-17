@@ -392,6 +392,28 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         matrices <- list()
 
         #Import genotype information if in VCF format
+        #### VCF sanity check
+        checks <- vcf_sanity_check(madc_file, depth_support_fields = c("AD","RA"), max_markers = 10000)
+        
+        error_if_false <- c(
+          "VCF_header", "VCF_columns", "unique_FORMAT", 
+          "samples",  "max_markers", "chrom_info", "pos_info", "allele_counts"
+        )
+        
+        error_if_true <- c(
+          "duplicated_samples", "duplicated_markers"
+        )
+        warning_if_false <- "ref_alt"
+        checks_result <- vcf_sanity_messages(checks, 
+                                             error_if_false, 
+                                             error_if_true, 
+                                             warning_if_false = warning_if_false, 
+                                             warning_if_true = NULL,
+                                             input_ploidy = NULL)
+        
+        if(checks_result) return() # Stop the analysis if checks fail
+        #########
+        
         vcf <- read.vcfR(madc_file, verbose = FALSE)
 
         #Get items in FORMAT column
