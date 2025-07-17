@@ -376,7 +376,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
         "duplicated_samples", "duplicated_markers"
       )
       
-      warning_if_false <- c("chrom_info", "pos_info", "ref_alt")
+      warning_if_false <- c("chrom_info", "pos_info")
       
       checks_result <- vcf_sanity_messages(checks, 
                                            error_if_false, 
