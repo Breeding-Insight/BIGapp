@@ -4,12 +4,13 @@ context("Dosage Calling")
 #library(vcfR)
 
 test_that("Dosage Calling from MADC file",{
-
+  future::plan(future::sequential)
+  
   madc_file <- system.file("iris_DArT_MADC.csv", package="BIGapp")
 
   output_name <- "output"
   ploidy <- 2
-  cores <- 2
+  cores <- 1
   model_select <- "norm" # TODO: test for other models
 
   # Status
@@ -56,7 +57,7 @@ test_that("Dosage Calling from VCF file",{
   madc_file <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
   ploidy <- 2
   model_select <- "norm"
-  cores <- 2
+  cores <- 1
   output_name <- "out"
 
   #Initialize matrices list
@@ -130,7 +131,7 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
   input$parent1 <- "Sample_1"
   input$parent2 <- "Sample_2"
 
-  cores <- 2
+  cores <- 1
   output_name <- "out2"
 
   #Initialize matrices list

@@ -224,6 +224,31 @@ mod_diversity_server <- function(input, output, session, parent_session){
       updateProgressBar(session = session, id = "pb_diversity", value = 20, title = "Importing VCF")
 
       #Import genotype information if in VCF format
+      #### VCF sanity check
+      checks <- vcf_sanity_check(geno)
+      
+      error_if_false <- c(
+        "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+        "samples", "chrom_info", "pos_info"
+      )
+      
+      error_if_true <- c(
+        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "duplicated_samples", "duplicated_markers"
+      )
+      
+      warning_if_false <- c("ref_alt")
+      
+      checks_result <- vcf_sanity_messages(checks, 
+                                           error_if_false, 
+                                           error_if_true, 
+                                           warning_if_false = NULL, 
+                                           warning_if_true = NULL,
+                                           input_ploidy = ploidy)
+      
+      if(checks_result) return() # Stop the analysis if checks fail
+      #########
+      
       vcf <- read.vcfR(geno, verbose = FALSE)
 
       #Save position information

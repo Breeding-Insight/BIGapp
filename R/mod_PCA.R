@@ -363,6 +363,31 @@ mod_PCA_server <- function(input, output, session, parent_session){
       genomat <- read.csv(geno, header = TRUE, row.names = 1, check.names = FALSE)
     } else{
 
+      #### VCF sanity check
+      checks <- vcf_sanity_check(geno)
+      
+      error_if_false <- c(
+        "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+        "samples"
+      )
+      
+      error_if_true <- c(
+        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "duplicated_samples", "duplicated_markers"
+      )
+      
+      warning_if_false <- c("chrom_info", "pos_info")
+      
+      checks_result <- vcf_sanity_messages(checks, 
+                                           error_if_false, 
+                                           error_if_true, 
+                                           warning_if_false = warning_if_false, 
+                                           warning_if_true = NULL,
+                                           input_ploidy = as.numeric(ploidy))
+      
+      if(checks_result) return() # Stop the analysis if checks fail
+      #########
+      
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno, verbose = FALSE)
 
@@ -446,25 +471,6 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
     # Print the modified dataframe
     row.names(info_df) <- info_df[,1]
-
-    # Check ploidy
-    if(input$pca_ploidy != max(genomat, na.rm = T)){
-      shinyalert(
-        title = "Wrong ploidy",
-        text = "The input ploidy does not match the maximum dosage found in the genotype file",
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "error",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
-      )
-      req(input$pca_ploidy == max(genomat, na.rm = T))
-    }
 
     #Plotting
     #First build a relationship matrix using the genotype values
