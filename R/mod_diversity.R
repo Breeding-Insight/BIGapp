@@ -229,7 +229,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-        "samples", "chrom_info", "pos_info"
+        "samples", "chrom_info", "pos_info", "VCF_compressed"
       )
       
       error_if_true <- c(

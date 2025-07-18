@@ -397,7 +397,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         
         error_if_false <- c(
           "VCF_header", "VCF_columns", "unique_FORMAT", 
-          "samples",  "max_markers", "chrom_info", "pos_info", "allele_counts"
+          "samples",  "max_markers", "chrom_info", "pos_info", "allele_counts", "VCF_compressed"
         )
         
         error_if_true <- c(

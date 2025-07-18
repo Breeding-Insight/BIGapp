@@ -368,7 +368,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-        "samples"
+        "samples", "VCF_compressed"
       )
       
       error_if_true <- c(
