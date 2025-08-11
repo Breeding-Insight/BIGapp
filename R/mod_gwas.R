@@ -126,7 +126,8 @@ mod_gwas_ui <- function(id){
                    sliderInput(inputId = ns('gwas_image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                    fluidRow(
                      downloadButton(ns("download_gwas_figure"), "Save Image"),
-                     downloadButton(ns("download_gwas_file"), "Save Files")),
+                     downloadButton(ns("download_gwas_file"), "Save Files"),
+                     downloadButton(ns("download_viewpoly"), "VIEWpoly input")),
                    circle = FALSE,
                    status = "danger",
                    icon = icon("floppy-disk"), width = "300px", label = "Save",
@@ -897,6 +898,18 @@ mod_gwas_server <- function(input, output, session, parent_session){
       )
   })
 
+  
+  
+  output$download_viewpoly <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_Viewpoly_GWASpoly.RData")
+    },
+    content = function(file) {
+      temp <- gwas_data$data2
+      save(temp, file = file)
+    }
+  )
+  
   #Download files for GWAS
   output$download_gwas_file <- downloadHandler(
     filename = function() {

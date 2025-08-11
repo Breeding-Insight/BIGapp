@@ -61,7 +61,16 @@ vcf_sanity_check <- function(
   )
   checks <- setNames(rep(NA, length(checks_names)), checks_names)
   
-  if (!file.exists(vcf_path)) stop("File does not exist.")
+  if (!file.exists(vcf_path)) {
+    warning("File does not exist.")
+    return(structure(
+      list(
+        checks = NULL, messages = "File does not exist",
+        duplicates = NULL, ploidy_max = NULL
+      ),
+      class = "vcf_sanity_check"
+    ))  
+  }
   
   is_gz_ext <- grepl("\\.gz$", vcf_path)
   is_gz <- is_compressed_file(vcf_path)
@@ -105,16 +114,32 @@ vcf_sanity_check <- function(
   
   # --- Column header line ---
   column_header_line <- grep("^#CHROM", lines, value = TRUE)
-  if (length(column_header_line) != 1) stop("Missing or multiple #CHROM lines.")
-  column_names <- unlist(strsplit(column_header_line, "\t"))
-  has_genotypes <- length(column_names) > 8
-  
-  required_columns <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
-  checks["VCF_columns"] <- all(required_columns %in% column_names[1:8])
-  if (checks["VCF_columns"]) {
-    if (verbose) cat("Required VCF columns are present.\n")
+  if (length(column_header_line) > 1) {
+    return(structure(
+      list(
+        checks = NULL, messages = "There are more than 1 line in your VCF starting with the header #CHROM. Please check the file format.",
+        duplicates = NULL, ploidy_max = NULL
+      ),
+      class = "vcf_sanity_check"
+    ))  
+  } else if (length(column_header_line) == 0) {
+    return(structure(
+      list(
+        checks = NULL, messages = "Malformed VCF file: missing column header line.",
+        duplicates = NULL, ploidy_max = NULL
+      ),
+      class = "vcf_sanity_check"
+    ))  
   } else {
-    if (verbose) warning("Missing one or more required VCF columns.")
+    column_names <- unlist(strsplit(column_header_line, "\t"))
+    has_genotypes <- length(column_names) > 8
+    required_columns <- c("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO")
+    checks["VCF_columns"] <- all(required_columns %in% column_names[1:8])
+    if (checks["VCF_columns"]) {
+      if (verbose) cat("Required VCF columns are present.\n")
+    } else {
+      if (verbose) warning("Missing one or more required VCF columns.")
+    }
   }
   
   # --- Total marker count ---
@@ -260,7 +285,7 @@ vcf_sanity_check <- function(
       checks["mixed_ploidies"] <- FALSE
     }
   }
-
+  
   # --- REF/ALT basic check on sample rows ---
   sample_lines <- lines[head(data_line_indices, n_data_lines)]
   ref_alt_valid <- sapply(sample_lines, function(line) {
@@ -394,8 +419,8 @@ vcf_sanity_messages <- function(
       "mixed_ploidies"
     ), 
     error_if_true = c( "phased_GT",
-                        "duplicated_samples",
-                        "duplicated_markers"),
+                       "duplicated_samples",
+                       "duplicated_markers"),
     warning_if_true = c("multiallelics"),
     warning_if_false = c("unique_FORMAT"),
     input_ploidy = NULL) {
@@ -403,6 +428,24 @@ vcf_sanity_messages <- function(
   # check must be from vcf_sanity_check
   if (!inherits(checks, "vcf_sanity_check")) {
     stop("check must be a vcf_sanity_check object.")
+  }
+  
+  if(is.null(checks$checks)){
+    shinyalert(
+      title = "File Error",
+      text = checks$message,
+      size = "xs",
+      closeOnEsc = TRUE,
+      closeOnClickOutside = FALSE,
+      html = TRUE,
+      type = "error",
+      showConfirmButton = TRUE,
+      confirmButtonText = "OK",
+      confirmButtonCol = "#004192",
+      showCancelButton = FALSE,
+      imageUrl = "",
+      animation = TRUE,
+    )
   }
   
   it_should_brake <- vector()
@@ -533,6 +576,10 @@ vcf_sanity_messages <- function(
 print.vcf_sanity_check <- function(x, checks = names(x$checks), ...) {
   if (!inherits(x, "vcf_sanity_check")) stop("Object must be of class 'vcf_sanity_check'.")
   
+  if(is.null(x$checks)) {
+    warning(paste("Checks could not be performed. Because:", x$message))
+  }
+  
   # Prepare a data.frame with check name, result, and message
   res <- data.frame(
     Check = checks,
@@ -550,5 +597,4 @@ print.vcf_sanity_check <- function(x, checks = names(x$checks), ...) {
     stringsAsFactors = FALSE
   )
   print(res, row.names = FALSE)
-  invisible(x)
 }
