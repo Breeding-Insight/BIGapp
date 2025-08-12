@@ -1,0 +1,102 @@
+name: Build & Push Docker image on package version change
+
+on:
+  push:
+    branches: [ main, vcf_sanity_check ]
+    paths:
+      - DESCRIPTION
+      - .github/workflows/dockerhub-on-version.yml
+  workflow_dispatch:
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    name: Detect version bump
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.ver.outputs.changed }}
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # needed to read the previous commit's file
+
+      - id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          cur_ver=$(sed -n 's/^Version:[[:space:]]*//p' DESCRIPTION | tr -d '[:space:]')
+          # Fallback if before SHA not available (first push / force push)
+          prev_sha="${{ github.event.before }}"
+          if git show "${prev_sha}:DESCRIPTION" >/dev/null 2>&1; then
+            prev_ver=$(git show "${prev_sha}:DESCRIPTION" | sed -n 's/^Version:[[:space:]]*//p' | tr -d '[:space:]')
+          else
+            prev_ver=""
+          fi
+
+          changed=false
+          if [[ -z "${prev_ver}" || "${cur_ver}" != "${prev_ver}" ]]; then
+            changed=true
+          fi
+
+          echo "Current: ${cur_ver}; Previous: ${prev_ver}; Changed: ${changed}"
+          echo "version=${cur_ver}" >> "$GITHUB_OUTPUT"
+          echo "changed=${changed}" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    name: Build & push (Docker Hub)
+    needs: check-version
+    if: needs.check-version.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: docker.io/breedinginsight/bigapp
+      PKG_VERSION: ${{ needs.check-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          labels: |
+            org.opencontainers.image.title=BIGapp
+            org.opencontainers.image.version=v${{ env.PKG_VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=v${{ env.PKG_VERSION }}
+            type=sha,format=short
+
+      # Build & push multi-arch
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  no-change-note:
+    name: Skip (no version bump)
+    needs: check-version
+    if: needs.check-version.outputs.changed != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No version change in DESCRIPTION—skipping Docker build."
