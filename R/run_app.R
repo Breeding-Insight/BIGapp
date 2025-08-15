@@ -17,7 +17,7 @@ run_app <- function(
 ) {
   #Uncomment the sink command to allow console output
   sink(file = tempfile())
-  options(warn = -1)
+  #options(warn = -1)
 
   with_golem_options(
     app = shinyApp(

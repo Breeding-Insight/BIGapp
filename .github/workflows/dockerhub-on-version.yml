@@ -2,7 +2,7 @@ name: Build & Push Docker image on package version change
 
 on:
   push:
-    branches: [ main, vcf_sanity_check ]
+    branches: [ vcf_sanity_check ]
     paths:
       - DESCRIPTION
       - .github/workflows/dockerhub-on-version.yml

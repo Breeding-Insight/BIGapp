@@ -93,6 +93,7 @@ mod_PCA_ui <- function(id){
                    sliderInput(inputId = ns('pca_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('pca_image_height'), label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
                    downloadButton(ns("download_pca"), "Save Image"),
+                   downloadButton(ns("download_pcs"), "Save PCs table"),
                    circle = FALSE,
                    status = "danger",
                    icon = icon("floppy-disk"), width = "300px", label = "Save",
@@ -914,6 +915,15 @@ mod_PCA_server <- function(input, output, session, parent_session){
     content = function(file) {
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
+    })
+  
+  output$download_pcs <- downloadHandler(
+    filename = function() {
+      paste0("PCs.csv")
+    },
+    content = function(file) {
+      df <- pca_data$pc_df_pop
+      write.csv(df, file, row.names = FALSE, quote = FALSE)
     })
 
 }

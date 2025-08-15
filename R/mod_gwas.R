@@ -457,7 +457,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
 
       #Convert VCF file if submitted
       #### VCF sanity check
-      checks <- vcf_sanity_check(input$gwas_file$datapath)
+      checks <- vcf_sanity_check(input$gwas_file$datapath, max_markers = 16000)
       
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
