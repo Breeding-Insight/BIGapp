@@ -4,7 +4,6 @@ on:
   push:
     branches: [ main, vcf_sanity_check ]
     paths:
-      - DESCRIPTION
       - .github/workflows/dockerhub-on-version.yml
       - Dockerfile
   workflow_dispatch:

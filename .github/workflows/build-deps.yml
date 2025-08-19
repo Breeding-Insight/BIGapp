@@ -1,10 +1,10 @@
 name: Build & Push deps image (monthly/weekly)
 
 on:
+  push:
+    branches: [ main, vcf_sanity_check ]
   workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * 0"   # Sundays 03:00 UTC
-
+  
 concurrency:
   group: deps-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
