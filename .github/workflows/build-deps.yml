@@ -1,0 +1,78 @@
+name: Build & Push deps image (monthly/weekly)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 0"   # Sundays 03:00 UTC
+
+concurrency:
+  group: deps-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_DEPS: docker.io/breedinginsight/bigapp-deps
+  DEPS_TAG: r4.5-bioc3.21-2025-08
+
+jobs:
+  build-amd64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: { username: ${{ secrets.DOCKERHUB_USERNAME }}, password: ${{ secrets.DOCKERHUB_PASSWORD }} }
+      - name: Build & push deps (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.deps
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_DEPS }}:${{ env.DEPS_TAG }}-amd64
+          cache-from: |
+            type=registry,ref=${{ env.IMAGE_DEPS }}:${{ env.DEPS_TAG }}-amd64
+            type=registry,ref=${{ env.IMAGE_DEPS }}:buildcache-deps-amd64
+          cache-to: type=registry,ref=${{ env.IMAGE_DEPS }}:buildcache-deps-amd64,mode=max,compression=zstd
+
+  build-arm64:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    continue-on-error: true     # QEMU can flake; don't block manifest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: { username: ${{ secrets.DOCKERHUB_USERNAME }}, password: ${{ secrets.DOCKERHUB_PASSWORD }} }
+      - name: Build & push deps (arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.deps
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_DEPS }}:${{ env.DEPS_TAG }}-arm64
+          cache-from: |
+            type=registry,ref=${{ env.IMAGE_DEPS }}:${{ env.DEPS_TAG }}-arm64
+            type=registry,ref=${{ env.IMAGE_DEPS }}:buildcache-deps-arm64
+          cache-to: type=registry,ref=${{ env.IMAGE_DEPS }}:buildcache-deps-arm64,mode=max,compression=zstd
+
+  manifest:
+    needs: [build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v3
+        with: { username: ${{ secrets.DOCKERHUB_USERNAME }}, password: ${{ secrets.DOCKERHUB_PASSWORD }} }
+      - name: Create deps manifest tag
+        env:
+          IMAGE_DEPS: ${{ env.IMAGE_DEPS }}
+          DEPS_TAG: ${{ env.DEPS_TAG }}
+        run: |
+          set -euo pipefail
+          imgs="$IMAGE_DEPS:$DEPS_TAG-amd64"
+          if docker buildx imagetools inspect "$IMAGE_DEPS:$DEPS_TAG-arm64" >/dev/null 2>&1; then
+            imgs="$imgs $IMAGE_DEPS:$DEPS_TAG-arm64"
+          fi
+          docker buildx imagetools create -t $IMAGE_DEPS:$DEPS_TAG $imgs
