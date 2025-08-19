@@ -4,9 +4,9 @@ output: html_document
 date: "2024-08-29"
 ---
 
-- **BIGapp**
+- **BIGapp** and **BIGr**
 
-- **BIGr**
+Sandercock A.M., Peel M.D., Tanigut C.H., Chinchilla-Vargas J., Chen S., Sapkota M., Lin M., Zhao D., Ackerman A.J., Basnet B.R., Beil C.T., Sheehan M.J. (2025). BIGapp: A User-Friendly Genomic Tool Kit Identified Quantitative Trait Loci for Creeping Rootedness in Alfalfa (Medicago sativa L.)., The Plant Genome. doi:https://doi.org/10.1002/tpg2.70067
 
 - **vcfR**
   - Knaus BJ, Grünwald NJ (2017). *VCFR: a package to manipulate and visualize variant call format data in R.* Molecular Ecology Resources, 17(1), 44–53. ISSN 757. [doi:10.1111/1755-0998.12549](https://dx.doi.org/10.1111/1755-0998.12549).

@@ -5,9 +5,9 @@ date: "2024-08-29"
 ---
 
 
-- **BIGapp**
+- **BIGapp** and **BIGr**
 
-- **BIGr**
+Sandercock A.M., Peel M.D., Tanigut C.H., Chinchilla-Vargas J., Chen S., Sapkota M., Lin M., Zhao D., Ackerman A.J., Basnet B.R., Beil C.T., Sheehan M.J. (2025). BIGapp: A User-Friendly Genomic Tool Kit Identified Quantitative Trait Loci for Creeping Rootedness in Alfalfa (Medicago sativa L.)., The Plant Genome. doi:https://doi.org/10.1002/tpg2.70067
 
 - **Updog** (if filtering parameters used)  
   Gerard, D., Ferrão, L. F. V., Garcia, A. A. F., & Stephens, M. (2018). *Genotyping Polyploids from Messy Sequencing Data*. Genetics, 210(3), 789-807. [doi: 10.1534/genetics.118.301468](https://doi.org/10.1534/genetics.118.301468).
