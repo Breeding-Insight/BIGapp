@@ -173,7 +173,8 @@ vcf_sanity_check <- function(
   # --- FORMAT field checks (GT, AD, etc.) ---
   if (has_genotypes) {
     checks["samples"] <- TRUE
-    sample_indices <- sample(data_line_indices, n_data_lines)
+    if (n_data_lines >= length(data_line_indices)) sample_indices <- data_line_indices else
+      sample_indices <- sample(data_line_indices, n_data_lines)
     format_fields <- character()
     
     chrom_pos <- list() # this list will store the CHROM and POS for n_data_lines sample markers

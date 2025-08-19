@@ -179,11 +179,13 @@ mod_Filtering_server <- function(input, output, session, parent_session){
   #Get list of sample names from VCF file
   observeEvent(input$updog_rdata, {
     #### VCF sanity check
-    checks <- vcf_sanity_check(input$updog_rdata$datapath, max_markers = 16000, depth_support_fields = c("DP", "AD", "RA"))
+    checks <- vcf_sanity_check(input$updog_rdata$datapath, 
+                               max_markers = 16000, 
+                               depth_support_fields = c("DP", "AD", "RA"))
     
     error_if_false <- c(
       "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-      "samples",  "max_markers", "chrom_info", "pos_info", "VCF_compressed", "allele_counts"
+      "samples", "chrom_info", "pos_info", "VCF_compressed", "allele_counts"
     )
     
     error_if_true <- c(
@@ -191,7 +193,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       "duplicated_samples", "duplicated_markers"
     )
     
-    warning_if_false <- c("ref_alt")
+    warning_if_false <- c("ref_alt","max_markers")
     
     checks_result <- vcf_sanity_messages(checks, 
                                          error_if_false, 
