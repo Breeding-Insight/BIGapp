@@ -77,9 +77,9 @@ vcf_sanity_check <- function(
   
   con <- if (is_gz == "gzip (.gz)") {
     checks["VCF_compressed"] <- TRUE
-    if(!is_gz_ext) if(verbose) {
-      checks["VCF_compressed"] <- TRUE 
-      warning("File is compressed with gzip (.gz), but does not have .gz extension.")
+    if(!is_gz_ext) {
+      checks["VCF_compressed"] <- FALSE 
+      if(verbose) warning("File is compressed with gzip (.gz), but does not have .gz extension.")
     }
     gzfile(vcf_path, open = "rt") 
   } else if(is_gz == "bzip2 (.bz2)") {
