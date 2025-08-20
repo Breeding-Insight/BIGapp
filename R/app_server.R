@@ -40,6 +40,15 @@ app_server <- function(input, output, session) {
   callModule(mod_GSAcc_server,
             "GSAcc_1",
             parent_session = session)
+  if(isTRUE(requireNamespace("Qploidy", quietly = TRUE))) {
+    callModule(Qploidy:::mod_qploidy_server,
+               "qploidy_1",
+               parent_session = session)
+  } else {
+    callModule(mod_qploidyPlaceHolder_server,
+               "qploidyPlaceHolder_1",
+               parent_session = session)
+  }
   callModule(mod_slurm_server,
              "slurm_1",
              parent_session = session)

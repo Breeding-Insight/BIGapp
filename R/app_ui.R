@@ -75,6 +75,8 @@ app_ui <- function(request) {
                     span("Genomic Prediction"),
                       tabName = "prediction",
                       icon = icon("angles-right")),
+          tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Ploidy Estimation"),
+          menuItem("Qploidy", tabName = "qploidy", icon = icon("think-peaks")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Information"),
           menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
           #menuItem(
@@ -152,6 +154,12 @@ app_ui <- function(request) {
           ),
           tabItem(
             tabName = "prediction", mod_GS_ui("GS_1")
+          ),
+          tabItem(
+            tabName = "qploidy", 
+            if(isTRUE(requireNamespace("Qploidy", quietly = TRUE))) 
+              Qploidy:::mod_qploidy_ui("qploidy_1") else 
+                mod_qploidyPlaceHolder_ui("qploidyPlaceHolder_1")
           ),
           tabItem(
             tabName = "slurm", mod_slurm_ui("slurm_1")
