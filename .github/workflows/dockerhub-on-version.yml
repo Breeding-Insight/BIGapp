@@ -79,7 +79,7 @@ jobs:
 
   build-arm64:
     needs: check-version
-    if: needs['check-version'].outputs.changed == 'true' && github.ref_name == 'main'
+    if: needs['check-version'].outputs.changed == 'true' 
     continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 350
