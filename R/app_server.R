@@ -41,6 +41,8 @@ app_server <- function(input, output, session) {
             "GSAcc_1",
             parent_session = session)
   if(isTRUE(requireNamespace("Qploidy", quietly = TRUE))) {
+    library(Qploidy)
+    library(magrittr) 
     callModule(Qploidy:::mod_qploidy_server,
                "qploidy_1",
                parent_session = session)

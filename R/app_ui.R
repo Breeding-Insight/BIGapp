@@ -76,7 +76,7 @@ app_ui <- function(request) {
                       tabName = "prediction",
                       icon = icon("angles-right")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Ploidy Estimation"),
-          menuItem("Qploidy", tabName = "qploidy", icon = icon("think-peaks")),
+          menuItem("Qploidy", tabName = "qploidy", icon = icon("dna")),
           tags$li(class = "header", style = "color: grey; margin-top: 18px; margin-bottom: 10px; padding-left: 15px;", "Information"),
           menuItem("Source Code", icon = icon("circle-info"), href = "https://www.github.com/Breeding-Insight/Genomics_Shiny_App"),
           #menuItem(
