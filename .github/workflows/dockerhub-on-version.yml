@@ -113,22 +113,26 @@ jobs:
           cache-to: type=registry,ref=${{ env.IMAGE }}:buildcache-arm64,mode=max,compression=zstd
 
   manifest:
-    needs: [build-amd64, build-arm64]
-    if: needs['check-version'].outputs.changed == 'true' && needs['build-amd64'].result == 'success'
+    needs: [check-version, build-amd64, build-arm64]
+    if: >
+      needs['check-version'].outputs.changed == 'true' &&
+      needs['build-amd64'].result == 'success' &&
+      needs['build-arm64'].result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      - name: Create multi-arch manifest (add arm64 if available)
+  
+      - name: Create multi-arch manifest
         env:
           IMAGE: ${{ env.IMAGE }}
           PKG_VERSION: ${{ needs['check-version'].outputs.version }}
         run: |
           set -euo pipefail
-          imgs="$IMAGE:v${PKG_VERSION}-amd64"
-          if docker buildx imagetools inspect "$IMAGE:v${PKG_VERSION}-arm64" >/dev/null 2>&1; then
-            imgs="$imgs $IMAGE:v${PKG_VERSION}-arm64"
-          fi
-          docker buildx imagetools create -t "$IMAGE:v${PKG_VERSION}" -t "$IMAGE:latest" $imgs
+          docker buildx imagetools create \
+            -t "$IMAGE:v${PKG_VERSION}" \
+            -t "$IMAGE:latest" \
+            "$IMAGE:v${PKG_VERSION}-amd64" \
+            "$IMAGE:v${PKG_VERSION}-arm64"
