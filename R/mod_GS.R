@@ -584,7 +584,7 @@ mod_GS_server <- function(input, output, session, parent_session) {
       
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-        "samples"
+        "samples", "VCF_compressed"
       )
       
       error_if_true <- c(
@@ -592,7 +592,7 @@ mod_GS_server <- function(input, output, session, parent_session) {
         "duplicated_samples", "duplicated_markers"
       )
       
-      warning_if_false <- c("chrom_info", "pos_info", "ref_alt")
+      warning_if_false <- c("chrom_info", "pos_info", "ref_alt","max_markers")
 
       checks_result <- vcf_sanity_messages(checks, 
                                            error_if_false, 

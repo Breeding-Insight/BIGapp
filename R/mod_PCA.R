@@ -93,6 +93,7 @@ mod_PCA_ui <- function(id){
                    sliderInput(inputId = ns('pca_image_width'), label = 'Width', value = 10, min = 1, max = 20, step=0.5),
                    sliderInput(inputId = ns('pca_image_height'), label = 'Height', value = 6, min = 1, max = 20, step = 0.5),
                    downloadButton(ns("download_pca"), "Save Image"),
+                   downloadButton(ns("download_pcs"), "Save PCs table"),
                    circle = FALSE,
                    status = "danger",
                    icon = icon("floppy-disk"), width = "300px", label = "Save",
@@ -368,7 +369,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-        "samples"
+        "samples", "VCF_compressed"
       )
       
       error_if_true <- c(
@@ -376,7 +377,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
         "duplicated_samples", "duplicated_markers"
       )
       
-      warning_if_false <- c("chrom_info", "pos_info")
+      warning_if_false <- c("chrom_info", "pos_info", "ref_alt", "max_markers")
       
       checks_result <- vcf_sanity_messages(checks, 
                                            error_if_false, 
@@ -914,6 +915,15 @@ mod_PCA_server <- function(input, output, session, parent_session){
     content = function(file) {
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
+    })
+  
+  output$download_pcs <- downloadHandler(
+    filename = function() {
+      paste0("PCs.csv")
+    },
+    content = function(file) {
+      df <- pca_data$pc_df_pop
+      write.csv(df, file, row.names = FALSE, quote = FALSE)
     })
 
 }

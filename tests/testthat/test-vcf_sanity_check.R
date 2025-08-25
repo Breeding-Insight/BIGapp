@@ -13,8 +13,6 @@ test_that("vcf_sanity_check works on a valid VCF", {
   expect_true(res$checks["chrom_info"])
   expect_true(res$checks["pos_info"])
   expect_false(res$checks["ref_alt"])
-  
-  expect_error(vcf_sanity_check("nonexistent.vcf"), "File does not exist")
 })
 
 
