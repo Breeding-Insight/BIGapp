@@ -4,7 +4,8 @@ context("Dosage Calling")
 #library(vcfR)
 
 test_that("Dosage Calling from MADC file",{
-
+  future::plan(future::sequential)
+  
   madc_file <- system.file("iris_DArT_MADC.csv", package="BIGapp")
 
   output_name <- "output"

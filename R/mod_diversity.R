@@ -242,7 +242,7 @@ mod_diversity_server <- function(input, output, session, parent_session){
       checks_result <- vcf_sanity_messages(checks, 
                                            error_if_false, 
                                            error_if_true, 
-                                           warning_if_false = warning_if_false, 
+                                           warning_if_false = NULL, 
                                            warning_if_true = NULL,
                                            input_ploidy = ploidy)
       
