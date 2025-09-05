@@ -623,7 +623,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       }
       
       updateProgressBar(session = session, id = "pb_madc", value = 35, title = "Performing Dosage Calling")
-      polyrad_items <- polyRAD_dosage_call(vcf = polyrad_items$vcf_path,
+      polyrad_results <- polyRAD_dosage_call(vcf = polyrad_items$vcf_path,
                                            ploidy = input$ploidy,
                                            model = input$polyRAD_model,
                                            p1 = input$parent1,
@@ -636,7 +636,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                                            min_ind_maf = advanced_options$min_ind_maf,
                                            tol=advanced_options$tol)
       updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
-      polyrad_items
+      polyrad_results$vcf_path <- polyrad_items$vcf_path
+      polyrad_results
     }
   })
 
