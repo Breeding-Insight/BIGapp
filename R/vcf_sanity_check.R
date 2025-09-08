@@ -223,7 +223,8 @@ vcf_sanity_check <- function(
     }
     
     # Optional: phased GT (presence of '|' instead of '/' in genotypes)
-    phased_lines <- grep("\\|", lines[sample_indices])
+    # this complicated regex avoids the 5 first columns
+    phased_lines <- grep('^(?:[^\\t]*\\t){5}.*\\|', lines[sample_indices], perl = TRUE)  
     checks["phased_GT"] <- length(phased_lines) > 0
     
     # --- Check for duplicated sample names ---
