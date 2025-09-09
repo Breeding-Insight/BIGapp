@@ -265,6 +265,11 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     tol = 1e-05
   )
 
+  #VCF items
+  vcf_items <- reactiveValues(
+    RefAlt_df = NULL
+  )
+
   #UI popup window for input
   observeEvent(input$advanced_options, {
     showModal(modalDialog(
@@ -421,6 +426,11 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
         chrom <- vcf@fix[,1]
         pos <- vcf@fix[,2]
+        #Retain RefAlt df for later use
+        RefAlt_df <- data.frame(vcf@fix)
+        RefAlt_df <- RefAlt_df[,c(1,2,4,5)]
+        colnames(RefAlt_df) <- c("chr","pos","ref","alt")
+        vcf_items$RefAlt_df <- RefAlt_df
 
         info_ids <- extract_info_ids(info[1])
 
@@ -661,6 +671,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           multidog.object = updog_out(),
           output.file = temp,
           updog_version = packageVersion("updog"),
+          RefAlt = vcf_items$RefAlt_df,
           compress = FALSE
         )
 
