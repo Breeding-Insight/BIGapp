@@ -7,31 +7,31 @@ test_that("Dosage Calling from MADC file",{
   future::plan(future::sequential)
   
   madc_file <- system.file("iris_DArT_MADC.csv", package="BIGapp")
-
+  
   output_name <- "output"
   ploidy <- 2
   cores <- 1
   model_select <- "norm" # TODO: test for other models
-
+  
   # Status
   #Import genotype info if genotype matrix format
-
+  
   # Call the get_counts function with the specified MADC file path and output file path
   #Status
   result_df <- get_counts(madc_file, output_name)
-
+  
   #Call the get_matrices function
   matrices <- get_matrices(result_df)
-
+  
   mout <- updog::multidog(refmat = matrices$ref_matrix,
                           sizemat = matrices$size_matrix,
                           ploidy = as.numeric(ploidy),
                           model = model_select,
                           nc = cores)
-
+  
   expect_equal(sum(mout$snpdf$bias), 402.7979, tolerance = 0.01)
   expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
-
+  
   # Convert updog to VCF
   updog2vcf(
     multidog.object = mout,
@@ -39,40 +39,40 @@ test_that("Dosage Calling from MADC file",{
     updog_version = packageVersion("updog"),
     compress = TRUE
   )
-
+  
   vcf_result <- read.vcfR(paste0(output_name,".vcf.gz"))
-
+  
   DP <- sum(as.numeric(extract.gt(vcf_result, "DP")))
-
+  
   expect_equal(DP, 23618990)
-
+  
   MPP <- sum(as.numeric(extract.gt(vcf_result, "MPP")))
-
+  
   expect_equal(MPP, 74519.94, tolerance = 0.01)
 })
 
 
 test_that("Dosage Calling from VCF file",{
-
+  
   madc_file <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
   ploidy <- 2
   model_select <- "norm"
   cores <- 1
   output_name <- "out"
-
+  
   #Initialize matrices list
   matrices <- list()
-
+  
   #Import genotype information if in VCF format
   vcf <- read.vcfR(madc_file)
-
+  
   #Get items in FORMAT column
   info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-
+  
   info_ids <- extract_info_ids(info[1])
   chrom <- vcf@fix[,1]
   pos <- vcf@fix[,2]
-
+  
   if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
     #Extract DP and RA and convert to matrices
     matrices$size_matrix <- extract.gt(vcf, element = "DP")
@@ -83,22 +83,22 @@ test_that("Dosage Calling from VCF file",{
       matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
       colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
     }
-
+    
     class(matrices$size_matrix) <- "numeric"
     class(matrices$ref_matrix) <- "numeric"
     rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
-
+    
   }
-
+  
   mout <- updog::multidog(refmat = matrices$ref_matrix,
                           sizemat = matrices$size_matrix,
                           ploidy = as.numeric(ploidy),
                           model = model_select,
                           nc = cores)
-
+  
   expect_equal(sum(mout$snpdf$bias), 402.79, tolerance = 0.01)
   expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
-
+  
   # Convert updog to VCF
   BIGr::updog2vcf(
     multidog.object = mout,
@@ -106,47 +106,68 @@ test_that("Dosage Calling from VCF file",{
     updog_version = packageVersion("updog"),
     compress = TRUE
   )
-
+  
   vcf_result <- read.vcfR(paste0(output_name,".vcf.gz"))
-
+  
   DP <- sum(as.numeric(extract.gt(vcf_result, "DP")))
   expect_equal(DP, 23618990)
-
+  
   MPP <- sum(as.numeric(extract.gt(vcf_result, "MPP")))
   expect_equal(MPP, 74519.94, tolerance = 0.01)
+  
+})
 
+test_that("polyRAD", {
+  #Variables
+  
+  madc_file <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+  
+  polyrad_items <- polyRAD_dosage_call(vcf = madc_file,
+                                       ploidy = 2,
+                                       model = "IterateHWE")
+  
+  polyRAD2vcf(geno = polyrad_items$Genos,
+              model = "IterateHWE",
+              vcf_path = madc_file,
+              hindhe.obj = polyrad_items$RADHindHe,
+              ploidy = 2,
+              output.file = "temp")
+  
+  bgzip_compress("temp.vcf", file = ".")
+  
 })
 
 
-test_that("Dosage Calling from VCF file f1 and s1 model",{
 
+test_that("Dosage Calling from VCF file f1 and s1 model",{
+  
   input <- list()
   madc_file <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
   ploidy <- 2
-
+  
   # input$updog_model <- "s1"
   # input$parent <- "Sample_1"
-
+  
   input$updog_model <- "f1"
   input$parent1 <- "Sample_1"
   input$parent2 <- "Sample_2"
-
+  
   cores <- 1
   output_name <- "out2"
-
+  
   #Initialize matrices list
   matrices <- list()
-
+  
   #Import genotype information if in VCF format
   vcf <- read.vcfR(madc_file)
-
+  
   #Get items in FORMAT column
   info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
-
+  
   info_ids <- extract_info_ids(info[1])
   chrom <- vcf@fix[,1]
   pos <- vcf@fix[,2]
-
+  
   if (("DP" %in% info_ids) && (("RA" %in% info_ids) | ("AD" %in% info_ids))) {
     #Extract DP and RA and convert to matrices
     matrices$size_matrix <- extract.gt(vcf, element = "DP")
@@ -157,13 +178,13 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
       matrices$ref_matrix <- matrix(sapply(strsplit(ad_matrix, ","), "[[", 1), nrow = nrow(matrices$size_matrix))
       colnames(matrices$ref_matrix) <- colnames(matrices$size_matrix)
     }
-
+    
     class(matrices$size_matrix) <- "numeric"
     class(matrices$ref_matrix) <- "numeric"
     rownames(matrices$size_matrix) <- rownames(matrices$ref_matrix) <- paste0(chrom, "_", pos)
-
+    
   }
-
+  
   # Select parents
   if(input$updog_model == "s1" | input$updog_model == "s1pp"){
     parents <- c(input$parent, NULL)
@@ -172,7 +193,7 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
   } else {
     parents <- c(NULL, NULL)
   }
-
+  
   if (!all(parents %in% colnames(matrices$size_matrix))) {
     shinyalert(
       title = "Data Warning!",
@@ -188,10 +209,10 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
       showCancelButton = FALSE,
       animation = TRUE
     )
-
+    
     return()
   }
-
+  
   mout <- updog::multidog(refmat = matrices$ref_matrix,
                           sizemat = matrices$size_matrix,
                           ploidy = as.numeric(ploidy),
@@ -199,10 +220,10 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
                           p2_id = if(is.na(parents[2])) NULL else parents[2],
                           model = input$updog_model,
                           nc = cores)
-
+  
   expect_equal(sum(mout$snpdf$bias), 408.5401, tolerance = 0.01)
   expect_equal(sum(mout$inddf$postmean), 94249.05, tolerance = 0.01)
-
+  
   # Convert updog to VCF
   updog2vcf(
     multidog.object = mout,
@@ -210,13 +231,13 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
     updog_version = packageVersion("updog"),
     compress = TRUE
   )
-
+  
   vcf_result <- read.vcfR(paste0(output_name,".vcf.gz"))
-
+  
   DP <- sum(as.numeric(extract.gt(vcf_result, "DP")))
   expect_equal(DP, 23618990)
-
+  
   MPP <- sum(as.numeric(extract.gt(vcf_result, "MPP")))
   expect_equal(MPP, 74519.94, tolerance = 0.01)
-
+  
 })
