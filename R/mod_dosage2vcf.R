@@ -326,8 +326,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
         updateProgressBar(session = session, id = "dosage2vcf_pb", value = 30, title = "Writing VCF")
         
         madc2vcf_all(madc = read_madc,
-                     botloci = botloci,
-                     hap_seq = input$hapDB_file$datapath,
+                     botloci_file = botloci,
+                     hap_seq_file = input$hapDB_file$datapath,
                      n.cores= input$cores,
                      rm_multiallelic_SNP = TRUE,
                      out_vcf = output_name,
