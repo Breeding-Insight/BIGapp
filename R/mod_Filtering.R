@@ -102,7 +102,9 @@ mod_Filtering_ui <- function(id){
              ),
              box(title = "Status", width =12, collapsible = TRUE, status = "info",
                  progressBar(id = ns("pb_filter"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
-             )
+             ),
+             # A placeholder for the download button. It will be rendered in the shinyalert modal.
+             uiOutput(ns("download_ui_placeholder")) 
       )
     )
   )
@@ -178,6 +180,35 @@ mod_Filtering_server <- function(input, output, session, parent_session){
   
   #Get list of sample names from VCF file
   observeEvent(input$updog_rdata, {
+    #### VCF sanity check
+    checks <- vcf_sanity_check(input$updog_rdata$datapath, 
+                               max_markers = 16000, 
+                               depth_support_fields = c("DP", "AD", "RA"))
+    
+    error_if_false <- c(
+      "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+      "samples", "chrom_info", "pos_info", "VCF_compressed", "allele_counts"
+    )
+    
+    error_if_true <- c(
+      "multiallelics", "phased_GT",  
+      "duplicated_samples", "duplicated_markers"
+    )
+    
+    warning_if_false <- c("ref_alt","max_markers")
+    
+    checks_result <- vcf_sanity_messages(checks, 
+                                         error_if_false, 
+                                         error_if_true, 
+                                         warning_if_false = warning_if_false, 
+                                         warning_if_true = NULL)
+    
+    print(checks)
+    print(checks_result)
+    if(checks_result) return() # Stop the analysis if checks fail
+    #########
+    
+    
     #populate preview_data
     preview_vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE, nrows = 1)
     
@@ -262,7 +293,8 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     raw_sample_miss_df = NULL,
     maf_df = NULL,
     raw_maf_df = NULL,
-    format_fields = NULL
+    format_fields = NULL,
+    removed_names = NULL
 
   )
 
@@ -343,6 +375,23 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     updog_par <- grepl("MPP", format_fields) & grepl("PMC", info_fields) & grepl("BIAS", info_fields) & grepl("OD", info_fields)
     filtering_files$format_fields <- updog_par
 
+    if(length(updog_par) > 1) {
+      shinyalert(
+        title = "Malformed VCF",
+        text = "Make sure all your markers have the same information in the FORMAT field.",
+        size = "s",
+        closeOnEsc = TRUE,
+        closeOnClickOutside = FALSE,
+        html = TRUE,
+        type = "error",
+        showConfirmButton = TRUE,
+        confirmButtonText = "OK",
+        confirmButtonCol = "#004192",
+        showCancelButton = FALSE,
+        animation = TRUE
+      )
+    }
+    
     if (input$use_updog & updog_par) {
       # Use Updog filtering parameters
       OD_filter <- as.numeric(input$OD_filter)
@@ -390,7 +439,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     #Filtering
     #Raw VCF info
     gt_matrix <- extract.gt(filterVCF(vcf, ploidy = ploidy,filter.DP = as.numeric(size_depth), output.file = NULL), element = "GT", as.numeric = FALSE)
-    starting_samples <- ncol(gt_matrix)
+    starting_samples <- colnames(gt_matrix)
     filtering_files$raw_snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
     filtering_files$raw_sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
 
@@ -454,7 +503,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     gt_matrix <- extract.gt(vcf, element = "GT", as.numeric = FALSE)
     filtering_files$snp_miss_df <- rowMeans(is.na(gt_matrix)) #SNP missing values
     filtering_files$sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
-    final_samples <- ncol(gt_matrix)
+    final_samples <- colnames(gt_matrix)
     rm(gt_matrix) #Remove gt matrix
 
     #Pb
@@ -473,23 +522,32 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     })
 
     #User warning if samples were removed during filtering
-    sample_removed <- starting_samples - final_samples
+    sample_removed <- length(starting_samples) - length(final_samples)
+    removed_names <- setdiff(starting_samples, final_samples)
+    filtering_files$removed_names <- removed_names
+    
+    # Define the download handler
+    output$download_removed_samples <- downloadHandler(
+      filename = function() {
+        "removed_samples.txt"
+      },
+      content = function(file) {
+        if (!is.null(filtering_files$removed_names)) {
+          writeLines(filtering_files$removed_names, file)
+        }
+      }
+    )
     
     if (sample_removed > 0 && removed_samples == 0) {
-      shinyalert(
+      showModal(modalDialog(
         title = "Samples Filtered",
-        text = paste(sample_removed, "samples were removed during filtering."),
-        size = "s",
-        closeOnEsc = TRUE,
-        closeOnClickOutside = FALSE,
-        html = TRUE,
-        type = "info",
-        showConfirmButton = TRUE,
-        confirmButtonText = "OK",
-        confirmButtonCol = "#004192",
-        showCancelButton = FALSE,
-        animation = TRUE
-      )
+        footer = tagList(
+          modalButton("OK"),
+          # Use a downloadButton instead of a manual <a> tag
+          downloadButton(ns("download_removed_samples"), "Save Sample List")
+        ),
+        paste(sample_removed, "samples were removed during filtering.")
+      ))
     } else if (sample_removed > 0 && removed_samples > 0) {
       shinyalert(
         title = "Samples Filtered",
@@ -523,8 +581,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
              tabPanel("Results", p("Upload VCF file to access results in this section."))
       )
     } else {
-
-      if (!is.null(filtering_files$format_fields) && filtering_files$format_fields == TRUE && input$vcf_type == "Unfiltered VCF") {
+      if (!any(is.null(filtering_files$format_fields)) && any(filtering_files$format_fields == TRUE) && input$vcf_type == "Unfiltered VCF") {
         # Include "Bias Histogram", "OD Histogram", and "Prop_mis Histogram" for Pre-Filtered VCF
         tabBox(
           width = 12, collapsible = FALSE, status = "info",
@@ -944,6 +1001,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       writeLines(paste(capture.output(filtering_summary_info()), collapse = "\n"), file)
     }
   )
+  
 }
 
 ## To be copied in the UI

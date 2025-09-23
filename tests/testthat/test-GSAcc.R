@@ -64,7 +64,7 @@ test_that("test Predictive Ability iris",{
 
   #Getting genotype matrix
   #Geno.file conversion if needed
-  geno_snps <- read_geno_file(input$pred_file$datapath, requires = "GT")
+  geno_snps <- BIGapp:::read_geno_file(input$pred_file$datapath, requires = "GT", ploidy = input$pred_ploidy, check = FALSE)
   geno <- geno_snps[[1]]
   pred_inputs$pred_snps <- geno_snps[[2]] # n markers
   pred_inputs$pred_genos <- ncol(geno) # n samples
@@ -111,9 +111,9 @@ test_that("test Predictive Ability iris",{
   input$pred_model <- "rrBLUP"
 
   # Convert genotype matrix according to ploidy and model used
-  geno_formated <- format_geno_matrix(pred_inputs$geno_input,input$pred_model, input$pred_matrix, input$pred_ploidy)
+  geno_formated <- BIGapp:::format_geno_matrix(pred_inputs$geno_input,input$pred_model, input$pred_matrix, input$pred_ploidy)
 
-  results <- run_predictive_model(geno = geno_formated,
+  results <- BIGapp:::run_predictive_model(geno = geno_formated,
                                   pheno = pred_inputs$pheno_input,
                                   selected_traits = input$pred_trait_info,
                                   predictive_model = input$pred_model,
@@ -163,10 +163,10 @@ test_that("test Predictive Ability iris",{
   advanced_options$pred_matrix <- input$pred_matrix
 
   # Convert genotype matrix according to ploidy and model used
-  geno_formated <- format_geno_matrix(pred_inputs$geno_input,input$pred_model, input$pred_matrix, input$pred_ploidy)
+  geno_formated <- BIGapp:::format_geno_matrix(pred_inputs$geno_input,input$pred_model, input$pred_matrix, input$pred_ploidy)
 
   # Main function
-  results <- run_predictive_model(geno = geno_formated,
+  results <- BIGapp:::run_predictive_model(geno = geno_formated,
                                   pheno = pred_inputs$pheno_input,
                                   selected_traits = input$pred_trait_info,
                                   predictive_model = input$pred_model,
@@ -203,8 +203,8 @@ test_that("test Predictive Ability iris",{
   pred_outputs_gBLUP$comb_output <- average_accuracy_df
 
   # Compare rrBLUP and GBLUP
-  expect_equal(pred_outputs_gBLUP$corr_output[,1], pred_outputs_rrBLUP$corr_output[,1], tolerance = 0.01)
-  expect_equal(pred_outputs_gBLUP$comb_output[,2], pred_outputs_rrBLUP$comb_output[,2], tolerance = 0.01)
+  expect_equal(pred_outputs_gBLUP$corr_output[,1], pred_outputs_rrBLUP$corr_output[,1], tolerance = 0.02)
+  expect_equal(pred_outputs_gBLUP$comb_output[,2], pred_outputs_rrBLUP$comb_output[,2], tolerance = 0.02)
   expect_equal(sum(pred_outputs_gBLUP$avg_GEBVs[,2]), -0.594, tolerance = 0.01)
   expect_equal(sum(as.numeric(pred_outputs_gBLUP$all_GEBVs[,1])), -2.971, tolerance = 0.1)
 })

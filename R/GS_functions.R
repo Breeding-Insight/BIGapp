@@ -200,8 +200,12 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
   if (type == "Gmatrix") {
     #Convert normalized genotypes to relationship matrix
     #By default, it removes SNPs with more than 50% missing data and imputes using the mean
-    Geno.mat <- A.mat(t(geno_input)) # only diploids
-    #Geno.mat <- Gmatrix(t(geno_input), method = "VanRaden", ploidy = ploidy)
+    Geno.mat <- Gmatrix(t(geno_input),
+                        method = "VanRaden",
+                        ploidy = ploidy,
+                        ploidy.correction=TRUE,
+                        ratio = FALSE,
+                        missingValue = "NA")
     return(Geno.mat)
 
   }else if (type == "Amatrix") {
@@ -230,7 +234,11 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
 
     #Using Gmatrix to get the Gmatrix instead of A.mat for consistency
     #Should I be using the raw dosage values or is it okay to use the scaled genotype data that is used for A.mat()?
-    G.mat <- Gmatrix(t(geno_input[ ,valid_ids]), method = "VanRaden", ploidy = as.numeric(ploidy), missingValue = "NA")
+    G.mat <- Gmatrix(t(geno_input[ ,valid_ids]),
+                     method = "VanRaden",
+                     ploidy = as.numeric(ploidy),
+                     missingValue = "NA",
+                     ploidy.correction = TRUE)
     G.mat <- round(G.mat,3) #to be easy to invert
 
     #Computing H matrix (Martini) - Using the name Geno.mat for consistency
@@ -374,7 +382,7 @@ assign_colors <- function(color){
 format_geno_matrix <- function(geno, model, pred_matrix = NULL, ploidy){
 
   if(is.null(pred_matrix)) pred_matrix <- "none_selected"
-  if(model == "rrBLUP" | (model == "GBLUP" & pred_matrix == "Gmatrix")) {
+  if(model == "rrBLUP" & ploidy == 2 & pred_matrix == "Gmatrix") {
     #if(model == "rrBLUP") {
     geno_formated <- 2 * (geno / as.numeric(ploidy)) - 1 # codification -1 0 1
   } else {

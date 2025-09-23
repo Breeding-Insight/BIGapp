@@ -126,7 +126,8 @@ mod_gwas_ui <- function(id){
                    sliderInput(inputId = ns('gwas_image_height'), label = 'Height', value = 5, min = 1, max = 20, step = 0.5),
                    fluidRow(
                      downloadButton(ns("download_gwas_figure"), "Save Image"),
-                     downloadButton(ns("download_gwas_file"), "Save Files")),
+                     downloadButton(ns("download_gwas_file"), "Save Files"),
+                     downloadButton(ns("download_viewpoly"), "VIEWpoly input")),
                    circle = FALSE,
                    status = "danger",
                    icon = icon("floppy-disk"), width = "300px", label = "Save",
@@ -455,6 +456,31 @@ mod_gwas_server <- function(input, output, session, parent_session){
       temp_geno_file <- tempfile(fileext = ".csv")
 
       #Convert VCF file if submitted
+      #### VCF sanity check
+      checks <- vcf_sanity_check(input$gwas_file$datapath, max_markers = 10000)
+      
+      error_if_false <- c(
+        "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+        "samples", "chrom_info", "pos_info", "VCF_compressed"
+      )
+      
+      error_if_true <- c(
+        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "duplicated_samples", "duplicated_markers"
+      )
+      
+      warning_if_false <- c("ref_alt","max_markers")
+      
+      checks_result <- vcf_sanity_messages(checks, 
+                                           error_if_false, 
+                                           error_if_true, 
+                                           warning_if_false = warning_if_false, 
+                                           warning_if_true = NULL,
+                                           input_ploidy = ploidy)
+      
+      if(checks_result) return() # Stop the analysis if checks fail
+      #########
+      
       vcf <- read.vcfR(input$gwas_file$datapath, verbose = FALSE)
 
       #Extract GT
@@ -872,6 +898,18 @@ mod_gwas_server <- function(input, output, session, parent_session){
       )
   })
 
+  
+  
+  output$download_viewpoly <- downloadHandler(
+    filename = function() {
+      paste0("BIGapp_Viewpoly_GWASpoly.RData")
+    },
+    content = function(file) {
+      temp <- gwas_data$data2
+      save(temp, file = file)
+    }
+  )
+  
   #Download files for GWAS
   output$download_gwas_file <- downloadHandler(
     filename = function() {

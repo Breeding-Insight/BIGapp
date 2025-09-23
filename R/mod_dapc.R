@@ -203,6 +203,31 @@ mod_dapc_server <- function(input, output, session, parent_session){
     ##Add in VCF with the vcfR package (input VCF, then convert to genlight using vcf2genlight function)
 
     #Import genotype information if in VCF format
+    #### VCF sanity check
+    checks <- vcf_sanity_check(geno)
+    
+    error_if_false <- c(
+      "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+      "samples"
+    )
+    
+    error_if_true <- c(
+      "multiallelics", "phased_GT",  "mixed_ploidies",
+      "duplicated_samples", "duplicated_markers"
+    )
+    
+    warning_if_false <- c("chrom_info", "pos_info", "ref_alt")
+    
+    checks_result <- vcf_sanity_messages(checks, 
+                                         error_if_false, 
+                                         error_if_true, 
+                                         warning_if_false = warning_if_false, 
+                                         warning_if_true = NULL,
+                                         input_ploidy = as.numeric(ploidy))
+    
+    if(checks_result) return() # Stop the analysis if checks fail
+    #########
+    
     vcf <- read.vcfR(geno)
 
     #Get items in FORMAT column
@@ -270,6 +295,31 @@ mod_dapc_server <- function(input, output, session, parent_session){
     selected_K <- as.numeric(input$dapc_k)
 
     #Import genotype information if in VCF format
+    #### VCF sanity check
+    checks <- vcf_sanity_check(geno)
+    
+    error_if_false <- c(
+      "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+      "samples", "VCF_compressed"
+    )
+    
+    error_if_true <- c(
+      "multiallelics", "phased_GT",  "mixed_ploidies",
+      "duplicated_samples", "duplicated_markers"
+    )
+    
+    warning_if_false <- c("chrom_info", "pos_info", "ref_alt","max_markers")
+    
+    checks_result <- vcf_sanity_messages(checks, 
+                                         error_if_false, 
+                                         error_if_true, 
+                                         warning_if_false = warning_if_false, 
+                                         warning_if_true = NULL,
+                                         input_ploidy = as.numeric(ploidy))
+    
+    if(checks_result) return() # Stop the analysis if checks fail
+    #########
+    
     vcf <- read.vcfR(geno)
 
     #Get items in FORMAT column
@@ -349,14 +399,16 @@ mod_dapc_server <- function(input, output, session, parent_session){
                         col = my_palette,
                         pch = 20, # shapes
                         cstar = 1, # 0 or 1, arrows from center of cluster
-                        cell = 2, # size of elipse
+                        cellipse = 2, # size of elipse
                         scree.da = T, # plot da
                         scree.pca = T, # plot pca
                         posi.da = "topright",
                         posi.pca="bottomright",
                         mstree = F, # lines connecting clusters
-                        lwd = 1, lty = 2,
-                        leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+                        lwd = 1, 
+                        lty = 2,
+                        legeng = F, 
+                        clabel = 1) # legend and label of legend clusters. clab 0 or 1
   })
 
   output$DAPC_plot <- renderPlot({
@@ -424,14 +476,14 @@ mod_dapc_server <- function(input, output, session, parent_session){
                             col = my_palette,
                             pch = 20, # shapes
                             cstar = 1, # 0 or 1, arrows from center of cluster
-                            cell = 2, # size of elipse
+                            cellipse = 2, # size of elipse
                             scree.da = T, # plot da
                             scree.pca = T, # plot pca
                             posi.da = "topright",
                             posi.pca="bottomright",
                             mstree = F, # lines connecting clusters
                             lwd = 1, lty = 2,
-                            leg = F, clab = 1) # legend and label of legend clusters. clab 0 or 1
+                            legend = F, clabel = 1) # legend and label of legend clusters. clab 0 or 1
 
       } else if (input$dapc_figure == "BIC Plot") {
         req(dapc_items$BIC, dapc_items$bestK)

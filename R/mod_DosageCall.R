@@ -265,6 +265,11 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
     tol = 1e-05
   )
 
+  #VCF items
+  vcf_items <- reactiveValues(
+    RefAlt_df = NULL
+  )
+
   #UI popup window for input
   observeEvent(input$advanced_options, {
     showModal(modalDialog(
@@ -392,12 +397,40 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
         matrices <- list()
 
         #Import genotype information if in VCF format
+        #### VCF sanity check
+        checks <- vcf_sanity_check(madc_file, depth_support_fields = c("AD","RA"), max_markers = 10000)
+        
+        error_if_false <- c(
+          "VCF_header", "VCF_columns", "unique_FORMAT", 
+          "samples", "chrom_info", "pos_info", "allele_counts", "VCF_compressed"
+        )
+        
+        error_if_true <- c(
+          "duplicated_samples", "duplicated_markers"
+        )
+        warning_if_false <- c("ref_alt","max_markers")
+        
+        checks_result <- vcf_sanity_messages(checks, 
+                                             error_if_false, 
+                                             error_if_true, 
+                                             warning_if_false = warning_if_false, 
+                                             warning_if_true = NULL,
+                                             input_ploidy = NULL)
+        
+        if(checks_result) return() # Stop the analysis if checks fail
+        #########
+        
         vcf <- read.vcfR(madc_file, verbose = FALSE)
 
         #Get items in FORMAT column
         info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
         chrom <- vcf@fix[,1]
         pos <- vcf@fix[,2]
+        #Retain RefAlt df for later use
+        RefAlt_df <- data.frame(vcf@fix)
+        RefAlt_df <- RefAlt_df[,c(1,2,4,5)]
+        colnames(RefAlt_df) <- c("chr","pos","ref","alt")
+        vcf_items$RefAlt_df <- RefAlt_df
 
         info_ids <- extract_info_ids(info[1])
 
@@ -600,7 +633,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
       }
       
       updateProgressBar(session = session, id = "pb_madc", value = 35, title = "Performing Dosage Calling")
-      polyrad_items <- polyRAD_dosage_call(vcf = polyrad_items$vcf_path,
+      polyrad_results <- polyRAD_dosage_call(vcf = polyrad_items$vcf_path,
                                            ploidy = input$ploidy,
                                            model = input$polyRAD_model,
                                            p1 = input$parent1,
@@ -613,7 +646,8 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
                                            min_ind_maf = advanced_options$min_ind_maf,
                                            tol=advanced_options$tol)
       updateProgressBar(session = session, id = "pb_madc", value = 100, title = "Finished")
-      polyrad_items
+      polyrad_results$vcf_path <- polyrad_items$vcf_path
+      polyrad_results
     }
   })
 
@@ -637,6 +671,7 @@ mod_DosageCall_server <- function(input, output, session, parent_session){
           multidog.object = updog_out(),
           output.file = temp,
           updog_version = packageVersion("updog"),
+          RefAlt = vcf_items$RefAlt_df,
           compress = FALSE
         )
 
