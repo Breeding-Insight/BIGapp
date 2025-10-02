@@ -241,6 +241,11 @@ get_relationship_mat <- function(geno_input, ped_file, type = c("Gmatrix", "Amat
                      ploidy.correction = TRUE)
     G.mat <- round(G.mat,3) #to be easy to invert
 
+    # Ensure G.mat and Ped.mat have the same sample order
+    common_samples <- intersect(rownames(G.mat), rownames(Ped.mat))
+    G.mat <- G.mat[common_samples, common_samples]
+    Ped.mat <- Ped.mat[common_samples, common_samples]
+
     #Computing H matrix (Martini) - Using the name Geno.mat for consistency
     Geno.mat <- Hmatrix(A=Ped.mat, G=G.mat,
                         method="Martini",
@@ -314,19 +319,31 @@ GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits,
         #Mask phenotypes in testing group
         Pheno_test <- pheno_dat
         Pheno_test[test, traits[trait_idx]] <- NA
-        #Kin.blup
-        traitpred <- kin.blup(data = Pheno_test,
-                              geno = colnames(pheno_dat)[1],
-                              pheno = traits[trait_idx],
-                              fixed = fixed_cat,
-                              covariate = fixed_cov,
-                              K=Geno.mat,
-                              n.core = cores)
+        
+        # Add error handling for kin.blup
+        traitpred <- tryCatch({
+          kin.blup(data = Pheno_test,
+                   geno = colnames(pheno_dat)[1],  # This assumes first column is sample ID
+                   pheno = traits[trait_idx],
+                   fixed = fixed_cat,
+                   covariate = fixed_cov,
+                   K = Geno.mat,
+                   n.core = cores)
+        }, error = function(e) {
+          cat("Error in kin.blup for trait", traits[trait_idx], ":", e$message, "\n")
+          return(NULL)
+        })
+        
+        # Check if kin.blup failed
+        if (is.null(traitpred)) {
+          cat("kin.blup failed for trait", traits[trait_idx], "- skipping this trait\n")
+          next
+        }
 
         #Cor between test values and predicted breeding values
-        results[(((r-1)*5)+fold), trait_idx] <- cor(pheno_dat[test, traits[trait_idx]], traitpred$g[test], use = "complete.obs")
-        results[(((r-1)*5)+fold), (length(traits)+1)] <- r
-        results[(((r-1)*5)+fold), (length(traits)+2)] <- fold
+        results[(((r-1)*folds)+fold), trait_idx] <- cor(pheno_dat[test, traits[trait_idx]], traitpred$g[test], use = "complete.obs")
+        results[(((r-1)*folds)+fold), (length(traits)+1)] <- r
+        results[(((r-1)*folds)+fold), (length(traits)+2)] <- fold
 
         # Extract GEBVs
         GEBVs_fold[, trait_idx] <- traitpred$g[test]
@@ -334,12 +351,12 @@ GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits,
         # Calculate heritability (*confirm this calculation* - either way will not report to user)
         Vu <- traitpred$Vg
         Ve <- traitpred$Ve
-        heritability_scores[(((r-1)*5)+fold), trait_idx] <- Vu / (Vu + Ve)
+        heritability_scores[(((r-1)*folds)+fold), trait_idx] <- Vu / (Vu + Ve)
       }
 
       #Add iter and fold information for each trait/result
-      heritability_scores[(((r-1)*5)+fold), (length(traits)+1)] <- r
-      heritability_scores[(((r-1)*5)+fold), (length(traits)+2)] <- fold
+      heritability_scores[(((r-1)*folds)+fold), (length(traits)+1)] <- r
+      heritability_scores[(((r-1)*folds)+fold), (length(traits)+2)] <- fold
 
       #Add sample, iteration, and fold information to GEBVs_fold
       GEBVs_fold[,"Iter"] = r
@@ -348,6 +365,12 @@ GBLUP_genomic_prediction <- function(pheno_dat, Geno.mat, cycles, folds, traits,
 
       # Store GEBVs for this fold
       GEBVs_cycle[[fold]] <- GEBVs_fold
+      
+      # Update progress bar within the fold loop
+      if(!is.null(session)) {
+        updateProgressBar(session = session, id = "pb_prediction", value = as.numeric(pb_value), 
+                         title = paste0("Iteration ", r, " of ", cycles, " - Fold ", fold, " of ", folds))
+      }
     }
 
     # Store GEBVs for this cycle
