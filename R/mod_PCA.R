@@ -597,7 +597,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       df_plot[[group_var_name]] <- as.factor(df_plot[[group_var_name]])
       all_levels <- levels(df_plot[[group_var_name]])
       
-      plot_obj <- plot_obj + aes(color = .data[[group_var_name]]) # Map color aesthetic
+      plot_obj <- plot_obj + aes(color = as.factor(.data[[group_var_name]])) # Map color aesthetic
       
       color_values_map <- setNames(rep(default_color, length(all_levels)), all_levels)
       categories_to_colorize <- input$cat_color # User's selection from UI
