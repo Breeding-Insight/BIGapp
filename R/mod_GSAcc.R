@@ -428,30 +428,32 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
   pred_inputs <- eventReactive(input$prediction_start,{
 
     toggleClass(id = "pred_ploidy", class = "borderred", condition = (is.na(input$pred_ploidy) | is.null(input$pred_ploidy)))
-
-    #### VCF sanity check
-    checks <- vcf_sanity_check(input$pred_file$datapath)
-    
-    error_if_false <- c(
-      "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-      "samples", "VCF_compressed"
-    )
-    
-    error_if_true <- c(
-      "multiallelics", "phased_GT",  "mixed_ploidies",
-      "duplicated_samples", "duplicated_markers"
-    )
-    
-    warning_if_false <- c("chrom_info", "pos_info", "ref_alt","max_markers")
-    
-    checks_result <- vcf_sanity_messages(checks, 
-                                         error_if_false, 
-                                         error_if_true, 
-                                         warning_if_false = warning_if_false, 
-                                         warning_if_true = NULL,
-                                         input_ploidy = as.numeric(input$pred_ploidy))
-    
-    if(checks_result) return() # Stop the analysis if checks fail
+      
+    if (advanced_options$pred_matrix != "Amatrix"){
+      #### VCF sanity check
+      checks <- vcf_sanity_check(input$pred_file$datapath)
+      
+      error_if_false <- c(
+        "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
+        "samples", "VCF_compressed"
+      )
+      
+      error_if_true <- c(
+        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "duplicated_samples", "duplicated_markers"
+      )
+      
+      warning_if_false <- c("chrom_info", "pos_info", "ref_alt","max_markers")
+      
+      checks_result <- vcf_sanity_messages(checks, 
+                                           error_if_false, 
+                                           error_if_true, 
+                                           warning_if_false = warning_if_false, 
+                                           warning_if_true = NULL,
+                                           input_ploidy = as.numeric(input$pred_ploidy))
+      
+      if(checks_result) return() # Stop the analysis if checks fail
+    }
     #########
     
     

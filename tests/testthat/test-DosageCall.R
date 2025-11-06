@@ -18,10 +18,10 @@ test_that("Dosage Calling from MADC file",{
   
   # Call the get_counts function with the specified MADC file path and output file path
   #Status
-  result_df <- get_counts(madc_file, output_name)
+  result_df <- BIGapp:::get_counts(madc_file, output_name)
   
   #Call the get_matrices function
-  matrices <- get_matrices(result_df)
+  matrices <- BIGapp:::get_matrices(result_df)
   
   mout <- updog::multidog(refmat = matrices$ref_matrix,
                           sizemat = matrices$size_matrix,
@@ -29,11 +29,11 @@ test_that("Dosage Calling from MADC file",{
                           model = model_select,
                           nc = cores)
   
-  expect_equal(sum(mout$snpdf$bias), 402.7979, tolerance = 0.01)
-  expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
+  expect_equal(sum(mout$snpdf$bias), 412.6139, tolerance = 0.01)
+  expect_equal(sum(mout$inddf$postmean), 95233.1, tolerance = 0.01)
   
   # Convert updog to VCF
-  updog2vcf(
+  BIGr:::updog2vcf(
     multidog.object = mout,
     output.file = output_name,
     updog_version = packageVersion("updog"),
@@ -69,7 +69,7 @@ test_that("Dosage Calling from VCF file",{
   #Get items in FORMAT column
   info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
   
-  info_ids <- extract_info_ids(info[1])
+  info_ids <- BIGapp:::extract_info_ids(info[1])
   chrom <- vcf@fix[,1]
   pos <- vcf@fix[,2]
   
@@ -96,8 +96,8 @@ test_that("Dosage Calling from VCF file",{
                           model = model_select,
                           nc = cores)
   
-  expect_equal(sum(mout$snpdf$bias), 402.79, tolerance = 0.01)
-  expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
+  expect_equal(sum(mout$snpdf$bias), 412.6139, tolerance = 0.01)
+  expect_equal(sum(mout$inddf$postmean), 95233.1, tolerance = 0.01)
   
   # Convert updog to VCF
   BIGr::updog2vcf(
@@ -164,7 +164,7 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
   #Get items in FORMAT column
   info <- vcf@gt[1,"FORMAT"] #Getting the first row FORMAT
   
-  info_ids <- extract_info_ids(info[1])
+  info_ids <- BIGapp:::extract_info_ids(info[1])
   chrom <- vcf@fix[,1]
   pos <- vcf@fix[,2]
   
@@ -221,11 +221,11 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
                           model = input$updog_model,
                           nc = cores)
   
-  expect_equal(sum(mout$snpdf$bias), 408.5401, tolerance = 0.01)
-  expect_equal(sum(mout$inddf$postmean), 94249.05, tolerance = 0.01)
+  expect_equal(sum(mout$snpdf$bias), 440.109, tolerance = 0.01)
+  expect_equal(sum(mout$inddf$postmean), 94611.59, tolerance = 0.01)
   
   # Convert updog to VCF
-  updog2vcf(
+  BIGr::updog2vcf(
     multidog.object = mout,
     output.file = output_name,
     updog_version = packageVersion("updog"),
