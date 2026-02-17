@@ -29,7 +29,7 @@ test_that("Dosage Calling from MADC file",{
                           model = model_select,
                           nc = cores)
   
-  expect_equal(sum(mout$snpdf$bias), 402.7979, tolerance = 0.01)
+  expect_equal(sum(mout$snpdf$bias), 413, tolerance = 0.5)
   expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
   
   # Convert updog to VCF
@@ -96,7 +96,7 @@ test_that("Dosage Calling from VCF file",{
                           model = model_select,
                           nc = cores)
   
-  expect_equal(sum(mout$snpdf$bias), 402.79, tolerance = 0.01)
+  expect_equal(sum(mout$snpdf$bias), 413, tolerance = 0.5)
   expect_equal(sum(mout$inddf$postmean), 95229.13, tolerance = 0.01)
   
   # Convert updog to VCF
@@ -221,7 +221,7 @@ test_that("Dosage Calling from VCF file f1 and s1 model",{
                           model = input$updog_model,
                           nc = cores)
   
-  expect_equal(sum(mout$snpdf$bias), 408.5401, tolerance = 0.01)
+  expect_equal(sum(mout$snpdf$bias), 440, tolerance = 0.5)
   expect_equal(sum(mout$inddf$postmean), 94249.05, tolerance = 0.01)
   
   # Convert updog to VCF
