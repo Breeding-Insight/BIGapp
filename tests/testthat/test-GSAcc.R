@@ -138,14 +138,14 @@ test_that("test Predictive Ability iris",{
   # Calculate the average value for each column in the traits list for each SampleID, ignoring Iter and Fold
   average_gebvs_df <- results$GEBVs %>%
     group_by(Sample) %>%
-    summarize(across(all_of(input$pred_trait_info), mean, na.rm = TRUE))
-
+    summarize(across(all_of(input$pred_trait_info), \(x) mean(x, na.rm = TRUE)))
+  
   pred_outputs_rrBLUP$avg_GEBVs <- average_gebvs_df
 
   columns <- setdiff(colnames(results$PredictionAccuracy), c("Iter","Fold"))
   average_accuracy_df <- results$PredictionAccuracy %>%
     group_by(Iter) %>%
-    summarize(across(all_of(columns), mean, na.rm = TRUE))
+    summarize(across(all_of(columns), \(x) mean(x, na.rm = TRUE)))
 
   pred_outputs_rrBLUP$comb_output <- average_accuracy_df
 

@@ -1,6 +1,6 @@
 Package: BIGapp
 Title: Breeding Insight Genomics Shiny Application
-Version: 1.5.1
+Version: 1.6.0
 Authors@R: 
     c(
               person(c("Alexander", "M."), "Sandercock",
