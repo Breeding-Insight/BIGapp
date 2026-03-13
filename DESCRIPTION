@@ -1,6 +1,6 @@
 Package: BIGapp
 Title: Breeding Insight Genomics Shiny Application
-Version: 1.6.0
+Version: 1.7.0
 Authors@R: 
     c(
               person(c("Alexander", "M."), "Sandercock",
@@ -26,7 +26,7 @@ Description: This R shiny app provides a web-based user friendly way for researc
 License: Apache License (== 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends: R (>= 4.4.0)
 biocViews:
 Imports: 
