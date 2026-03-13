@@ -133,7 +133,7 @@ BIGapp leverages a powerful suite of R packages:
 
 ## Funding
 
-BIGapp development is supported by [Breeding Insight](https://www.breedinginsight.org/), a USDA-funded initiative based at Cornell University.
+BIGapp development is supported by [Breeding Insight](https://www.breedinginsight.org/), a USDA-funded initiative based at University of Florida - IFAS.
 
 ## Citation
 

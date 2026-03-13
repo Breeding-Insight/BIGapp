@@ -156,15 +156,71 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
 }
 
 
-#' Function to convert polyRAD output to VCF
+#' Convert polyRAD Genotypes to a VCF File
 #'
-#' @param geno ToDo
-#' @param model ToDo
-#' @param vcf_path ToDo
-#' @param hindhe.obj ToDo
-#' @param ploidy ToDo
-#' @param output.file ToDo
-#' @param session ToDo
+#' Takes genotype dosage estimates from polyRAD and appends them to an existing
+#' VCF, adding Hind/He summary statistics and custom FORMAT/INFO fields.
+#' The original variant metadata (CHROM, POS, REF, ALT, etc.) are preserved
+#' from a template VCF, and new polyRAD-derived fields are written for each
+#' sample and locus.
+#'
+#' @param geno A marker-by-sample dosage matrix (or object coercible to a
+#'   matrix) containing polyRAD genotype estimates. Row names must match the
+#'   variant IDs in \code{vcf_path} (before allele suffixes), and columns
+#'   correspond to samples.
+#' @param model Character string indicating the polyRAD model used to fit the
+#'   genotypes (e.g. \code{"Kriging"}, \code{"SampleDepth"}, etc.). This value
+#'   is recorded in the VCF header for provenance.
+#' @param vcf_path Path to the template VCF file used to provide variant
+#'   metadata (CHROM, POS, ID, REF, ALT, QUAL, FILTER, INFO, and original
+#'   FORMAT fields).
+#' @param hindhe.obj Object containing Hind/He values per locus (typically a
+#'   matrix or data frame from polyRAD). Columns must correspond to alleles
+#'   for each marker; the function computes the mean Hind/He per marker and
+#'   adds it as an \code{INFO} field (\code{HH}) in the output VCF.
+#' @param ploidy Integer giving the ploidy level used for the polyRAD analysis.
+#'   This is used to convert dosage values into genotype strings (e.g.
+#'   \code{"0/1"}, \code{"1/1"}, \code{"0/0/1"}, etc.).
+#' @param output.file Base name for the output VCF file (without extension).
+#'   The function will append \code{".vcf"} to this name and write the
+#'   resulting VCF to disk in the current working directory (unless a path
+#'   is included).
+#' @param session Optional Shiny \code{session} object. Currently included for
+#'   compatibility with Shiny modules; not used internally in this function.
+#'
+#' @details
+#' The function:
+#' \itemize{
+#'   \item Flips and formats polyRAD dosages using \code{\link[BIGr]{flip_dosage}}.
+#'   \item Harmonizes marker IDs between \code{geno}, \code{hindhe.obj}, and
+#'     the template VCF by stripping allele suffixes.
+#'   \item Reads the template VCF with \code{\link[vcfR]{read.vcfR}} and
+#'     updates the header to include:
+#'     \itemize{
+#'       \item \code{##INFO=<ID=HH,...>} for Hind/He per locus.
+#'       \item \code{##FORMAT=<ID=GTP,...>} for polyRAD-estimated genotypes
+#'         (in allele-count space).
+#'       \item \code{##FORMAT=<ID=UD,...>} for the dosage count of reference
+#'         alleles.
+#'       \item Version tags for \code{polyRAD} and \code{BIGapp}.
+#'     }
+#'   \item Converts dosage values to genotype strings (\code{GT}-like,
+#'     \code{"0/0"}, \code{"0/1"}, \code{"1/1"}, etc.) given the specified
+#'     \code{ploidy}.
+#'   \item Builds a new FORMAT field for each variant combining:
+#'     \code{GTP}, \code{UD}, and the original FORMAT fields from the template.
+#'   \item Writes the updated header and variant table to a VCF file.
+#' }
+#'
+#' Missing dosages are converted to a missing genotype string (e.g.
+#' \code{"./."} for diploids) and represented as \code{"."} in the dosage
+#' field. Variants are sorted by chromosome and numeric position before
+#' writing.
+#'
+#' @return
+#' No value is returned. The function is called for its side effect of writing
+#' a VCF file to \code{paste0(output.file, ".vcf")}.
+#'
 #' @import dplyr
 #' @import tidyr
 #' @import tibble
@@ -198,8 +254,19 @@ polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, 
     '##INFO=<ID=HH,Number=1,Type=Float,Description="Hind/He for the locus in the RADdata object">'
   )
   # Custom FORMAT lines to add
+  ## If GT FORMAT field is present, return GTP, if not return GT
+  if(grepl("\\bGT\\b", og_vcf@gt[1, "FORMAT"])) {
+    model_format_id <- "GTP"
+  } else {
+    model_format_id <- "GT"
+  }
   custom_format_lines <- c(
-    '##FORMAT=<ID=GTP,Number=1,Type=String,Description="Genotype estimated by polyRAD, where 1 is the count of alternate alleles">',
+    paste0('##FORMAT=<ID=', model_format_id,',Number=1,Type=String,Description="Genotype estimated by polyRAD, where 1 is the count of alternate alleles">'),
+    '##FORMAT=<ID=UD,Number=1,Type=Integer,Description="Dosage count of reference alleles from polyRAD, where 0 = homozygous alternate">'
+  )
+  
+  custom_format_lines <- c(
+    '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype estimated by polyRAD, where 1 is the count of alternate alleles">',
     '##FORMAT=<ID=UD,Number=1,Type=Integer,Description="Dosage count of reference alleles from polyRAD, where 0 = homozygous alternate">'
   )
   custom_version_lines <- c(
@@ -257,7 +324,7 @@ polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, 
                         "HH=",t(hh))
   
   #Add the FORMAT label for each SNP
-  vcf_df$FORMAT <- paste("GTP","UD",og_vcf@gt[1, "FORMAT"],sep=":")
+  vcf_df$FORMAT <- paste(model_format_id,"UD",og_vcf@gt[1, "FORMAT"],sep=":")
   
   #Convert genotypes from dosage to gt
   precompute_genotype_strings <- function(ploidy) {
