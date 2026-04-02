@@ -388,8 +388,6 @@ mod_GS_server <- function(input, output, session, parent_session) {
     ))
   })
   
-  
-  
   # Close popup window when user "saves options"
   observeEvent(input$save_advanced_options_pred, {
     advanced_options_pred$pred_model <- input$pred_model
