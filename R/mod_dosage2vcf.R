@@ -31,7 +31,7 @@ mod_dosage2vcf_ui <- function(id){
                              label = 'Select File Format',
                              choices = c("DArT MADC file","DArT Dosage/SNP Report", "Dosage Matrix"),
                              selected = "DArT MADC file"),
-                 conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
+                 conditionalPanel(condition = "input.file_type == 'DArT Dosage/SNP Report'",
                                   ns = ns,
                                   fileInput(ns("report_file"), "Choose DArT Dose/SNP Report File", accept = c(".csv")),
                                   fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
@@ -321,7 +321,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
   vcf_out <- eventReactive(input$run_analysis,{
     # Ensure the files are uploaded
     # Missing input with red border and alerts
-    if(input$file_type == "DArT Dosage Reports"){
+    if(input$file_type == "DArT Dosage/SNP Report"){
       if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
         shinyalert(
           title = "Missing input!",
