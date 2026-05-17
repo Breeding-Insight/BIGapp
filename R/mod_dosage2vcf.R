@@ -29,8 +29,14 @@ mod_dosage2vcf_ui <- function(id){
                  title = "Inputs", width=12, status = "info", solidHeader = TRUE, collapsible = FALSE, collapsed = FALSE,
                  selectInput(ns('file_type'),
                              label = 'Select File Format',
-                             choices = c("DArT MADC file", "Dosage Matrix"), 
+                             choices = c("DArT MADC file","DArT Dosage/SNP Report", "Dosage Matrix"),
                              selected = "DArT MADC file"),
+                 conditionalPanel(condition = "input.file_type == 'DArT Dosage Reports'",
+                                  ns = ns,
+                                  fileInput(ns("report_file"), "Choose DArT Dose/SNP Report File", accept = c(".csv")),
+                                  fileInput(ns("counts_file"), "Choose DArT Counts File", accept = c(".csv")),
+                                  numericInput(ns("dosage2vcf_ploidy"), "Species Ploidy", min = 1, value = NULL)
+                 ),
                  conditionalPanel(condition = "input.file_type == 'Dosage Matrix'",
                                   ns = ns,
                                   fileInput(ns("matrix_file"), "Choose Dosage Matrix File", accept = c(".csv")),
@@ -47,7 +53,7 @@ mod_dosage2vcf_ui <- function(id){
                                                selected = "target"),
                                   selectInput(ns('species'),
                                               label = 'Species',
-                                              choices = c("alfalfa", "blueberry", "cranberry", "cucumber", "pecan", "potato", "strawberry", "sweetpotato", "other"), 
+                                              choices = c("alfalfa", "blueberry", "cranberry", "cucumber", "pecan", "potato", "strawberry", "sweetpotato", "other"),
                                               selected = "alfalfa"),
                                   conditionalPanel(condition = "input.snp_type == 'target_off'",
                                                    ns = ns,
@@ -71,13 +77,13 @@ mod_dosage2vcf_ui <- function(id){
                                                    radioButtons(ns("collapse_matches_counts"),
                                                                 label = "Collapse Matches Counts:",
                                                                 choices = list("Yes"= TRUE, "No" = FALSE),
-                                                                selected = FALSE),  
+                                                                selected = FALSE),
                                                    conditionalPanel(condition = "input.species == 'other'",
                                                                     ns = ns,
                                                                     radioButtons(ns("ref_alt"),
                                                                                  label = "Extract REF and ALT info:",
                                                                                  choices = list("Yes"= TRUE, "No" = FALSE),
-                                                                                 selected = TRUE),                                                                  
+                                                                                 selected = TRUE),
                                                                     conditionalPanel(condition = "input.ref_alt == 'TRUE'",
                                                                                      ns = ns,
                                                                                      fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)"),
@@ -92,7 +98,7 @@ mod_dosage2vcf_ui <- function(id){
                  hr(),
                  actionButton(ns("run_analysis"), "Convert File", width = "100%"), br(), br(),
                  uiOutput(ns('mybutton')),
-                 
+
                  div(style="display:inline-block; float:right",dropdownButton(
                    HTML("<b>Input files</b>"),
                   p(downloadButton(ns('download_madc_fixed'), ""), "Fixed Allele MADC Example File"),
@@ -132,7 +138,7 @@ mod_dosage2vcf_ui <- function(id){
 #'
 #' @noRd
 mod_dosage2vcf_server <- function(input, output, session, parent_session){
-  
+
   ns <- session$ns
 
   # Reactive value to accumulate log messages
@@ -166,40 +172,40 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
                       selected = "DArT_Report2VCF_par")
     # expand specific box
     updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goRes, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
                       selected = "DArT_Report2VCF_results")
     # expand specific box
     updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
   })
-  
+
   observeEvent(input$goCite, {
     # change to help tab
     updatebs4TabItems(session = parent_session, inputId = "MainMenu",
                       selected = "help")
-    
+
     # select specific tab
     updateTabsetPanel(session = parent_session, inputId = "DArT_Report2VCF_tabset",
                       selected = "DArT_Report2VCF_cite")
     # expand specific box
     updateBox(id = "DArT_Report2VCF_box", action = "toggle", session = parent_session)
   })
-  
+
   disable("download_d2vcf")
-  
+
   output$download_madc <- downloadHandler(
     filename = function() {
       paste0("BIGapp_MADC_Example_file.csv")
@@ -208,7 +214,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_DArT_MADC.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   output$download_madc_fixed <- downloadHandler(
     filename = function() {
       paste0("BIGapp_MADC_Fixed_Example_file.csv")
@@ -218,7 +224,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       alfalfa_madc <- paste0(github_path, "test_madcs/alfalfa_madc.csv")
       download.file(alfalfa_madc, destfile = file, mode = "wb")
     })
-  
+
   # Default model choices
   advanced_options_all <- reactiveValues(
     rm_multiallelic_SNP = TRUE,
@@ -240,7 +246,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
     advanced_options_all$others_max_snps <- input$others_max_snps
     advanced_options_all$others_rm_with_indels <- as.logical(input$others_rm_with_indels)
     # Save other inputs as needed
-    
+
     removeModal() # Close the modal after saving
   })
 
@@ -315,10 +321,58 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
   vcf_out <- eventReactive(input$run_analysis,{
     # Ensure the files are uploaded
     # Missing input with red border and alerts
-    if(input$file_type == "DArT MADC file"){
+    if(input$file_type == "DArT Dosage Reports"){
+      if (is.null(input$report_file$datapath) | is.null(input$counts_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
+        shinyalert(
+          title = "Missing input!",
+          text = "Upload Dose Report and Counts Files",
+          size = "s",
+          closeOnEsc = TRUE,
+          closeOnClickOutside = FALSE,
+          html = TRUE,
+          type = "error",
+          showConfirmButton = TRUE,
+          confirmButtonText = "OK",
+          confirmButtonCol = "#004192",
+          showCancelButton = FALSE,
+          animation = TRUE
+        )
+      }
+      req(input$report_file, input$counts_file, input$d2v_output_name, input$dosage2vcf_ploidy)
+      # Get the uploaded file paths
+      dosage_file <- input$report_file$datapath
+      counts_file <- input$counts_file$datapath
+      ploidy <- input$dosage2vcf_ploidy
+
+      # Use a temporary file path without appending .vcf
+      temp_base <- tempfile()
+
+      #Status
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting DArT files to VCF")
+
+      # Convert to VCF using the BIGr package
+      cat("Running BIGr::dosage2vcf...\n")
+
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writing VCF")
+
+      dosage2vcf(
+        dart.report = dosage_file,
+        dart.counts = counts_file,
+        output.file = temp_base,
+        ploidy = as.numeric(ploidy)
+      )
+
+      # The output file should be temp_base.vcf
+      output_name <- paste0(temp_base, ".vcf")
+
+      updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
+
+      return(output_name)
+
+    } else if(input$file_type == "DArT MADC file"){
       req(input$madc_file)
       # First check if the MADC file is valid (a non-fixedAlleleID MADC file)
-            
+
       # Select species botloci
       github_path <- "https://raw.githubusercontent.com/Breeding-Insight/BIGapp-PanelHub/refs/heads/long_seq/"
 
@@ -343,7 +397,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
                         "strawberry" = paste0(github_path, "strawberry/strawberry_allele_db_v001.fa"),
                         "sweetpotato" = paste0(github_path, "sweetpotato/sweetpotato_allele_db_v000_refAlt109bp.fa"),
                         "other" = input$hapDB_file$datapath)
-      
+
       markers_info <- switch(input$species,
                         "alfalfa" = paste0(github_path, "alfalfa/20201030-BI-Alfalfa_SNPs_DArTag-probe-design_snpID_lut.csv"),
                         "blueberry" = paste0(github_path, "blueberry/20200819-BI-Blueberry_10K_SNPs_forDArT_3K_chrID_snpID_lut.csv"),
@@ -358,7 +412,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       # Guard optional inputs (may be NULL if not uploaded)
       microhapDB  <- if (length(microhapDB) == 0)  NULL else microhapDB
       markers_info <- if (length(markers_info) == 0) NULL else markers_info
-      
+
       #Now perform conversion depending on user options
 
       # Shared setup for all MADC snp_type branches
@@ -469,9 +523,9 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       d2vcf_log(paste(log_lines, collapse = ""))
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
       return(output_name)
-      
+
     } else if (input$file_type == "Dosage Matrix"){
-      
+
       if (is.null(input$matrix_file$datapath) | input$d2v_output_name == "" | input$dosage2vcf_ploidy == "") {
         shinyalert(
           title = "Missing input!",
@@ -491,42 +545,42 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       req(input$matrix_file, input$d2v_output_name, input$dosage2vcf_ploidy)
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 10, title = "Converting matrix to VCF")
-      
+
       # Get the uploaded file paths
       matrix_file <- input$matrix_file$datapath
       ploidy <- input$dosage2vcf_ploidy
-      
+
       # Use a temporary file path without appending .vcf
       temp_base <- tempfile()
-      
+
       # The output file should be temp_base.vcf
       output_name <- paste0(temp_base, ".vcf")
-      
+
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 50, title = "Writing VCF")
-      
+
       # Convert to VCF using the BIGr package
       gmatrix2vcf(Gmat.file = matrix_file,
                   ploidy = ploidy,
                   output.file = output_name,
                   dosageCount = input$dosage_counts)
-      
+
       #Status
       updateProgressBar(session = session, id = "dosage2vcf_pb", value = 100, title = "Complete!")
-      
+
       return(output_name)
-      
+
     }
-    
+
   })
-  
+
   # Only make available the download button when analysis is finished
   output$mybutton <- renderUI({
     if(isTruthy(vcf_out()))
       downloadButton(ns("download_d2vcf"), "Download VCF file", class = "butt")
   })
-  
-  
+
+
   ##This is for the DArT files conversion to VCF
   output$download_d2vcf <- downloadHandler(
     filename = function() {
@@ -537,14 +591,14 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       bgzip_compress(vcf_out(), file)
     }
   )
-  
+
   ##Summary Info
   d2vcf_summary_info <- function() {
     #Handle possible NULL values for inputs
     report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
     counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
     selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
-    
+
     #Print the summary information
     cat(
       "BIGapp Dosage2VCF Summary\n",
@@ -568,7 +622,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       sep = ""
     )
   }
-  
+
   # Popup for analysis summary
   observeEvent(input$d2vcf_summary, {
     showModal(modalDialog(
@@ -584,8 +638,8 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
+
+
   # Download Summary Info
   output$download_d2vcf_info <- downloadHandler(
     filename = function() {
