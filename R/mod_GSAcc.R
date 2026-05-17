@@ -257,9 +257,9 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
     removeModal()  # Close the modal after saving
   })
-  
+
   ## Trait file modal window
-  
+
   #Default choices
   trait_options <- reactiveValues(
     missing_data = "NA",
@@ -267,25 +267,25 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     sample_column = NULL,
     file_type = NULL
   )
-  
+
   #UI popup window for input
   observeEvent(input$trait_file, {
     req(input$trait_file)
     #Get the column names of the csv file
     info_df <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE, nrows=2)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
-    
+
     # Read first 5 rows for preview
     preview_data <- tryCatch({
       head(read.csv(input$trait_file$datapath, nrows = 5, na.strings=trait_options$missing_data),5)
     }, error = function(e) {
       NULL
     })
-    
+
     showModal(modalDialog(
       title = "Trait File Options",
       size= "l",
-      
+
       selectInput(
         inputId = ns('missing_data'),
         label = 'Missing Data Value',
@@ -312,7 +312,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
         label = 'Sample ID Column',
         choices = colnames(info_df)
       ),
-      
+
       if (!is.null(preview_data)) {
         div(
           h4(
@@ -332,20 +332,20 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
           p("Could not load file preview.")
         )
       },
-      
+
       footer = tagList(
         actionButton(ns("save_trait_options"), "Save")
       )
     ))
-    
+
     # Render the preview table
     output$file_preview <- renderTable({
       req(preview_data)
       preview_data
     })
-    
+
   })
-  
+
   output$custom_missing_msg <- renderText({
     if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
       "Please enter a custom missing value."
@@ -353,8 +353,8 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       ""
     }
   })
-  
-  
+
+
   #Close popup window when user "saves options"
   observeEvent(input$save_trait_options, {
     trait_options$missing_data <- input$missing_data
@@ -362,7 +362,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     trait_options$sample_column <- input$sample_column
     #trait_options$file_type
     # Save other inputs as needed
-    
+
     if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
       # Validation failed: display warning and prevent modal closure
       showNotification(
@@ -372,7 +372,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       )
       return() # Stop further execution and keep the modal open
     }
-    
+
     removeModal()  # Close the modal after saving
   })
 
@@ -428,35 +428,35 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
   pred_inputs <- eventReactive(input$prediction_start,{
 
     toggleClass(id = "pred_ploidy", class = "borderred", condition = (is.na(input$pred_ploidy) | is.null(input$pred_ploidy)))
-      
+
     if (advanced_options$pred_matrix != "Amatrix"){
       #### VCF sanity check
       checks <- vcf_sanity_check(input$pred_file$datapath)
-      
+
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
         "samples", "VCF_compressed"
       )
-      
+
       error_if_true <- c(
-        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "multiallelics",  "mixed_ploidies",
         "duplicated_samples", "duplicated_markers"
       )
-      
+
       warning_if_false <- c("chrom_info", "pos_info", "ref_alt","max_markers")
-      
-      checks_result <- vcf_sanity_messages(checks, 
-                                           error_if_false, 
-                                           error_if_true, 
-                                           warning_if_false = warning_if_false, 
+
+      checks_result <- vcf_sanity_messages(checks,
+                                           error_if_false,
+                                           error_if_true,
+                                           warning_if_false = warning_if_false,
                                            warning_if_true = NULL,
                                            input_ploidy = as.numeric(input$pred_ploidy))
-      
+
       if(checks_result) return() # Stop the analysis if checks fail
     }
     #########
-    
-    
+
+
     if(is.null(advanced_options$pred_matrix)) advanced_options$pred_matrix <- "none_selected"
     if (((is.null(input$pred_file$datapath) &  advanced_options$pred_matrix != "Amatrix") |
          (is.null(advanced_options$ped_file$datapath) &  advanced_options$pred_matrix == "Amatrix")) |
@@ -489,11 +489,11 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
     } else {
       pheno <- read.csv(input$trait_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$missing_data)
     }
-    
+
     # Make the sample ID column the first column in the dataframe
     sample_col_name <- input$sample_column
     pheno <- pheno[, c(sample_col_name, setdiff(names(pheno), sample_col_name))]
-    
+
     # Add row names and catch errors
     tryCatch({
       row.names(pheno) <- pheno[, 1]
@@ -512,7 +512,7 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       )
       return(NULL) # Return NULL to prevent further processing
     })
-    
+
     # Assigning the IDs based on user input for column 1
     ids_pheno <- pheno[, 1]
 
@@ -810,36 +810,36 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
 
     #pred_outputs
   })
-  
+
   #Output the prediction tables
-  
+
   all_GEBVs <- reactive({
     validate(
       need(!is.null(pred_outputs$all_GEBVs), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
     )
     pred_outputs$comb_output
   })
-  
+
   output$pred_all_table <- renderDT({all_GEBVs()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-  
+
   comb_output <- reactive({
     validate(
       need(!is.null(pred_outputs$comb_output), "Upload the input files, set the parameters and click 'run analysis' to access results in this session.")
     )
-    
+
     #Adding the mean values to df
     prepare_df <- round(pred_outputs$comb_output, 4)
     trait_means <- round(colMeans(prepare_df), 4)
     new_row <- c("Mean", trait_means[-1])
     new_df <- rbind(prepare_df, new_row)
-    
+
     #exporting
     new_df
-    
+
   })
-  
+
   output$pred_acc_table <- renderDT({comb_output()}, options = list(scrollX = TRUE,autoWidth = FALSE, pageLength = 5))
-  
+
   ##Plots
 
   plots <- reactive({
@@ -859,13 +859,13 @@ mod_GSAcc_server <- function(input, output, session, parent_session){
       names_to = "Trait",
       values_to = "Correlation"
     )
-    
+
     # Determine dynamic y-axis lower bound based on the entire dataset
     min_val <- min(df_long$Correlation, na.rm = TRUE)
     y_axis_lower_bound <- if (min_val < 0) {
       # If there are negative values, start the axis slightly below the minimum
       # You can adjust the floor() logic for more/less padding, or just use min_val
-      floor(min_val * 10) / 10 
+      floor(min_val * 10) / 10
     } else {
       0
     }

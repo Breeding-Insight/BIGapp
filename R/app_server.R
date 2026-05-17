@@ -10,7 +10,7 @@ app_server <- function(input, output, session) {
   # Your application server logic
 
   ##Add server configurations
-  options(shiny.maxRequestSize = 1000000 * 1024^2)  # Set maximum upload size to 1000GB
+  options(shiny.maxRequestSize = 100000 * 1024^2)  # Set maximum upload size to 100GB
   #shiny.maxRequestSize = 10000 * 1024^2; # 10 GB <- This is for a future limit when using BI's server remotely
 
   callModule(mod_DosageCall_server,

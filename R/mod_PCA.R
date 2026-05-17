@@ -168,7 +168,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     # expand specific box
     updateBox(id = "PCA_box", action = "toggle", session = parent_session)
   })
-  
+
   #Default choices
   trait_options <- reactiveValues(
     missing_data = "NA",
@@ -176,7 +176,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     sample_column = NULL,
     file_type = NULL
   )
-  
+
   # Update dropdown menu choices based on uploaded passport file
   passport_table <- reactive({
     validate(
@@ -184,26 +184,26 @@ mod_PCA_server <- function(input, output, session, parent_session){
     )
     info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, na.strings=trait_options$missing_data)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
-    
+
     updateSelectInput(session, "group_info", choices = colnames(info_df))
     info_df
   })
-  
+
   #PCA specific category selection
   observeEvent(passport_table(), {
     #updateMaterialSwitch(session, inputId = "use_cat", status = "success")
-    
+
     # Get selected column name
     selected_col <- input$group_info
-    
+
     # Extract unique values from the selected column
     unique_values <- unique(passport_table()[[selected_col]])
-    
+
     #Add category selection
     updateVirtualSelect("cat_color", choices = unique_values, selected = unique_values, session = session)
-    
+
   })
-  
+
   # PCA specific category selection. Update when group_info is changed.
   observeEvent(input$group_info, {
     req(passport_table()) # Ensure passport_table is available
@@ -211,25 +211,25 @@ mod_PCA_server <- function(input, output, session, parent_session){
     unique_values <- unique(passport_table()[[selected_col]])
     updateVirtualSelect("cat_color", choices = unique_values, selected = unique_values, session = session)
   })
-  
+
   #UI popup window for input
   observeEvent(input$passport_file, {
     req(input$passport_file)
     #Get the column names of the csv file
     info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, nrows=2)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
-    
+
     # Read first 5 rows for preview
     preview_data <- tryCatch({
       head(read.csv(input$passport_file$datapath, nrows = 5, na.strings=trait_options$missing_data),5)
     }, error = function(e) {
       NULL
     })
-    
+
     showModal(modalDialog(
       title = "Trait File Options",
       size= "l",
-      
+
       selectInput(
         inputId = ns('missing_data'),
         label = 'Missing Data Value',
@@ -256,7 +256,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
         label = 'Sample ID Column',
         choices = colnames(info_df)
       ),
-      
+
       if (!is.null(preview_data)) {
         div(
           h4(
@@ -276,20 +276,20 @@ mod_PCA_server <- function(input, output, session, parent_session){
           p("Could not load file preview.")
         )
       },
-      
+
       footer = tagList(
         actionButton(ns("save_trait_options"), "Save")
       )
     ))
-    
+
     # Render the preview table
     output$file_preview <- renderTable({
       req(preview_data)
       preview_data
     })
-    
+
   })
-  
+
   output$custom_missing_msg <- renderText({
     if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
       "Please enter a custom missing value."
@@ -297,8 +297,8 @@ mod_PCA_server <- function(input, output, session, parent_session){
       ""
     }
   })
-  
-  
+
+
   #Close popup window when user "saves options"
   observeEvent(input$save_trait_options, {
     trait_options$missing_data <- input$missing_data
@@ -306,7 +306,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     trait_options$sample_column <- input$sample_column
     #trait_options$file_type
     # Save other inputs as needed
-    
+
     if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
       # Validation failed: display warning and prevent modal closure
       showNotification(
@@ -316,7 +316,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       )
       return() # Stop further execution and keep the modal open
     }
-    
+
     removeModal()  # Close the modal after saving
   })
 
@@ -366,29 +366,29 @@ mod_PCA_server <- function(input, output, session, parent_session){
 
       #### VCF sanity check
       checks <- vcf_sanity_check(geno)
-      
+
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
         "samples", "VCF_compressed"
       )
-      
+
       error_if_true <- c(
-        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "multiallelics",  "mixed_ploidies",
         "duplicated_samples", "duplicated_markers"
       )
-      
+
       warning_if_false <- c("chrom_info", "pos_info", "ref_alt", "max_markers")
-      
-      checks_result <- vcf_sanity_messages(checks, 
-                                           error_if_false, 
-                                           error_if_true, 
-                                           warning_if_false = warning_if_false, 
+
+      checks_result <- vcf_sanity_messages(checks,
+                                           error_if_false,
+                                           error_if_true,
+                                           warning_if_false = warning_if_false,
                                            warning_if_true = NULL,
                                            input_ploidy = as.numeric(ploidy))
-      
+
       if(checks_result) return() # Stop the analysis if checks fail
       #########
-      
+
       #Import genotype information if in VCF format
       vcf <- read.vcfR(geno, verbose = FALSE)
 
@@ -412,7 +412,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
     }
 
     #Start analysis following a genotype data check
-    
+
     if (ncol(genomat) < 5){
       shinyalert(
         title = "Small Genotype File",
@@ -441,7 +441,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       } else {
         info_df <- read.csv(input$passport_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$missing_data)
       }
-      
+
       # Make the sample ID column the first column in the dataframe
       sample_col_name <- input$sample_column
       info_df <- info_df[, c(sample_col_name, setdiff(names(info_df), sample_col_name))]
@@ -537,17 +537,17 @@ mod_PCA_server <- function(input, output, session, parent_session){
     validate(
       need(!is.null(pca_data$pc_df_pop), "Input Genotype file, Species ploidy, and run the analysis to access results in this section.")
     )
-    
+
     df_plot <- pca_data$pc_df_pop
     group_var_name <- input$group_info
     pc_x_col <- input$pc_X
     pc_y_col <- input$pc_Y
-    
+
     # Define default aesthetics for unselected categories
     label_to_value <- c("Light Grey" = "grey80", "Grey" = "grey60", "Dark Grey" = "grey40", "Black" = "black")
     default_color <- label_to_value[[input$grey_choice]]
     default_shape <- 16 # Solid circle (pch value)
-    
+
     # --- Palette Generation (local to this reactive, named) ---
     local_my_palette <- NULL # This will be a named vector: category level -> color
     if (group_var_name != "" && !is.null(group_var_name) && !is.null(input$color_choice)) {
@@ -556,18 +556,18 @@ mod_PCA_server <- function(input, output, session, parent_session){
         shinyalert(title = "Error", text = paste("Group variable '", group_var_name, "' not found."), type = "error")
         return(NULL)
       }
-      
+
       unique_group_vals_for_plot <- unique(as.character(df_plot[[group_var_name]]))
       num_levels_for_plot <- length(unique_group_vals_for_plot)
-      
+
       if (num_levels_for_plot > 0) {
         max_brewer_colors <- tryCatch(
           RColorBrewer::brewer.pal.info[input$color_choice, "maxcolors"],
           error = function(e) 8 # Default max colors if palette info fails
         )
-        
+
         n_base_colors <- num_levels_for_plot # Number of colors needed from brewer.pal directly or via ramp
-        
+
         # Adjust n for brewer.pal requirements (min 3 for most)
         if (num_levels_for_plot == 1) {
           base_palette_brewer <- RColorBrewer::brewer.pal(3, input$color_choice)[1]
@@ -576,32 +576,32 @@ mod_PCA_server <- function(input, output, session, parent_session){
         } else {
           base_palette_brewer <- RColorBrewer::brewer.pal(min(n_base_colors, max_brewer_colors), input$color_choice)
         }
-        
+
         generated_palette_values <- grDevices::colorRampPalette(base_palette_brewer)(num_levels_for_plot)
         local_my_palette <- setNames(generated_palette_values, unique_group_vals_for_plot)
       }
     }
-    
+
     # --- Base ggplot object ---
     plot_obj <- ggplot(df_plot, aes(x = .data[[pc_x_col]], y = .data[[pc_y_col]]))
-    
+
     # --- Determine if color/shape are mapped to group or static ---
     map_color_to_group <- group_var_name != "" && !is.null(group_var_name) && !is.null(local_my_palette)
     map_shape_to_group <- map_color_to_group && input$use_shapes
-    
+
     # Arguments for geom_point (static values if not mapped)
     geom_point_args <- list(size = 2.5, alpha = 0.8)
-    
+
     if (map_color_to_group) {
       # Ensure group_var_name column is factor for consistent scale behavior
       df_plot[[group_var_name]] <- as.factor(df_plot[[group_var_name]])
       all_levels <- levels(df_plot[[group_var_name]])
-      
+
       plot_obj <- plot_obj + aes(color = as.factor(.data[[group_var_name]])) # Map color aesthetic
-      
+
       color_values_map <- setNames(rep(default_color, length(all_levels)), all_levels)
       categories_to_colorize <- input$cat_color # User's selection from UI
-      
+
       if (input$use_cat && length(categories_to_colorize) > 0) {
         for (cat_level in categories_to_colorize) {
           if (cat_level %in% names(local_my_palette)) {
@@ -618,25 +618,25 @@ mod_PCA_server <- function(input, output, session, parent_session){
         }
       }
       # If input$use_cat is TRUE but categories_to_colorize is empty, all remain default_color.
-      
+
       plot_obj <- plot_obj + scale_color_manual(
-        name = group_var_name, 
-        values = color_values_map, 
+        name = group_var_name,
+        values = color_values_map,
         na.value = default_color # Handles explicit NAs in the grouping column
       )
     } else {
       geom_point_args$color <- default_color # Set static color for all points
     }
-    
+
     if (map_shape_to_group) {
       df_plot[[group_var_name]] <- as.factor(df_plot[[group_var_name]]) # Ensure it's factor
       all_levels <- levels(df_plot[[group_var_name]])
-      
+
       plot_obj <- plot_obj + aes(shape = .data[[group_var_name]]) # Map shape aesthetic
-      
+
       shape_values_map <- setNames(rep(default_shape, length(all_levels)), all_levels)
       categories_to_shape <- input$cat_color # User's selection from UI for shaping
-      
+
       # Check for shinyalert for too many shapes (based on categories selected for shaping)
       if (length(categories_to_shape) > 25) {
         # The shinyalert is defined in your original code, ensure its condition matches this logic
@@ -650,23 +650,23 @@ mod_PCA_server <- function(input, output, session, parent_session){
           type = "error",
           showConfirmButton = TRUE,
           confirmButtonText = "OK",
-          confirmButtonCol = "#004192", 
+          confirmButtonCol = "#004192",
           showCancelButton = FALSE,
           animation = TRUE
         )
         updateMaterialSwitch(session = session, inputId = "use_shapes", value = FALSE) # Use 'session' not 'parent_session' if in module
-        
+
         # Cap the number of categories getting distinct shapes
         categories_to_shape_for_map <- categories_to_shape[1:25]
       } else {
         categories_to_shape_for_map <- categories_to_shape
       }
-      
+
       available_custom_shapes <- c(0:24) # PCH values (0-14 are symbols, 15-20 are filled symbols, 21-24 are bordered)
       # Standard practice often uses 1:25, let's stick to that.
       available_custom_shapes <- c(1:25)
-      
-      
+
+
       shape_idx <- 1
       for (cat_level in categories_to_shape_for_map) {
         if (cat_level %in% all_levels && shape_idx <= length(available_custom_shapes)) {
@@ -676,24 +676,24 @@ mod_PCA_server <- function(input, output, session, parent_session){
       }
       plot_obj <- plot_obj + scale_shape_manual(
         name = group_var_name, # Same name as color scale for potential legend merging
-        values = shape_values_map, 
+        values = shape_values_map,
         na.value = default_shape # Handles explicit NAs
       )
     } else {
       geom_point_args$shape <- default_shape # Set static shape for all points
     }
-    
+
     # --- Add geom_point layer ---
     # geom_point_args list already has size, alpha, and conditionally color/shape if static
     plot_obj <- plot_obj + do.call(geom_point, geom_point_args)
-    
+
     # --- Labels, Guides, and Theme ---
     plot_obj <- plot_obj + labs(
       x = paste0(pc_x_col, " (", pca_data$variance_explained[as.numeric(substr(pc_x_col, 3, 3))], "%)"),
       y = paste0(pc_y_col, " (", pca_data$variance_explained[as.numeric(substr(pc_y_col, 3, 3))], "%)")
       # Legend titles are taken from scale_manual 'name' argument
     )
-    
+
     # Configure guides (legends)
     guide_options <- list()
     if (map_color_to_group) {
@@ -707,7 +707,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       guide_options$shape <- "none"
     }
     plot_obj <- plot_obj + guides(!!!guide_options)
-    
+
     plot_obj <- plot_obj + theme_minimal() + theme(
       panel.border = element_rect(color = "black", fill = NA),
       legend.text = element_text(size = 14),
@@ -716,7 +716,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       legend.title = element_text(size = 16),
       legend.position = "right" # Example position, adjust as needed
     )
-    
+
     return(plot_obj)
 })
 
@@ -916,7 +916,7 @@ mod_PCA_server <- function(input, output, session, parent_session){
       ex <- system.file("iris_passport_file.csv", package = "BIGapp")
       file.copy(ex, file)
     })
-  
+
   output$download_pcs <- downloadHandler(
     filename = function() {
       paste0("PCs.csv")
