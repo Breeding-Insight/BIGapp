@@ -190,7 +190,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     # expand specific box
     updateBox(id = "GWAS_box", action = "toggle", session = parent_session)
   })
-  
+
   #Default choices
   trait_options <- reactiveValues(
     missing_data = "NA",
@@ -198,25 +198,25 @@ mod_gwas_server <- function(input, output, session, parent_session){
     sample_column = NULL,
     file_type = NULL
   )
-  
+
   #UI popup window for input
   observeEvent(input$phenotype_file, {
     req(input$phenotype_file)
     #Get the column names of the csv file
     info_df <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, nrows=2)
     info_df[,1] <- as.character(info_df[,1]) #Makes sure that the sample names are characters instead of numeric
-    
+
     # Read first 5 rows for preview
     preview_data <- tryCatch({
       head(read.csv(input$phenotype_file$datapath, nrows = 5, na.strings=trait_options$missing_data),5)
     }, error = function(e) {
       NULL
     })
-    
+
     showModal(modalDialog(
       title = "Trait File Options",
       size= "l",
-      
+
       selectInput(
         inputId = ns('missing_data'),
         label = 'Missing Data Value',
@@ -243,7 +243,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
         label = 'Sample ID Column',
         choices = colnames(info_df)
       ),
-      
+
       if (!is.null(preview_data)) {
         div(
           h4(
@@ -263,20 +263,20 @@ mod_gwas_server <- function(input, output, session, parent_session){
           p("Could not load file preview.")
         )
       },
-      
+
       footer = tagList(
         actionButton(ns("save_trait_options"), "Save")
       )
     ))
-    
+
     # Render the preview table
     output$file_preview <- renderTable({
       req(preview_data)
       preview_data
     })
-    
+
   })
-  
+
   output$custom_missing_msg <- renderText({
     if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
       "Please enter a custom missing value."
@@ -285,7 +285,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     }
   })
 
-  
+
   #Close popup window when user "saves options"
   observeEvent(input$save_trait_options, {
     trait_options$missing_data <- input$missing_data
@@ -293,7 +293,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     trait_options$sample_column <- input$sample_column
     #trait_options$file_type
     # Save other inputs as needed
-    
+
     if (input$missing_data == "Custom" && nchar(input$custom_missing) == 0) {
       # Validation failed: display warning and prevent modal closure
       showNotification(
@@ -303,10 +303,10 @@ mod_gwas_server <- function(input, output, session, parent_session){
       )
       return() # Stop further execution and keep the modal open
     }
-    
+
     removeModal()  # Close the modal after saving
   })
-  
+
 
   #Call some plots to NULL so that the spinners do not show before analysis
   output$bic_plot <- renderDT(NULL)
@@ -387,7 +387,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
     } else {
       phenotype_file <- read.csv(input$phenotype_file$datapath, header = TRUE, check.names = FALSE, na.strings = trait_options$missing_data)
     }
-    
+
     # Make the sample ID column the first column in the dataframe
     sample_col_name <- input$sample_column
     phenotype_file <- phenotype_file[, c(sample_col_name, setdiff(names(phenotype_file), sample_col_name))]
@@ -458,29 +458,29 @@ mod_gwas_server <- function(input, output, session, parent_session){
       #Convert VCF file if submitted
       #### VCF sanity check
       checks <- vcf_sanity_check(input$gwas_file$datapath, max_markers = 10000)
-      
+
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
         "samples", "chrom_info", "pos_info", "VCF_compressed"
       )
-      
+
       error_if_true <- c(
-        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "multiallelics",  "mixed_ploidies",
         "duplicated_samples", "duplicated_markers"
       )
-      
+
       warning_if_false <- c("ref_alt","max_markers")
-      
-      checks_result <- vcf_sanity_messages(checks, 
-                                           error_if_false, 
-                                           error_if_true, 
-                                           warning_if_false = warning_if_false, 
+
+      checks_result <- vcf_sanity_messages(checks,
+                                           error_if_false,
+                                           error_if_true,
+                                           warning_if_false = warning_if_false,
                                            warning_if_true = NULL,
                                            input_ploidy = ploidy)
-      
+
       if(checks_result) return() # Stop the analysis if checks fail
       #########
-      
+
       vcf <- read.vcfR(input$gwas_file$datapath, verbose = FALSE)
 
       #Extract GT
@@ -898,8 +898,8 @@ mod_gwas_server <- function(input, output, session, parent_session){
       )
   })
 
-  
-  
+
+
   output$download_viewpoly <- downloadHandler(
     filename = function() {
       paste0("BIGapp_Viewpoly_GWASpoly.RData")
@@ -909,7 +909,7 @@ mod_gwas_server <- function(input, output, session, parent_session){
       save(temp, file = file)
     }
   )
-  
+
   #Download files for GWAS
   output$download_gwas_file <- downloadHandler(
     filename = function() {
