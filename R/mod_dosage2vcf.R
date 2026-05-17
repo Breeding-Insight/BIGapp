@@ -57,7 +57,7 @@ mod_dosage2vcf_ui <- function(id){
                                                                     fileInput(ns("hapDB_file"), "Upload haplotype database file (fasta) (optional)"),
                                                                     fileInput(ns("markers_info_file"), "Upload markers information (_lut.csv from HapApp) (optional)"),
                                                    ),
-                                                   sliderInput(ns("cores"), "Number of CPU Cores", min = 1, max = (availableCores() - 1), value = 1, step = 1), br(),
+                                                   sliderInput(ns("cores"), "Number of CPU Cores", min = 1, max = max(1, availableCores() - 1), value = 1, step = 1), br(),
                                                    div(
                                                        style = "text-align: left; margin-top: 10px;",
                                                         actionButton(ns("advanced_options_all"),
