@@ -89,8 +89,8 @@ app_ui <- function(request) {
           style = "display: flex; align-items: center;",  # Align text and images horizontally
           div(
             style = "display: flex; flex-direction: column; margin-right: 15px; text-align: right;",
-            div("2025 Breeding Insight"),
-            div("Funded by USDA through Cornell University")
+            div("2026 Breeding Insight"),
+            div("Funded by USDA through UF|IFAS")
           ),
           div(
             a(
@@ -99,6 +99,9 @@ app_ui <- function(request) {
             ),
             a(
               img(src = "www/cornell_seal_simple_web_b31b1b.png", height = "45px")
+            ),
+            a(
+              img(src = "www/IFAS.jpg", height = "45px")
             )
           )
         ),

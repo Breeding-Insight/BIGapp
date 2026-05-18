@@ -205,29 +205,29 @@ mod_dapc_server <- function(input, output, session, parent_session){
     #Import genotype information if in VCF format
     #### VCF sanity check
     checks <- vcf_sanity_check(geno)
-    
+
     error_if_false <- c(
       "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
-      "samples"
+      "samples", "VCF_compressed"
     )
-    
+
     error_if_true <- c(
-      "multiallelics", "phased_GT",  "mixed_ploidies",
+      "multiallelics",  "mixed_ploidies",
       "duplicated_samples", "duplicated_markers"
     )
-    
+
     warning_if_false <- c("chrom_info", "pos_info", "ref_alt")
-    
-    checks_result <- vcf_sanity_messages(checks, 
-                                         error_if_false, 
-                                         error_if_true, 
-                                         warning_if_false = warning_if_false, 
+
+    checks_result <- vcf_sanity_messages(checks,
+                                         error_if_false,
+                                         error_if_true,
+                                         warning_if_false = warning_if_false,
                                          warning_if_true = NULL,
                                          input_ploidy = as.numeric(ploidy))
-    
+
     if(checks_result) return() # Stop the analysis if checks fail
     #########
-    
+
     vcf <- read.vcfR(geno)
 
     #Get items in FORMAT column
@@ -297,29 +297,29 @@ mod_dapc_server <- function(input, output, session, parent_session){
     #Import genotype information if in VCF format
     #### VCF sanity check
     checks <- vcf_sanity_check(geno)
-    
+
     error_if_false <- c(
       "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
       "samples", "VCF_compressed"
     )
-    
+
     error_if_true <- c(
       "multiallelics", "phased_GT",  "mixed_ploidies",
       "duplicated_samples", "duplicated_markers"
     )
-    
+
     warning_if_false <- c("chrom_info", "pos_info", "ref_alt","max_markers")
-    
-    checks_result <- vcf_sanity_messages(checks, 
-                                         error_if_false, 
-                                         error_if_true, 
-                                         warning_if_false = warning_if_false, 
+
+    checks_result <- vcf_sanity_messages(checks,
+                                         error_if_false,
+                                         error_if_true,
+                                         warning_if_false = warning_if_false,
                                          warning_if_true = NULL,
                                          input_ploidy = as.numeric(ploidy))
-    
+
     if(checks_result) return() # Stop the analysis if checks fail
     #########
-    
+
     vcf <- read.vcfR(geno)
 
     #Get items in FORMAT column
@@ -405,9 +405,9 @@ mod_dapc_server <- function(input, output, session, parent_session){
                         posi.da = "topright",
                         posi.pca="bottomright",
                         mstree = F, # lines connecting clusters
-                        lwd = 1, 
+                        lwd = 1,
                         lty = 2,
-                        legeng = F, 
+                        legeng = F,
                         clabel = 1) # legend and label of legend clusters. clab 0 or 1
   })
 
