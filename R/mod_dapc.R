@@ -304,7 +304,7 @@ mod_dapc_server <- function(input, output, session, parent_session){
     )
 
     error_if_true <- c(
-      "multiallelics", "phased_GT",  "mixed_ploidies",
+      "multiallelics", "mixed_ploidies",
       "duplicated_samples", "duplicated_markers"
     )
 
