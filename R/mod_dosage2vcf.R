@@ -76,14 +76,14 @@ mod_dosage2vcf_ui <- function(id){
                                                    ns = ns,
                                                    radioButtons(ns("collapse_matches_counts"),
                                                                 label = "Collapse Matches Counts:",
-                                                                choices = list("Yes"= TRUE, "No" = FALSE),
-                                                                selected = FALSE),
+                                                                choices = list("Yes"= "TRUE", "No" = "FALSE"),
+                                                                selected = "FALSE"),
                                                    conditionalPanel(condition = "input.species == 'other'",
                                                                     ns = ns,
                                                                     radioButtons(ns("ref_alt"),
                                                                                  label = "Extract REF and ALT info:",
-                                                                                 choices = list("Yes"= TRUE, "No" = FALSE),
-                                                                                 selected = TRUE),
+                                                                                 choices = list("Yes"= "TRUE", "No" = "FALSE"),
+                                                                                 selected = "TRUE"),
                                                                     conditionalPanel(condition = "input.ref_alt == 'TRUE'",
                                                                                      ns = ns,
                                                                                      fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)"),
@@ -440,6 +440,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
           showCancelButton = FALSE,
           animation = TRUE
         )
+        return()
       }
       req(input$madc_file)
 
@@ -484,8 +485,12 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
                            out_vcf = output_name,
                            verbose = TRUE)
             } else if(input$snp_type == "target"){
-              madc2vcf_targets(read_madc, output_name, get_REF_ALT = as.logical(input$ref_alt), botloci_file = botloci,
-                               markers_info = markers_info, collapse_matches_counts = input$collapse_matches_counts)
+              madc2vcf_targets(read_madc, output_name, 
+                               get_REF_ALT = as.logical(input$ref_alt), 
+                               botloci_file = botloci,
+                               markers_info = markers_info, 
+                               collapse_matches_counts = as.logical(input$collapse_matches_counts))
+
             } else if(input$snp_type == "multiallelic"){
               madc2vcf_multi(
                 madc_file    = read_madc,
@@ -603,27 +608,151 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
 
   ##Summary Info
   d2vcf_summary_info <- function() {
-    #Handle possible NULL values for inputs
-    report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
-    counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
-    selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
-
-    #Print the summary information
+    # Header
     cat(
       "BIGapp Dosage2VCF Summary\n",
       "\n",
       paste0("Date: ", Sys.Date()), "\n",
       paste("R Version:", R.Version()$version.string), "\n",
       "\n",
-      "### Input Files ###\n",
+      "### File Type ###\n",
       "\n",
-      paste("Input Dosage Report File:", report_file_name), "\n",
-      paste("Input Counts File:", counts_file_name), "\n",
+      paste("Selected Format:", input$file_type), "\n",
       "\n",
-      "### User Selected Parameters ###\n",
-      "\n",
-      paste("Selected Ploidy:", selected_ploidy), "\n",
-      "\n",
+      sep = ""
+    )
+    
+    # File-type specific sections
+    if(input$file_type == "DArT Dosage/SNP Report") {
+      report_file_name <- if (!is.null(input$report_file$name)) input$report_file$name else "No file selected"
+      counts_file_name <- if (!is.null(input$counts_file$name)) input$counts_file$name else "No file selected"
+      selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
+      
+      cat(
+        "### Input Files ###\n",
+        "\n",
+        paste("Input Dosage Report File:", report_file_name), "\n",
+        paste("Input Counts File:", counts_file_name), "\n",
+        "\n",
+        "### User Selected Parameters ###\n",
+        "\n",
+        paste("Species Ploidy:", selected_ploidy), "\n",
+        "\n",
+        sep = ""
+      )
+      
+    } else if(input$file_type == "Dosage Matrix") {
+      matrix_file_name <- if (!is.null(input$matrix_file$name)) input$matrix_file$name else "No file selected"
+      selected_ploidy <- if (!is.null(input$dosage2vcf_ploidy)) as.character(input$dosage2vcf_ploidy) else "Not selected"
+      
+      cat(
+        "### Input Files ###\n",
+        "\n",
+        paste("Input Dosage Matrix File:", matrix_file_name), "\n",
+        "\n",
+        "### User Selected Parameters ###\n",
+        "\n",
+        paste("Dosage Allele Count:", input$dosage_counts), "\n",
+        paste("Species Ploidy:", selected_ploidy), "\n",
+        "\n",
+        sep = ""
+      )
+      
+    } else if(input$file_type == "DArT MADC file") {
+      madc_file_names <- if (!is.null(input$madc_file$name)) {
+        paste(input$madc_file$name, collapse = ", ")
+      } else {
+        "No file selected"
+      }
+      
+      cat(
+        "### Input Files ###\n",
+        "\n",
+        paste("MADC File(s):", madc_file_names), "\n",
+        "\n",
+        "### User Selected Parameters ###\n",
+        "\n",
+        paste("Species:", input$species), "\n",
+        paste("Marker Type:", input$snp_type), "\n",
+        "\n",
+        sep = ""
+      )
+      
+      # SNP type specific parameters
+      if(input$snp_type == "target_off") {
+        cat(
+          paste("CPU Cores:", input$cores), "\n",
+          "\n",
+          "Advanced Options:\n",
+          paste("  - Alignment Score Threshold:", advanced_options_all$alignment_score_thr), "\n",
+          paste("  - Remove Multiallelic SNPs:", advanced_options_all$rm_multiallelic_SNP), "\n",
+          sep = ""
+        )
+        
+        if(!advanced_options_all$rm_multiallelic_SNP) {
+          cat(
+            paste("  - Multiallelic SNP Depth Threshold:", advanced_options_all$multiallelic_SNP_dp_thr), "\n",
+            paste("  - Multiallelic SNP Sample Threshold:", advanced_options_all$multiallelic_SNP_sample_thr), "\n",
+            sep = ""
+          )
+        }
+        
+        cat(
+          paste("  - Add Others:", advanced_options_all$add_others), "\n",
+          sep = ""
+        )
+        
+        if(advanced_options_all$add_others) {
+          cat(
+            paste("  - Others Max SNPs:", advanced_options_all$others_max_snps), "\n",
+            paste("  - Remove Others with Indels:", advanced_options_all$others_rm_with_indels), "\n",
+            sep = ""
+          )
+        }
+        
+        cat("\n", sep = "")
+        
+      } else if(input$snp_type == "target") {
+        cat(
+          paste("Collapse Matches Counts:", input$collapse_matches_counts), "\n",
+          paste("Extract REF and ALT info:", input$ref_alt), "\n",
+          "\n",
+          sep = ""
+        )
+        
+      } else if(input$snp_type == "multiallelic") {
+        multi_ploidy <- if (!is.null(input$multi_ploidy)) as.character(input$multi_ploidy) else "Not selected"
+        cat(
+          paste("Species Ploidy:", multi_ploidy), "\n",
+          "\n",
+          sep = ""
+        )
+      }
+      
+      # Show uploaded files if species is "other"
+      if(input$species == "other") {
+        botloci_name <- if (!is.null(input$botloci_file$name)) input$botloci_file$name else "Not uploaded"
+        markers_info_name <- if (!is.null(input$markers_info_file$name)) input$markers_info_file$name else "Not uploaded"
+        
+        cat(
+          "Custom Files (species = other):\n",
+          paste("  - Botloci File:", botloci_name), "\n",
+          paste("  - Markers Info File:", markers_info_name), "\n",
+          sep = ""
+        )
+        
+        # For target_off and target, hapDB might also be uploaded
+        if(input$snp_type %in% c("target_off", "target")) {
+          hapDB_name <- if (!is.null(input$hapDB_file$name)) input$hapDB_file$name else "Not uploaded"
+          cat(paste("  - Haplotype DB File:", hapDB_name), "\n", sep = "")
+        }
+        
+        cat("\n", sep = "")
+      }
+    }
+    
+    # Common footer
+    cat(
       "### R Packages Used ###\n",
       "\n",
       paste("BIGapp:", packageVersion("BIGapp")), "\n",

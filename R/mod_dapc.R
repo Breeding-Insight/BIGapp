@@ -404,10 +404,10 @@ mod_dapc_server <- function(input, output, session, parent_session){
                         scree.pca = T, # plot pca
                         posi.da = "topright",
                         posi.pca="bottomright",
-                        mstree = F, # lines connecting clusters
+                        mstree = FALSE, # lines connecting clusters
                         lwd = 1,
                         lty = 2,
-                        legeng = F,
+                        legend = FALSE,
                         clabel = 1) # legend and label of legend clusters. clab 0 or 1
   })
 

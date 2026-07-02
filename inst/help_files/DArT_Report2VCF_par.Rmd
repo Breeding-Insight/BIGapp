@@ -22,8 +22,8 @@ generating the markers information file (`_lut.csv`) with chromosome, positions,
 This information is critical for the conversion to VCF, especially if you want to extract target SNPs with their REF and ALT bases. 
 
 
-### **Target vs. Off-Target SNPs** vs. **Microhaplotypes**
-
+ ### **Target, Off-Target, and Microhaplotype SNPs**
+ 
 If you provide a MADC file, you can choose between extracting:
 
 * Only **target SNPs** – These are the SNPs for which probes were specifically designed. If your panel includes 3,000 SNPs, your output VCF file should contain exactly 3,000 target SNPs.
