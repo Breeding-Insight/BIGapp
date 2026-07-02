@@ -91,6 +91,15 @@ mod_dosage2vcf_ui <- function(id){
                                                                                      fileInput(ns("markers_info_file"), "Upload markers information (_lut.csv from HapApp) (optional)"),
                                                                     )
                                                    )
+                                  ),
+                                  conditionalPanel(condition = "input.snp_type == 'multiallelic'",
+                                                   ns = ns,
+                                                   numericInput(ns("multi_ploidy"), "Species Ploidy", min = 1, value = 4),
+                                                   conditionalPanel(condition = "input.species == 'other'",
+                                                                    ns = ns,
+                                                                    fileInput(ns("botloci_file"), "Upload bottom strand probes file (.botloci)"),
+                                                                    fileInput(ns("markers_info_file"), "Upload markers information (_lut.csv from HapApp) (optional)")
+                                                   )
                                   )
                  ),
                  hr(),
@@ -483,7 +492,7 @@ mod_dosage2vcf_server <- function(input, output, session, parent_session){
                 botloci_file = botloci,
                 outfile      = output_name,
                 markers_info = markers_info,
-                ploidy       = 4L,
+                ploidy       = as.integer(input$multi_ploidy),
                 verbose      = TRUE
               )
             }
