@@ -143,14 +143,14 @@ mod_diversity_server <- function(input, output, session, parent_session){
       # expand specific box
       updateBox(id = "Genomic_Diversity_box", action = "toggle", session = parent_session)
     })
-    
+
     ##UI text
     output$dosage_text <- renderUI({
       # Check if input$plot_tabs is NULL before evaluating it
       if (is.null(input$diversity_plot_tabs)) {
         return(NULL)
       }
-      
+
       # Render the text only for the "Dosage Plot" tab
       if (input$diversity_plot_tabs == "Dosage Plot" && !is.null(diversity_items$dosage_df)) {
         div(
@@ -226,29 +226,29 @@ mod_diversity_server <- function(input, output, session, parent_session){
       #Import genotype information if in VCF format
       #### VCF sanity check
       checks <- vcf_sanity_check(geno)
-      
+
       error_if_false <- c(
         "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
         "samples", "chrom_info", "pos_info", "VCF_compressed"
       )
-      
+
       error_if_true <- c(
-        "multiallelics", "phased_GT",  "mixed_ploidies",
+        "multiallelics",  "mixed_ploidies",
         "duplicated_samples", "duplicated_markers"
       )
-      
+
       warning_if_false <- c("ref_alt","max_markers")
-      
-      checks_result <- vcf_sanity_messages(checks, 
-                                           error_if_false, 
-                                           error_if_true, 
-                                           warning_if_false = NULL, 
+
+      checks_result <- vcf_sanity_messages(checks,
+                                           error_if_false,
+                                           error_if_true,
+                                           warning_if_false = NULL,
                                            warning_if_true = NULL,
                                            input_ploidy = ploidy)
-      
+
       if(checks_result) return() # Stop the analysis if checks fail
       #########
-      
+
       vcf <- read.vcfR(geno, verbose = FALSE)
 
       #Save position information

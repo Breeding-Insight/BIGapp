@@ -13,3 +13,9 @@ Sandercock A.M., Peel M.D., Taniguti C.H., Chinchilla-Vargas J., Chen S., Sapkot
 Knaus BJ, Grünwald NJ (2017). “VCFR: a package to manipulate and visualize variant call format data in R.” Molecular Ecology Resources, 17(1), 44–53. ISSN 757, https://dx.doi.org/10.1111/1755-0998.12549.
 
 Knaus BJ, Grünwald NJ (2016). “VcfR: an R package to manipulate and visualize VCF format data.” BioRxiv. https://dx.doi.org/10.1101/041277.
+
+* Multiallelic MADC conversion
+
+- ** polyRAD package**
+
+    Clark, L. V., Lipka, A. E., & Sacks, E. J. (2019). *polyRAD: Genotype Calling with Uncertainty from Sequencing Data in Polyploids and Diploids*. G3: Genes, Genomes, Genetics, 9(3), 663-673. [doi: 10.1534/g3.118.200913](https://doi.org/10.1534/g3.118.200913).

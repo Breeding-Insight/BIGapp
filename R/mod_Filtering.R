@@ -104,7 +104,7 @@ mod_Filtering_ui <- function(id){
                  progressBar(id = ns("pb_filter"), value = 0, status = "info", display_pct = TRUE, striped = TRUE, title = " ")
              ),
              # A placeholder for the download button. It will be rendered in the shinyalert modal.
-             uiOutput(ns("download_ui_placeholder")) 
+             uiOutput(ns("download_ui_placeholder"))
       )
     )
   )
@@ -159,8 +159,8 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     # expand specific box
     updateBox(id = "VCF_Filtering_box", action = "toggle", session = parent_session)
   })
-  
-  
+
+
   ## Advanced options popup
   #Default model choices
   advanced_options <- reactiveValues(
@@ -168,7 +168,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     remove_list = NULL,
     remove_file = NULL
   )
-  
+
   #List the ped file name if previously uploaded
   output$uploaded_file_name <- renderText({
     if (!is.null(advanced_options$remove_file)) {
@@ -177,47 +177,47 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       ""  # Return an empty string if no file has been uploaded
     }
   })
-  
+
   #Get list of sample names from VCF file
   observeEvent(input$updog_rdata, {
     #### VCF sanity check
-    checks <- vcf_sanity_check(input$updog_rdata$datapath, 
-                               max_markers = 16000, 
+    checks <- vcf_sanity_check(input$updog_rdata$datapath,
+                               max_markers = 16000,
                                depth_support_fields = c("DP", "AD", "RA"))
-    
+
     error_if_false <- c(
       "VCF_header", "VCF_columns", "unique_FORMAT", "GT",
       "samples", "chrom_info", "pos_info", "VCF_compressed", "allele_counts"
     )
-    
+
     error_if_true <- c(
-      "multiallelics", "phased_GT",  
+      "multiallelics",
       "duplicated_samples", "duplicated_markers"
     )
-    
+
     warning_if_false <- c("ref_alt","max_markers")
-    
-    checks_result <- vcf_sanity_messages(checks, 
-                                         error_if_false, 
-                                         error_if_true, 
-                                         warning_if_false = warning_if_false, 
+
+    checks_result <- vcf_sanity_messages(checks,
+                                         error_if_false,
+                                         error_if_true,
+                                         warning_if_false = warning_if_false,
                                          warning_if_true = NULL)
-    
+
     print(checks)
     print(checks_result)
     if(checks_result) return() # Stop the analysis if checks fail
     #########
-    
-    
+
+
     #populate preview_data
     preview_vcf <- read.vcfR(input$updog_rdata$datapath, verbose = FALSE, nrows = 1)
-    
+
     #Get names
     advanced_options$sample_list <- names(data.frame(preview_vcf@gt, check.names=FALSE)[,-1])
-    
+
     rm(preview_vcf)
   })
-  
+
   #UI popup window for input
   observeEvent(input$advanced_options, {
     showModal(modalDialog(
@@ -266,9 +266,9 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       )
     ))
   })
-  
-  
-  
+
+
+
   #Close popup window when user "saves options"
   observeEvent(input$save_advanced_options, {
     #Only close the window if one of the options has been selected
@@ -278,10 +278,10 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       advanced_options$remove_list <- input$remove_list
       advanced_options$remove_file <- input$remove_file
       # Save other inputs as needed
-      
+
       removeModal()
     }
-    
+
   })
 
   #vcf
@@ -391,7 +391,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
         animation = TRUE
       )
     }
-    
+
     if (input$use_updog & updog_par) {
       # Use Updog filtering parameters
       OD_filter <- as.numeric(input$OD_filter)
@@ -444,17 +444,17 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     filtering_files$raw_sample_miss_df <- as.numeric(colMeans(is.na(gt_matrix))) #Sample missing values
 
     rm(gt_matrix) #Remove gt matrix
-    
+
     #Remove the samples if any are manually selected from advanced options
     if (!is.null(advanced_options$remove_list)) {
       advanced_options$remove_file <- NULL #Prioritize manually selected samples if a file was also uploaded (add a user warning if both are uploaded in model)
-      
+
       vcf_temp <- subset_vcf(vcf, remove.sample.list = advanced_options$remove_list)
       vcf <- vcf_temp[[1]]
       removed_samples <- vcf_temp[[2]]
       rm(vcf_temp)
     } else if (!is.null(advanced_options$remove_file)) {
-      
+
       #Remove the samples
       vcf_temp <- subset_vcf(vcf, remove.sample.file = advanced_options$remove_file$datapath)
       vcf <- vcf_temp[[1]]
@@ -525,7 +525,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
     sample_removed <- length(starting_samples) - length(final_samples)
     removed_names <- setdiff(starting_samples, final_samples)
     filtering_files$removed_names <- removed_names
-    
+
     # Define the download handler
     output$download_removed_samples <- downloadHandler(
       filename = function() {
@@ -537,7 +537,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
         }
       }
     )
-    
+
     if (sample_removed > 0 && removed_samples == 0) {
       showModal(modalDialog(
         title = "Samples Filtered",
@@ -1001,7 +1001,7 @@ mod_Filtering_server <- function(input, output, session, parent_session){
       writeLines(paste(capture.output(filtering_summary_info()), collapse = "\n"), file)
     }
   )
-  
+
 }
 
 ## To be copied in the UI

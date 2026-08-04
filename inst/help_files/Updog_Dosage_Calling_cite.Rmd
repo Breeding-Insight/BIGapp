@@ -15,3 +15,7 @@ Sandercock A.M., Peel M.D., Taniguti C.H., Chinchilla-Vargas J., Chen S., Sapkot
     If you used the “norm” model, cite also:
     
     Gerard D, Ferrão L (2020). *Priors for Genotyping Polyploids*. Bioinformatics, 36(6), 1795-1800. ISSN 1367-4803, [doi: 10.1093/bioinformatics/btz852](https://doi.org/10.1093/bioinformatics/btz852).
+
+- ** polyRAD package**
+
+    Clark, L. V., Lipka, A. E., & Sacks, E. J. (2019). *polyRAD: Genotype Calling with Uncertainty from Sequencing Data in Polyploids and Diploids*. G3: Genes, Genomes, Genetics, 9(3), 663-673. [doi: 10.1534/g3.118.200913](https://doi.org/10.1534/g3.118.200913).
