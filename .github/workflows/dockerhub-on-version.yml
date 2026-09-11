@@ -2,7 +2,7 @@ name: Build & Push Docker image on package version change
 
 on:
   push:
-    branches: [ main, vcf_sanity_check ]
+    branches: [ main, docker_fix ]
     paths:
       - .github/workflows/dockerhub-on-version.yml
       - Dockerfile
@@ -16,7 +16,7 @@ concurrency:
 env:
   IMAGE: docker.io/breedinginsight/bigapp
   IMAGE_DEPS: docker.io/breedinginsight/bigapp-deps
-  DEPS_TAG: r4.5-bioc3.21-2025-08
+  DEPS_TAG: latest
 
 jobs:
   check-version:
@@ -71,6 +71,7 @@ jobs:
           file: Dockerfile
           platforms: linux/amd64
           push: true
+          pull: true
           build-args: |
             BASE_IMAGE=${{ env.IMAGE_DEPS }}:${{ env.DEPS_TAG }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -106,6 +107,7 @@ jobs:
           file: Dockerfile
           platforms: linux/arm64
           push: true
+          pull: true
           build-args: |
             BASE_IMAGE=${{ env.IMAGE_DEPS }}:${{ env.DEPS_TAG }}
           tags: ${{ steps.meta.outputs.tags }}

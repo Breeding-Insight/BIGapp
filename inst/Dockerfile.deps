@@ -20,9 +20,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       r-cran-remotes r-cran-pak r-cran-biocmanager \
     && rm -rf /var/lib/apt/lists/*
 
-# ccache
+# ccache (scoped to this R/Bioc combo so a base-image bump can't reuse stale, ABI-incompatible objects)
+ARG DEPS_TAG=r4.5-bioc3.21-2025-08
 ENV CCACHE_DIR=/root/.cache/ccache
-RUN --mount=type=cache,target=/root/.cache/ccache ccache -M 2G && \
+RUN --mount=type=cache,target=/root/.cache/ccache,id=ccache-${DEPS_TAG} ccache -M 2G && \
     { echo 'CC=ccache gcc'; echo 'CXX=ccache g++'; echo 'FC=ccache gfortran'; } >> /usr/lib/R/etc/Makevars.site
 
 # ---- CRAN via r2u binaries first (fast) ----
@@ -33,12 +34,12 @@ shinyWidgets shinyjs shinydisconnect shinyalert \
 stringr updog AGHmatrix factoextra \
 httr future shinycssloaders RColorBrewer \
 tibble rrBLUP MASS Matrix matrixcalc BIGr"
-RUN install2.r --skipinstalled --ncpus 1 $CRAN_PKGS || true
+RUN install2.r --skipinstalled --ncpus 1 $CRAN_PKGS
 
-# ---- Bioconductor from source (R 4.5 -> Bioc 3.21) ----
-RUN --mount=type=cache,target=/root/.cache/R/src Rscript - <<'RS'
+# ---- Bioconductor from source (version auto-matched to whatever R the base image ships) ----
+RUN --mount=type=cache,target=/root/.cache/R/src,id=rsrc-${DEPS_TAG} Rscript - <<'RS'
 options(Ncpus = 2)
-repos <- BiocManager::repositories(version = "3.21")
+repos <- BiocManager::repositories()
 options(repos = repos)
 bioc_pkgs <- c("Rsamtools","Biostrings","pwalign","VariantAnnotation")
 for (p in bioc_pkgs) {
@@ -47,11 +48,12 @@ for (p in bioc_pkgs) {
     install.packages(p, dependencies = TRUE, type = "source",
                      INSTALL_opts = c("--no-build-vignettes","--no-manual"))
   }
+  library(p, character.only = TRUE)
 }
 RS
 
 # ---- Fallback for any missing CRAN pkgs (source, sequential) ----
-RUN --mount=type=cache,target=/root/.cache/R/src Rscript - <<'RS'
+RUN --mount=type=cache,target=/root/.cache/R/src,id=rsrc-${DEPS_TAG} Rscript - <<'RS'
 pkgs <- strsplit(Sys.getenv("CRAN_PKGS"), " +")[[1]]
 miss <- setdiff(pkgs, rownames(installed.packages()))
 if (length(miss)) {
@@ -61,11 +63,14 @@ if (length(miss)) {
                      INSTALL_opts=c("--no-build-vignettes","--no-manual"))
   }
 }
+# Hard-fail the build if any package is installed but fails to actually load (e.g. ABI mismatch)
+for (p in pkgs) library(p, character.only = TRUE)
 RS
 
 # ---- GitHub dep (pak-free to avoid QEMU helper issues) ----
 RUN R -q -e "remotes::install_github('jendelman/GWASpoly', upgrade='never', dependencies=TRUE, \
-                                     INSTALL_opts=c('--no-build-vignettes','--no-manual'))"
+                                     INSTALL_opts=c('--no-build-vignettes','--no-manual')); \
+             library(GWASpoly)"
 
 # Version snapshot (handy for audits)
 RUN R -q -e "pkgs <- c('adegenet','curl','DT','dplyr','vcfR','ggplot2','tidyr','shiny','config','bs4Dash', \
