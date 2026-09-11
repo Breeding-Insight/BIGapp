@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Buildx/Actions will pass BASE_IMAGE as a manifest tag that covers both arches
-ARG BASE_IMAGE=docker.io/breedinginsight/bigapp-deps:r4.5-bioc3.21-2025-08
+ARG BASE_IMAGE=docker.io/breedinginsight/bigapp-deps:latest
 FROM ${BASE_IMAGE}
 
 SHELL ["/bin/bash","-eo","pipefail","-c"]
@@ -13,7 +13,9 @@ COPY DESCRIPTION /app/
 # COPY NAMESPACE /app/  # if present, include for better cache hits
 COPY . /app
 RUN R -q -e "remotes::install_local('.', upgrade='never', dependencies=TRUE, \
-                                    INSTALL_opts=c('--no-build-vignettes','--no-manual'))"
+                                    INSTALL_opts=c('--no-build-vignettes','--no-manual')); \
+             library(BIGapp)" \
+    || (echo 'ERROR: BIGapp or one of its dependencies failed to install' >&2; exit 1)
 
 # Runtime
 RUN useradd -m appuser
