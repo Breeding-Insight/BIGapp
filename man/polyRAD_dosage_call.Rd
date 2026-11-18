@@ -2,7 +2,7 @@
 % Please edit documentation in R/DosageCall_functions.R
 \name{polyRAD_dosage_call}
 \alias{polyRAD_dosage_call}
-\title{Function to perform dosage calling with polyRAD}
+\title{Perform dosage calling with polyRAD}
 \usage{
 polyRAD_dosage_call(
   vcf,
@@ -21,32 +21,83 @@ polyRAD_dosage_call(
 )
 }
 \arguments{
-\item{vcf}{ToDo}
+\item{vcf}{Path to the input VCF file (plain, gzipped or bgzipped). It must
+contain allele read depth information (\code{AD} FORMAT field) for each
+sample. Multiallelic markers are removed before the analysis. If
+\code{REF}/\code{ALT} are missing or coded as \code{A}/\code{B}, random
+distinct nucleotides are assigned temporarily so polyRAD can read the file.}
 
-\item{ploidy}{ToDo}
+\item{ploidy}{Integer. Ploidy of the samples, passed to \code{taxaPloidy}
+in \code{\link[polyRAD]{VCF2RADdata}}.}
 
-\item{model}{ToDo}
+\item{model}{Character. polyRAD model used for dosage calling. One of
+\code{"IterateHWE"} (Hardy-Weinberg equilibrium, e.g. diversity panels),
+\code{"IteratePopStruct"} (population structure),
+\code{"IterateHWE_LD"} or \code{"IteratePopStruct_LD"} (as above, also
+using linkage disequilibrium with nearby loci to update priors), or
+\code{"PipelineMapping2Parents"} (biparental mapping populations). Any
+value other than the four \code{Iterate*} models runs
+\code{\link[polyRAD]{PipelineMapping2Parents}}.}
 
-\item{p1}{ToDo}
+\item{p1}{Character or \code{NULL}. Sample name of the donor parent; used
+only with \code{"PipelineMapping2Parents"}. Must match a sample name in
+the VCF.}
 
-\item{p2}{ToDo}
+\item{p2}{Character or \code{NULL}. Sample name of the recurrent parent; used
+only with \code{"PipelineMapping2Parents"}. Must match a sample name in
+the VCF.}
 
-\item{backcross.gen}{ToDo}
+\item{backcross.gen}{Integer. Number of generations of backcrossing to the
+recurrent parent (\code{p2}); used only with
+\code{"PipelineMapping2Parents"}. Default 0.}
 
-\item{intercross.gen}{ToDo}
+\item{intercross.gen}{Integer. Number of generations of random intermating
+within the population; used only with \code{"PipelineMapping2Parents"}.
+Default 0 (e.g. 1 for an F1 cross).}
 
-\item{selfing.gen}{ToDo}
+\item{selfing.gen}{Integer. Number of generations of self-fertilization;
+used only with \code{"PipelineMapping2Parents"}. Default 0.}
 
-\item{contamRate}{ToDo}
+\item{contamRate}{Numeric. Expected rate of sample cross-contamination,
+passed to \code{\link[polyRAD]{VCF2RADdata}}. Default 0.001.}
 
-\item{min_ind_read}{ToDo}
+\item{min_ind_read}{Integer. Minimum number of samples with reads for a
+marker to be kept (\code{min.ind.with.reads} in
+\code{\link[polyRAD]{VCF2RADdata}}). Default 1.}
 
-\item{min_ind_maf}{ToDo}
+\item{min_ind_maf}{Integer. Minimum number of samples carrying reads of the
+minor allele for a marker to be kept (\code{min.ind.with.minor.allele} in
+\code{\link[polyRAD]{VCF2RADdata}}). Default 0.}
 
-\item{tol}{ToDo}
+\item{tol}{Numeric. Convergence tolerance for the iterative polyRAD models,
+also passed to \code{\link[polyRAD]{VCF2RADdata}}. Default 1e-05.}
 
-\item{session}{ToDo}
+\item{session}{Shiny \code{session} object. Kept for compatibility with the
+Shiny module; not used inside the function.}
+}
+\value{
+A list with two elements:
+\describe{
+\item{Genos}{Matrix of the most probable dosages, with markers in rows
+and samples in columns. Each row is named \code{<marker>_<allele>} and
+holds the dosage (0 to \code{ploidy}) of that allele; the other allele
+of each biallelic marker is omitted. Samples with no reads at a marker
+are \code{NA}.}
+\item{RADHindHe}{Matrix of Hind/He values (samples by loci) from
+\code{\link[polyRAD]{HindHe}}, used to flag loci and samples whose
+heterozygosity does not match the expected ploidy.}
+}
 }
 \description{
-Function to perform dosage calling with polyRAD
+Reads a VCF with read depth information, keeps only biallelic markers,
+imports them into a polyRAD \code{RADdata} object, estimates the
+overdispersion parameter and Hind/He statistics, and calls allele dosages
+using the selected polyRAD model.
+}
+\examples{
+\dontrun{
+vcf_file <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+res <- polyRAD_dosage_call(vcf = vcf_file, ploidy = 2, model = "IterateHWE")
+}
+
 }

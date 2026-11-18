@@ -58,8 +58,10 @@ the template VCF by stripping allele suffixes.
 updates the header to include:
 \itemize{
 \item \code{##INFO=<ID=HH,...>} for Hind/He per locus.
-\item \code{##FORMAT=<ID=GTP,...>} for polyRAD-estimated genotypes
-(in allele-count space).
+\item \code{##FORMAT=<ID=GT,...>} for polyRAD-estimated genotypes
+(in allele-count space). If the template VCF already has a
+\code{GT} field, it is kept and renamed to \code{GTO} (original
+genotype) in both the header and the FORMAT column.
 \item \code{##FORMAT=<ID=UD,...>} for the dosage count of reference
 alleles.
 \item Version tags for \code{polyRAD} and \code{BIGapp}.
@@ -68,7 +70,9 @@ alleles.
 \code{"0/0"}, \code{"0/1"}, \code{"1/1"}, etc.) given the specified
 \code{ploidy}.
 \item Builds a new FORMAT field for each variant combining:
-\code{GTP}, \code{UD}, and the original FORMAT fields from the template.
+\code{GT} (polyRAD), \code{UD}, and the original FORMAT fields from the
+template (with any original \code{GT} and \code{UD} renamed to
+\code{GTO} and \code{UDO}).
 \item Writes the updated header and variant table to a VCF file.
 }
 

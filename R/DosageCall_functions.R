@@ -1,23 +1,140 @@
-#' Function to perform dosage calling with polyRAD
+#' Estimate the polyRAD overdispersion parameter efficiently
 #'
-#' @param vcf ToDo
-#' @param ploidy ToDo
-#' @param model ToDo
-#' @param p1 ToDo
-#' @param p2 ToDo
-#' @param backcross.gen ToDo
-#' @param intercross.gen ToDo
-#' @param selfing.gen ToDo
-#' @param min_ind_read ToDo
-#' @param min_ind_maf ToDo
-#' @param contamRate ToDo
-#' @param tol ToDo
-#' @param session ToDo
+#' Two-stage search: a coarse, roughly log-spaced grid followed by an integer
+#' refinement between the neighbours of the coarse optimum. Rough genotype
+#' estimates are computed once up front so that \code{TestOverdispersion}
+#' does not recompute them on every call. Large values mean the read counts
+#' are close to binomial (little overdispersion), so the search is capped at
+#' \code{max_od}; if the optimum is at the cap, the cap is returned.
+#'
+#' @param polyRAD_obj RADdata object
+#' @param max_od Upper bound for the overdispersion parameter
+#'
+#' @return numeric, the selected overdispersion parameter
+#' @import polyRAD
+#' @importFrom stats ppoints
+#' @noRd
+estimate_overdispersion <- function(polyRAD_obj, max_od = 1000) {
+  # Rough genotype estimation under HWE, done once (same steps TestOverdispersion
+  # would otherwise run internally on every call)
+  od_obj <- polyRAD_obj
+  if (is.null(od_obj$posteriorProb)) {
+    od_obj <- AddAlleleFreqHWE(od_obj)
+    od_obj <- AddGenotypePriorProb_HWE(od_obj)
+    od_obj <- AddGenotypeLikelihood(od_obj)
+    od_obj <- AddPloidyChiSq(od_obj)
+    od_obj <- AddGenotypePosteriorProb(od_obj)
+  }
+
+  # Score each tested value with the same metric TestOverdispersion uses, so we
+  # can pick the minimum ourselves (TestOverdispersion returns NA at the edges)
+  score_od <- function(to_test) {
+    res <- suppressMessages(utils::capture.output(
+      out <- TestOverdispersion(od_obj, to_test = to_test)
+    ))
+    out$optimal <- NULL
+    scores <- vapply(out, function(x) {
+      x1 <- sort(x)
+      sqrt(mean((x1 - ppoints(length(x1)))^2))
+    }, numeric(1))
+    stats::setNames(scores, to_test)
+  }
+
+  # Stage 1: coarse grid spanning 2 to max_od
+  coarse <- unique(round(c(2, 4, 6, 8, 10, 12, 15, 20, 25, 30, 40, 50, 60, 80,
+                           100, 125, 150, 200, 250, 300, 400, 500, 650, 800, max_od)))
+  coarse <- coarse[coarse <= max_od]
+  coarse_scores <- score_od(coarse)
+  i <- which.min(coarse_scores)
+
+  if (i == length(coarse)) {
+    warning("Overdispersion optimum is at the upper bound (", max_od,
+            "); read counts look close to binomial. Using ", max_od, ".")
+    return(max_od)
+  }
+
+  # Stage 2: integer refinement between neighbouring coarse values (at most ~30 points)
+  lo <- coarse[max(1, i - 1)]
+  hi <- coarse[i + 1]
+  fine <- unique(round(seq(lo, hi, length.out = min(hi - lo + 1, 30))))
+  fine_scores <- score_od(fine)
+  OD <- fine[which.min(fine_scores)]
+  message("Optimal overdispersion value: ", OD)
+  OD
+}
+
+#' Perform dosage calling with polyRAD
+#'
+#' Reads a VCF with read depth information, keeps only biallelic markers,
+#' imports them into a polyRAD \code{RADdata} object, estimates the
+#' overdispersion parameter and Hind/He statistics, and calls allele dosages
+#' using the selected polyRAD model.
+#'
+#' @param vcf Path to the input VCF file (plain, gzipped or bgzipped). It must
+#'   contain allele read depth information (\code{AD} FORMAT field) for each
+#'   sample. Multiallelic markers are removed before the analysis. If
+#'   \code{REF}/\code{ALT} are missing or coded as \code{A}/\code{B}, random
+#'   distinct nucleotides are assigned temporarily so polyRAD can read the file.
+#' @param ploidy Integer. Ploidy of the samples, passed to \code{taxaPloidy}
+#'   in \code{\link[polyRAD]{VCF2RADdata}}.
+#' @param model Character. polyRAD model used for dosage calling. One of
+#'   \code{"IterateHWE"} (Hardy-Weinberg equilibrium, e.g. diversity panels),
+#'   \code{"IteratePopStruct"} (population structure),
+#'   \code{"IterateHWE_LD"} or \code{"IteratePopStruct_LD"} (as above, also
+#'   using linkage disequilibrium with nearby loci to update priors), or
+#'   \code{"PipelineMapping2Parents"} (biparental mapping populations). Any
+#'   value other than the four \code{Iterate*} models runs
+#'   \code{\link[polyRAD]{PipelineMapping2Parents}}.
+#' @param p1 Character or \code{NULL}. Sample name of the donor parent; used
+#'   only with \code{"PipelineMapping2Parents"}. Must match a sample name in
+#'   the VCF.
+#' @param p2 Character or \code{NULL}. Sample name of the recurrent parent; used
+#'   only with \code{"PipelineMapping2Parents"}. Must match a sample name in
+#'   the VCF.
+#' @param backcross.gen Integer. Number of generations of backcrossing to the
+#'   recurrent parent (\code{p2}); used only with
+#'   \code{"PipelineMapping2Parents"}. Default 0.
+#' @param intercross.gen Integer. Number of generations of random intermating
+#'   within the population; used only with \code{"PipelineMapping2Parents"}.
+#'   Default 0 (e.g. 1 for an F1 cross).
+#' @param selfing.gen Integer. Number of generations of self-fertilization;
+#'   used only with \code{"PipelineMapping2Parents"}. Default 0.
+#' @param contamRate Numeric. Expected rate of sample cross-contamination,
+#'   passed to \code{\link[polyRAD]{VCF2RADdata}}. Default 0.001.
+#' @param min_ind_read Integer. Minimum number of samples with reads for a
+#'   marker to be kept (\code{min.ind.with.reads} in
+#'   \code{\link[polyRAD]{VCF2RADdata}}). Default 1.
+#' @param min_ind_maf Integer. Minimum number of samples carrying reads of the
+#'   minor allele for a marker to be kept (\code{min.ind.with.minor.allele} in
+#'   \code{\link[polyRAD]{VCF2RADdata}}). Default 0.
+#' @param tol Numeric. Convergence tolerance for the iterative polyRAD models,
+#'   also passed to \code{\link[polyRAD]{VCF2RADdata}}. Default 1e-05.
+#' @param session Shiny \code{session} object. Kept for compatibility with the
+#'   Shiny module; not used inside the function.
+#'
+#' @return A list with two elements:
+#' \describe{
+#'   \item{Genos}{Matrix of the most probable dosages, with markers in rows
+#'     and samples in columns. Each row is named \code{<marker>_<allele>} and
+#'     holds the dosage (0 to \code{ploidy}) of that allele; the other allele
+#'     of each biallelic marker is omitted. Samples with no reads at a marker
+#'     are \code{NA}.}
+#'   \item{RADHindHe}{Matrix of Hind/He values (samples by loci) from
+#'     \code{\link[polyRAD]{HindHe}}, used to flag loci and samples whose
+#'     heterozygosity does not match the expected ploidy.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' vcf_file <- system.file("iris_DArT_VCF.vcf.gz", package = "BIGapp")
+#' res <- polyRAD_dosage_call(vcf = vcf_file, ploidy = 2, model = "IterateHWE")
+#' }
 #'
 #' @import polyRAD
 #' @importFrom vcfR read.vcfR is.biallelic write.vcf
 #' @importFrom R.utils gunzip
 #'
+#' @export 
 polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
                                 backcross.gen = 0, intercross.gen = 0, selfing.gen = 0,
                                 contamRate = 0.001, min_ind_read = 1, min_ind_maf = 0,
@@ -92,18 +209,7 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
   # Perform QC
   
   # Test overdispersion
-  # Need to see if we can adapt the to_test values based on the input VCF or RAD object values
-  # Currently using a range of 2:20, but an error will be provbided if the optimal value is the max or min of this range
-  # Will iterate through a wider range if this is the case until the OD is estimated
-  to_test_min <- 0
-  to_test_max <- 20
-  OD <- polyRAD::TestOverdispersion(polyRAD_obj, to_test = to_test_min:to_test_max)$optimal
-  while (is.na(OD)) {
-    message("Optimal value is at the edge of the range, retesting with a wider range")
-    to_test_min <- to_test_min + 15
-    to_test_max <- to_test_max + 20
-    OD <- TestOverdispersion(polyRAD_obj, to_test = to_test_min:to_test_max)$optimal
-  }
+  OD <- estimate_overdispersion(polyRAD_obj)
   
   # Test HindHe
   myhindhe <- HindHe(polyRAD_obj)
@@ -198,8 +304,10 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
 #'     updates the header to include:
 #'     \itemize{
 #'       \item \code{##INFO=<ID=HH,...>} for Hind/He per locus.
-#'       \item \code{##FORMAT=<ID=GTP,...>} for polyRAD-estimated genotypes
-#'         (in allele-count space).
+#'       \item \code{##FORMAT=<ID=GT,...>} for polyRAD-estimated genotypes
+#'         (in allele-count space). If the template VCF already has a
+#'         \code{GT} field, it is kept and renamed to \code{GTO} (original
+#'         genotype) in both the header and the FORMAT column.
 #'       \item \code{##FORMAT=<ID=UD,...>} for the dosage count of reference
 #'         alleles.
 #'       \item Version tags for \code{polyRAD} and \code{BIGapp}.
@@ -208,7 +316,9 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
 #'     \code{"0/0"}, \code{"0/1"}, \code{"1/1"}, etc.) given the specified
 #'     \code{ploidy}.
 #'   \item Builds a new FORMAT field for each variant combining:
-#'     \code{GTP}, \code{UD}, and the original FORMAT fields from the template.
+#'     \code{GT} (polyRAD), \code{UD}, and the original FORMAT fields from the
+#'     template (with any original \code{GT} and \code{UD} renamed to
+#'     \code{GTO} and \code{UDO}).
 #'   \item Writes the updated header and variant table to a VCF file.
 #' }
 #'
@@ -227,6 +337,7 @@ polyRAD_dosage_call <- function(vcf, ploidy, model, p1 = NULL, p2 = NULL,
 #' @importFrom BIGr flip_dosage
 #' @importFrom vcfR read.vcfR extract.gt
 #'
+#' @export 
 polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, session) {
   # Making the VCF
   # Appending the polyRAD info to the original VCF file and exporting
@@ -247,24 +358,30 @@ polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, 
   # Updating Header
   # Extracting the header (meta)
   meta <- og_vcf@meta
-  # Getting the last lines for INFO and FORMAT fields
-  FORMAT_index <- min(grep("^##FORMAT=", meta))
   # Custom INFO lines to add
   custom_info_lines <- c(
     '##INFO=<ID=HH,Number=1,Type=Float,Description="Hind/He for the locus in the RADdata object">'
   )
-  # Custom FORMAT lines to add
-  ## If GT FORMAT field is present, return GTP, if not return GT
-  if(grepl("\\bGT\\b", og_vcf@gt[1, "FORMAT"])) {
-    model_format_id <- "GTP"
-  } else {
-    model_format_id <- "GT"
-  }
-  custom_format_lines <- c(
-    paste0('##FORMAT=<ID=', model_format_id,',Number=1,Type=String,Description="Genotype estimated by polyRAD, where 1 is the count of alternate alleles">'),
-    '##FORMAT=<ID=UD,Number=1,Type=Integer,Description="Dosage count of reference alleles from polyRAD, where 0 = homozygous alternate">'
+  # The polyRAD genotype always occupies GT (and dosage UD). If the input VCF
+  # already has these fields, they are kept but renamed with an "O" suffix
+  # (original): GT -> GTO, UD -> UDO.
+  og_format <- og_vcf@gt[, "FORMAT"]
+  renamed_lines <- c(
+    GT = '##FORMAT=<ID=GTO,Number=1,Type=String,Description="Original genotype from the input VCF (replaced in GT by the polyRAD genotype)">',
+    UD = '##FORMAT=<ID=UDO,Number=1,Type=Integer,Description="Original UD field from the input VCF (replaced in UD by the polyRAD dosage)">'
   )
-  
+  for (id in names(renamed_lines)) {
+    og_header <- grep(paste0("^##FORMAT=<ID=", id, ","), meta)
+    if (length(og_header) > 0) {
+      meta[og_header] <- renamed_lines[[id]]
+    } else if (any(grepl(paste0("(^|:)", id, "(:|$)"), og_format))) {
+      meta <- append(meta, renamed_lines[[id]], after = max(c(0, grep("^##FORMAT=", meta))))
+    }
+  }
+  # Getting the first FORMAT line, to insert the polyRAD fields before it
+  FORMAT_index <- min(grep("^##FORMAT=", meta))
+
+  # Custom FORMAT lines to add
   custom_format_lines <- c(
     '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype estimated by polyRAD, where 1 is the count of alternate alleles">',
     '##FORMAT=<ID=UD,Number=1,Type=Integer,Description="Dosage count of reference alleles from polyRAD, where 0 = homozygous alternate">'
@@ -323,8 +440,13 @@ polyRAD2vcf <- function(geno, model, vcf_path, hindhe.obj, ploidy, output.file, 
   vcf_df$INFO <- paste0(vcf_df$INFO,";",
                         "HH=",t(hh))
   
-  #Add the FORMAT label for each SNP
-  vcf_df$FORMAT <- paste(model_format_id,"UD",og_vcf@gt[1, "FORMAT"],sep=":")
+  #Add the FORMAT label for each SNP (polyRAD GT first; original GT/UD renamed to GTO/UDO)
+  og_format_renamed <- vcf_df$FORMAT
+  for (id in c("GT", "UD")) {
+    og_format_renamed <- gsub(paste0("(^|:)", id, "(?=:|$)"), paste0("\\1", id, "O"),
+                              og_format_renamed, perl = TRUE)
+  }
+  vcf_df$FORMAT <- paste("GT", "UD", og_format_renamed, sep = ":")
   
   #Convert genotypes from dosage to gt
   precompute_genotype_strings <- function(ploidy) {
