@@ -72,7 +72,6 @@ Imports:
     VariantAnnotation,
     methods
 Remotes:
-    github::jendelman/GWASpoly,
-    bioc::Rsamtools
+    github::jendelman/GWASpoly
 Suggests:
     testthat
